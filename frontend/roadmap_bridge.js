@@ -19,10 +19,13 @@
   'use strict';
 
   /* ── Config ─────────────────────────────────────────────── */
-  // API base URL is set by config.js (window.RX_API).
-  // Falls back to the Render URL for safety if config.js is missing.
-  window.API_BASE = window.RX_API;
-  const API_BASE = window.API_BASE.replace(/\/$/, '');
+  // FIX: was `window.API_BASE = window.RX_API; const API_BASE = window.API_BASE.replace(...)`.
+  // If window.RX_API was undefined (config.js not yet loaded, or failed to
+  // load), `.replace()` on undefined threw a TypeError that killed the entire
+  // IIFE and silently disabled the My Roadmaps feature. Use a getter so the
+  // URL is resolved lazily on each request.
+  window.API_BASE = window.RX_API || '';
+  const API_BASE = () => (window.RX_API || window.API_BASE || '').replace(/\/$/, '');
 
   /* ── State ──────────────────────────────────────────────── */
   let _roadmaps       = [];      // list of roadmap summaries
@@ -55,7 +58,7 @@
      FETCH HELPERS
   ══════════════════════════════════════════════════════════ */
   async function apiFetch(path, options = {}) {
-    const url = API_BASE + path;
+    const url = API_BASE() + path;
     const res = await fetch(url, {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',   // required: sends session cookie cross-origin

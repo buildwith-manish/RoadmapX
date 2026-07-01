@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { randomUUID } = require('crypto');
 const Roadmap = require('../models/Roadmap');
+const Step    = require('../models/Step');
 
 /* ══════════════════════════════════════════════════════
    CONSTANTS
@@ -256,6 +257,9 @@ exports.deleteRoadmap = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Forbidden.' });
     }
     await Roadmap.findByIdAndDelete(req.params.id);
+    // Cascade: delete orphan Step documents that referenced this roadmap,
+    // otherwise they linger forever in the steps collection.
+    try { await Step.deleteMany({ roadmapId: req.params.id }); } catch (_) {}
     res.json({ success: true });
   } catch (err) {
     console.error('deleteRoadmap:', err);

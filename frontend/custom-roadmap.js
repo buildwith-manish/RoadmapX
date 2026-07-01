@@ -40,10 +40,16 @@ const CRM = (() => {
   ══════════════════════════════════════════ */
 
   // ── Backend helpers ────────────────────────────────────
-  // Reads BASE_URL from config.js if available, falls back gracefully.
+  // Reads the canonical backend URL from window.RX_API (set by config.js).
+  // Previously this looked for a non-existent global `BASE_URL`, so the API base
+  // was always '' and every backend sync call 404'd on Cloudflare Pages.
   function _apiBase() {
-    try { return (typeof BASE_URL !== 'undefined' && BASE_URL) ? BASE_URL : ''; }
-    catch(e) { return ''; }
+    try {
+      if (typeof window !== 'undefined' && window.RX_API) return window.RX_API;
+      // Legacy fallback for environments where config.js was not loaded yet.
+      if (typeof BASE_URL !== 'undefined' && BASE_URL) return BASE_URL;
+    } catch(e) {}
+    return '';
   }
 
   async function _isLoggedIn() {

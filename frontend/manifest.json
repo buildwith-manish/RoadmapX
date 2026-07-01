@@ -1,0 +1,25 @@
+{
+  "name": "RoadmapX",
+  "short_name": "RoadmapX",
+  "description": "Your structured learning roadmap platform with progress tracking, AI-powered custom roadmaps, leaderboards, reminders, and social sharing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#05050f",
+  "theme_color": "#05050f",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -23,7 +23,12 @@
 (function () {
   'use strict';
 
-  const API = window.RX_API; // set by config.js
+  // FIX: read window.RX_API lazily via a helper so this file works even if it
+  // happens to load before config.js (e.g. on sessions.html where the original
+  // ordering had auth_guard.js with `defer` before config.js without `defer`).
+  // The previous `const API = window.RX_API;` captured undefined at IIFE time
+  // and every subsequent fetch became `fetch('undefined/me')` → 404.
+  const API = () => (typeof window !== 'undefined' && window.RX_API) ? window.RX_API : '';
 
   // ── UI: Guest header ─────────────────────────────────────────────────────
   function applyGuestHeader() {
@@ -123,7 +128,7 @@
 
     // Always verify with the server — cookies are the source of truth.
     // credentials:'include' is REQUIRED to send the session cookie cross-origin.
-    fetch(API + '/me', {
+    fetch(API() + '/me', {
       method: 'GET',
       credentials: 'include',
       headers: { 'Accept': 'application/json' }

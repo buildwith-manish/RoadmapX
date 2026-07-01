@@ -14,6 +14,9 @@
 
 <!-- Offline Detection -->
 <script src="/offline.js" defer></script>
+<!-- FIX: config.js was missing — without it window.RX_API is undefined and
+     every backend sync call (progress, notes, pomodoro) silently 404s. -->
+<script src="config.js"></script>
 
   <meta name="theme-color" content="#05050f"/>
   <title>Frontend Roadmap — RoadmapX</title>
@@ -225,11 +228,6 @@
         <div class="section" style="padding-top:8px"><div id="fe-revision-list"></div></div>
       </div>
 
-      <!-- ── POMO TAB ── -->
-          </div>
-        </div>
-      </div>
-
       <!-- ── NOTES TAB ── -->
       <div id="fe-sub-notes" style="display:none">
         <div class="back-home-bar">
@@ -306,7 +304,7 @@
       </div>
       <span class="fe-nav-lbl">Projects</span>
     </button>
-    <button class="fe-nav-item" id="fe-nav-visual" onclick="window.location.href='fe-roadmap.html'">
+    <button class="fe-nav-item" id="fe-nav-visual" onclick="window.location.href='frontend-roadmap.html'">
       <div class="fe-nav-ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
       </div>

@@ -525,9 +525,12 @@
 
     const GOOGLE_CLIENT_ID = '659466725316-onvlvclmfn6r6n7h5p7in9ffqdvcbpm3.apps.googleusercontent.com';
 
-    // Lazy API getter — always safe even if config.js hasn't run yet
+    // Lazy API getter — always safe even if config.js hasn't run yet.
+    // FIX: removed the hardcoded onrender.com fallback so local dev talks to
+    // the local backend (window.RX_API is set to http://localhost:5000 by
+    // config.js on localhost).
     function getAPI() {
-      return window.RX_API || 'https://roadmapx-backend-3qmc.onrender.com';
+      return window.RX_API || '';
     }
 
     // Detect mobile/touch devices

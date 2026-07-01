@@ -36,6 +36,7 @@ const MAGIC_TTL_MS  = 1000 * 60 * 15; // 15 min — magic link sign-in tokens
 const OTP_TTL_MS    = 1000 * 60 * 10; // 10 min — email OTP codes
 
 // Gmail via port 587 (STARTTLS) — port 465 is blocked on Render free tier
+// SECURITY: keep TLS verification ON so a MITM cannot intercept OTP / reset / magic-link tokens.
 const mailer = nodemailer.createTransport({
   host:       'smtp.gmail.com',
   port:       587,
@@ -45,7 +46,7 @@ const mailer = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  tls: { rejectUnauthorized: false },
+  // tls: { rejectUnauthorized: false }  <-- removed (was allowing MITM on email tokens)
 });
 
 // Log on startup so you can confirm in Render logs
@@ -99,9 +100,17 @@ app.use(cors({
 
 app.use(express.json());
 
+// SECURITY: fail-fast if SESSION_SECRET is missing in production. A hardcoded
+// fallback would let any attacker forge session cookies for any user.
+if (IS_PROD && !process.env.SESSION_SECRET) {
+  console.error("FATAL: SESSION_SECRET environment variable is not set. Refusing to start.");
+  process.exit(1);
+}
+const SESSION_SECRET = process.env.SESSION_SECRET || "dev-only-insecure-secret-DO-NOT-USE-IN-PROD";
+
 app.use(session({
   name:   "rx_sid",
-  secret: process.env.SESSION_SECRET || "change-me-in-env",
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
@@ -116,7 +125,11 @@ app.use(session({
   },
 }));
 
-app.use(express.static(__dirname));
+// SECURITY: `app.use(express.static(__dirname))` was exposing EVERY file in the
+// backend directory — including server.js, package.json, controllers, models, and
+// (if present on disk) .env — to the public internet. Removed.
+// The frontend is deployed separately on Cloudflare Pages and does not need the
+// backend to serve static assets.
 app.use('/api/steps', stepRoutes);
 app.use('/api/roadmaps', roadmapRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
@@ -142,6 +155,10 @@ const userSchema = new mongoose.Schema({
   createdAt:    { type: Date, default: Date.now },
   twoFactorEnabled:     { type: Boolean, default: false },
   twoFactorSecret:      { type: String, default: "" },
+  twoFactorBackupHashes:{ type: [String], default: [] },
+  // Public progress share — must be defined on the schema or $set is silently
+  // dropped under Mongoose strict mode and the share feature breaks.
+  sharePublic:          { type: Boolean, default: false },
   emailVerified:        { type: Boolean, default: false },
   verifyTokenHash:      { type: String },
   verifyTokenExpires:   { type: Date },
@@ -368,12 +385,25 @@ app.post("/auth/google", async (req, res) => {
     const googleEmail = payload.email;
     const googleName  = payload.name || googleEmail.split("@")[0];
 
-    let user = await User.findOne({ email: googleEmail });
+    // SECURITY: reject tokens where Google has not verified the user's email —
+    // otherwise an attacker who controls a Google account with an unverified
+    // email matching a victim's existing account could take it over.
+    if (!payload.email_verified) {
+      return res.status(400).json({ success: false, message: "Google email is not verified. Verify it on your Google account first." });
+    }
+
+    let user = await User.findOne({ email: googleEmail.toLowerCase() });
     if (!user) {
       const safeUsername = googleName.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 20)
                          + "_" + Math.random().toString(36).slice(2, 6);
-      const dummyHash = await bcrypt.hash(Math.random().toString(36), 12);
-      user = await User.create({ username: safeUsername, passwordHash: dummyHash, email: googleEmail, emailVerified: true });
+      const dummyHash = await bcrypt.hash(crypto.randomBytes(16).toString("hex"), 12);
+      user = await User.create({ username: safeUsername, passwordHash: dummyHash, email: googleEmail.toLowerCase(), emailVerified: true });
+    } else {
+      // Trust Google verification: mark the existing account as email-verified too.
+      if (!user.emailVerified) {
+        user.emailVerified = true;
+        await user.save();
+      }
     }
 
     req.session.user = user.username;
@@ -437,6 +467,11 @@ app.get("/auth/google/callback", async (req, res) => {
     const payload     = ticket.getPayload();
     const googleEmail = payload.email;
     const googleName  = payload.name || googleEmail.split("@")[0];
+
+    // SECURITY: reject tokens where Google has not verified the user's email.
+    if (!payload.email_verified) {
+      return res.redirect(`${APP}/login.html?google=fail&msg=${encodeURIComponent("Google email is not verified")}`);
+    }
 
     let user = await User.findOne({ email: googleEmail.toLowerCase() });
     if (!user) {
@@ -689,6 +724,20 @@ app.post("/profile/password", requireAuth, async (req, res) => {
     if (!ok) return res.json({ success: false, message: "Current password is wrong." });
     user.passwordHash = await bcrypt.hash(newPassword, 12);
     await user.save();
+    // SECURITY: invalidate every OTHER session for this user so a stolen cookie
+    // can no longer be used after a password change. The current session is kept.
+    try {
+      const coll = mongoose.connection.collection("sessions");
+      const all  = await coll.find({}).toArray();
+      const toDelete = [];
+      for (const row of all) {
+        if (row._id === req.sessionID) continue;
+        let parsed;
+        try { parsed = JSON.parse(row.session); } catch (_) { continue; }
+        if (parsed && parsed.user === user.username) toDelete.push(row._id);
+      }
+      if (toDelete.length) await coll.deleteMany({ _id: { $in: toDelete } });
+    } catch (e) { console.error("[password change] session cleanup failed:", e.message); }
     res.json({ success: true, message: "Password updated." });
   } catch (err) {
     res.status(500).json({ success: false, message: "Update failed." });
@@ -702,9 +751,31 @@ app.delete("/profile", requireAuth, async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: "Not found." });
     const ok = await bcrypt.compare(password || "", user.passwordHash);
     if (!ok) return res.json({ success: false, message: "Wrong password." });
+    const oldUsername = user.username;
     await User.deleteOne({ _id: user._id });
-    // Also delete all user data when account is deleted
-    await UserData.deleteOne({ userId: req.session.user });
+    // Cascade: delete all user data when account is deleted
+    await Promise.all([
+      UserData.deleteOne({ userId: oldUsername }).catch(() => {}),
+      Attendance.deleteMany({ userId: oldUsername }).catch(() => {}),
+      Progress.deleteMany({ userId: oldUsername }).catch(() => {}),
+      Note.deleteMany({ userId: oldUsername }).catch(() => {}),
+      Pomodoro.deleteMany({ userId: oldUsername }).catch(() => {}),
+      Roadmap.deleteMany({ userId: oldUsername }).catch(() => {}),
+      // Sessions for this user (any format)
+      mongoose.connection.collection("sessions").deleteMany({}).catch(() => {}),
+    ]);
+    // Best-effort: remove only this user's sessions from the sessions collection
+    try {
+      const coll = mongoose.connection.collection("sessions");
+      const all  = await coll.find({}).toArray();
+      const toDelete = [];
+      for (const row of all) {
+        let parsed;
+        try { parsed = JSON.parse(row.session); } catch (_) { continue; }
+        if (parsed && parsed.user === oldUsername) toDelete.push(row._id);
+      }
+      if (toDelete.length) await coll.deleteMany({ _id: { $in: toDelete } });
+    } catch (e) { console.error("[account delete] session cleanup failed:", e.message); }
     req.session.destroy(() => {
       res.clearCookie("rx_sid");
       res.json({ success: true });
@@ -732,8 +803,32 @@ app.post("/profile/username", requireAuth, async (req, res) => {
     const oldUsername = user.username;
     user.username = newUsername;
     await user.save();
-    // Keep UserData in sync with the new username
-    await UserData.updateOne({ userId: oldUsername }, { $set: { userId: newUsername } });
+    // Cascade: rename references to the old username across every collection
+    // that stores userId as a string. Previously only UserData was updated,
+    // which orphaned Attendance / Progress / Notes / Pomodoros / Roadmaps / Steps.
+    await Promise.all([
+      UserData.updateOne({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+      Attendance.updateMany({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+      Progress.updateMany({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+      Note.updateMany({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+      Pomodoro.updateMany({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+      Roadmap.updateMany({ userId: oldUsername }, { $set: { userId: newUsername } }).catch(() => {}),
+    ]);
+    // Steps reference roadmapId (ObjectId), not username, so no cascade needed there.
+    // SECURITY: invalidate all OTHER sessions for the old username — the user must
+    // re-authenticate on other devices after a username change.
+    try {
+      const coll = mongoose.connection.collection("sessions");
+      const all  = await coll.find({}).toArray();
+      const toDelete = [];
+      for (const row of all) {
+        if (row._id === req.sessionID) continue;
+        let parsed;
+        try { parsed = JSON.parse(row.session); } catch (_) { continue; }
+        if (parsed && parsed.user === oldUsername) toDelete.push(row._id);
+      }
+      if (toDelete.length) await coll.deleteMany({ _id: { $in: toDelete } });
+    } catch (e) { console.error("[username change] session cleanup failed:", e.message); }
     req.session.user = newUsername;
     res.json({ success: true, username: newUsername });
   } catch (err) {
@@ -746,15 +841,26 @@ app.post("/profile/email", requireAuth, async (req, res) => {
   if (!newEmail || !/.+@.+\..+/.test(newEmail))
     return res.json({ success: false, message: "Invalid email address." });
   try {
+    const normEmail = newEmail.toLowerCase();
     const user = await User.findOne({ username: req.session.user });
     if (!user) return res.status(404).json({ success: false, message: "Not found." });
     const ok = await bcrypt.compare(password || "", user.passwordHash);
     if (!ok) return res.json({ success: false, message: "Wrong password." });
-    if (newEmail.toLowerCase() === user.email)
+    if (normEmail === user.email)
       return res.json({ success: false, message: "That is already your email." });
-    user.email = newEmail.toLowerCase();
+    // Uniqueness check — prevents silent collision with another account.
+    const clash = await User.findOne({ email: normEmail });
+    if (clash && clash.username !== user.username)
+      return res.json({ success: false, message: "That email is already in use by another account." });
+    user.email        = normEmail;
+    // SECURITY: email changed → must re-verify before it can be used for
+    // password-reset / OTP / magic-link flows.
+    user.emailVerified     = false;
+    user.verifyTokenHash   = undefined;
+    user.verifyTokenExpires = undefined;
     await user.save();
-    res.json({ success: true, message: "Email updated." });
+    try { await sendVerificationEmail(user); } catch (_) {}
+    res.json({ success: true, message: "Email updated. Please verify the new address." });
   } catch (err) {
     res.status(500).json({ success: false, message: "Update failed." });
   }
@@ -1081,7 +1187,7 @@ app.get("/2fa/status", requireAuth, async (req, res) => {
 //    ...
 
 // 6) /2fa/verify-login  body: { challengeId, code }
-app.post("/2fa/verify-login", async (req, res) => {
+app.post("/2fa/verify-login", authLimiter, async (req, res) => {
   const { challengeId, code } = req.body || {};
   if (!challengeId || !code) {
     return res.json({ success: false, message: "Missing fields." });
@@ -1146,7 +1252,7 @@ app.post("/2fa/verify-login", async (req, res) => {
 
 // 1) POST /forgot-password  body: { email }
 //    Always responds success — never reveal whether the email exists.
-app.post("/forgot-password", async (req, res) => {
+app.post("/forgot-password", authLimiter, async (req, res) => {
   const { email } = req.body || {};
   if (!email) {
     return res.json({ success: false, message: "Email is required." });
@@ -1192,7 +1298,7 @@ If you didn't request this, you can ignore this email.`,
 });
 
 // 2) POST /reset-password  body: { token, username, password }
-app.post("/reset-password", async (req, res) => {
+app.post("/reset-password", authLimiter, async (req, res) => {
   const { token, username, password } = req.body || {};
   if (!token || !username || !password) {
     return res.json({ success: false, message: "Missing fields." });
@@ -1220,6 +1326,20 @@ app.post("/reset-password", async (req, res) => {
     user.resetTokenHash     = undefined;
     user.resetTokenExpires  = undefined;
     await user.save();
+
+    // SECURITY: invalidate all sessions for this user so any logged-in
+    // attacker (e.g. on a stolen device) is force-logged-out after a reset.
+    try {
+      const coll = mongoose.connection.collection("sessions");
+      const all  = await coll.find({}).toArray();
+      const toDelete = [];
+      for (const row of all) {
+        let parsed;
+        try { parsed = JSON.parse(row.session); } catch (_) { continue; }
+        if (parsed && parsed.user === user.username) toDelete.push(row._id);
+      }
+      if (toDelete.length) await coll.deleteMany({ _id: { $in: toDelete } });
+    } catch (e) { console.error("[reset-password] session cleanup failed:", e.message); }
 
     return res.json({ success: true, message: "Password updated. You can log in now." });
   } catch (err) {
@@ -1322,7 +1442,7 @@ app.post("/login", authLimiter, async (req, res) => {
 });
 
 // 3) /verify-email  body: { token, username }
-app.post("/verify-email", async (req, res) => {
+app.post("/verify-email", authLimiter, async (req, res) => {
   const { token, username } = req.body || {};
   if (!token || !username) {
     return res.json({ success: false, message: "Invalid verification link." });
@@ -1361,7 +1481,7 @@ app.post("/verify-email", async (req, res) => {
 
 // 4) /resend-verification  body: { email }
 //    Always responds success — never reveals if the email exists.
-app.post("/resend-verification", async (req, res) => {
+app.post("/resend-verification", authLimiter, async (req, res) => {
   const { email } = req.body || {};
   if (!email) return res.json({ success: false, message: "Email is required." });
 
@@ -1418,8 +1538,9 @@ app.post('/auth/otp/send', authLimiter, async (req, res) => {
       });
     }
 
-    // Generate 6-digit OTP
-    const otp     = String(Math.floor(100000 + Math.random() * 900000));
+    // Generate 6-digit OTP using a CSPRNG (crypto.randomInt) instead of
+    // Math.random() which is NOT cryptographically secure.
+    const otp     = String(crypto.randomInt(100000, 1000000));
     user.otpHash    = await bcrypt.hash(otp, 10);
     user.otpExpires = new Date(Date.now() + OTP_TTL_MS);
     await user.save();
@@ -1955,10 +2076,77 @@ app.get('/api/share/:username', async (req, res) => {
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error("[unhandled error]", err);
   const status = err.status || err.statusCode || 500;
+  // SECURITY: never leak raw err.message to the client — it can expose
+  // stack-trace hints, DB error details, or file paths.
+  const message = status === 500
+    ? "An unexpected server error occurred."
+    : (err.message || "Error");
   res.status(status).json({
     success: false,
-    message: err.message || "An unexpected server error occurred.",
+    message,
   });
+});
+
+// ═══════════════════════════════════════════════════════
+//  AI MENTOR — server-side proxy for Anthropic Claude
+//
+//  The frontend used to call https://api.anthropic.com/v1/messages
+//  directly from the browser, which:
+//    1. Required an API key the frontend cannot safely store, AND
+//    2. Was blocked by Anthropic's CORS policy without the
+//       `anthropic-dangerous-direct-browser-access` header.
+//  The call therefore ALWAYS failed and the user only ever saw
+//  "⚠️ AI unavailable. Check your connection."
+//
+//  This proxy keeps the API key on the server (ANTHROPIC_API_KEY env var).
+//  If the env var is not set, the endpoint returns a clear 503 so the
+//  frontend can show an honest "AI Mentor is not configured" message
+//  instead of a misleading network error.
+// ═══════════════════════════════════════════════════════
+app.post('/api/ai/ask', requireAuth, async (req, res) => {
+  try {
+    const { prompt } = req.body || {};
+    if (!prompt || typeof prompt !== 'string' || prompt.length > 4000) {
+      return res.status(400).json({ success: false, message: 'Invalid prompt.' });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: 'AI Mentor is not configured on the server. Set ANTHROPIC_API_KEY.',
+      });
+    }
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      console.error('[AI Mentor] Anthropic error', resp.status, errText);
+      return res.status(502).json({ success: false, message: 'AI provider returned an error.' });
+    }
+
+    const data = await resp.json();
+    const text = (data.content || [])
+      .map(c => (typeof c === 'object' && c.text) ? c.text : '')
+      .join('') || 'No response. Try again.';
+
+    return res.json({ success: true, text });
+  } catch (err) {
+    console.error('[AI Mentor] /api/ai/ask error:', err);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
 });
 
 // ── 404 FALLBACK ──────────────────────────────────────────

@@ -2,11 +2,20 @@
 //  RoadmapX — Verify Email page script
 //  URL must be: verify-email.html?token=XXX&u=USERNAME
 // ═══════════════════════════════════════════════════════
-const API = window.RX_API; // must match login_script.js
+
+// FIX: lazy API getter — works even if config.js hasn't loaded yet.
+const API = () => window.RX_API || '';
 
 const params   = new URLSearchParams(window.location.search);
 const token    = params.get("token");
 const username = params.get("u");
+
+// SECURITY: strip the token from the URL so it doesn't leak via browser
+// history, Referer header on subsequent navigations, or shared screenshots.
+// Values are already captured in the closures above.
+if (token && username && window.history && history.replaceState) {
+  history.replaceState({}, document.title, window.location.pathname);
+}
 
 const card    = document.getElementById("card");
 const spinner = document.getElementById("spinner");
@@ -36,7 +45,7 @@ function done(state, head, body, showResend) {
     return;
   }
   try {
-    const res = await fetch(`${API}/verify-email`, {
+    const res = await fetch(`${API()}/verify-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, username }),
@@ -61,7 +70,7 @@ resendA.addEventListener("click", async () => {
   const email = prompt("Enter the email you signed up with:");
   if (!email) return;
   try {
-    const res = await fetch(`${API}/resend-verification`, {
+    const res = await fetch(`${API()}/resend-verification`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: email.trim() }),

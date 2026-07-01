@@ -14,6 +14,9 @@
 
 <!-- Offline Detection -->
 <script src="/offline.js" defer></script>
+<!-- FIX: config.js was missing — without it window.RX_API is undefined and
+     every backend sync call (progress, notes, pomodoro) silently 404s. -->
+<script src="config.js"></script>
 
     <meta name="theme-color" content="#05050f" />
     <title>AI Roadmap — RoadmapX</title>
@@ -211,9 +214,6 @@
               <button class="filter-chip" onclick="APP.setAIRevFilter('done',this)">Done</button>
             </div>
             <div class="section" style="padding-top:8px"><div id="ai-revision-list"></div></div>
-          </div>
-              </div>
-          </div>
           </div>
 
           <!-- SUB: AI Notes -->

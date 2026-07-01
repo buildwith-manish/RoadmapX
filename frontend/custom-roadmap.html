@@ -14,6 +14,10 @@
 
 <!-- Offline Detection -->
 <script src="/offline.js" defer></script>
+<!-- FIX: config.js was missing — without it window.RX_API is undefined and
+     custom-roadmap.js's _apiBase() returns '', so every backend sync call
+     silently 404s and custom roadmaps are localStorage-only. -->
+<script src="config.js"></script>
 
   <meta name="theme-color" content="#05050f" />
   <title>Custom Roadmap — RoadmapX</title>

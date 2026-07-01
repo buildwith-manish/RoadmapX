@@ -106,8 +106,12 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="auth_guard.js" defer></script>
+  <!-- ORDER FIX: config.js must run BEFORE auth_guard.js, because auth_guard.js
+       reads window.RX_API at IIFE time. Loading auth_guard first with `defer`
+       was fragile — the defer made it execute after the parser finished,
+       racing with config.js (no defer) in undefined order. -->
   <script src="config.js"></script>
+  <script src="auth_guard.js"></script>
   <script src="sessions_script.js" defer></script>
 </body>
 </html>

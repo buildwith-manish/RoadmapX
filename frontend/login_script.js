@@ -3,10 +3,15 @@
  * Login/Signup panel removed. Only Google + OTP sign-in available.
  */
 
-const API  = window.RX_API || "https://roadmapx-backend-3qmc.onrender.com";
+// FIX: removed the hardcoded onrender.com fallback so that local dev actually
+// talks to the local backend (window.RX_API is set to http://localhost:5000 by
+// config.js when running on localhost). The previous fallback silently sent
+// every local-dev request to production, where the session cookie didn't match
+// and login appeared to "just not work".
+const API  = window.RX_API || '';
 const HOME = 'index.html';
 
-function getAPI() { return API; }
+function getAPI() { return API || window.RX_API || ''; }
 
 // ── Capacitor detection helper ──────────────────────────────
 function isCapacitor() {

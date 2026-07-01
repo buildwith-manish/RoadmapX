@@ -4834,17 +4834,25 @@ Include: what to build, key skills practiced, rough time estimate (hrs). Be conc
     const prompt = prompts[currentMode] || prompts.explain;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // FIX: was calling https://api.anthropic.com/v1/messages directly from
+      // the browser. That ALWAYS failed because:
+      //   1. No API key can be safely embedded in frontend code, AND
+      //   2. Anthropic's CORS policy blocks browser calls without the
+      //      `anthropic-dangerous-direct-browser-access` header (which would
+      //      still require exposing the key).
+      // Route through our own backend proxy at /api/ai/ask instead, which
+      // holds the ANTHROPIC_API_KEY in env vars on the server.
+      const apiBase = (typeof window !== 'undefined' && window.RX_API) ? window.RX_API : '';
+      const response = await fetch(apiBase + '/api/ai/ask', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        body: JSON.stringify({ prompt })
       });
       const data = await response.json();
-      const text = data.content?.map(c => c.text || '').join('') || 'No response. Try again.';
+      const text = (data && data.success && data.text)
+        ? data.text
+        : (data && data.message ? data.message : 'AI Mentor is unavailable. Try again later.');
 
       if (resp) resp.textContent = text;
       if (currentMode === 'notes') {
@@ -4858,7 +4866,7 @@ Include: what to build, key skills practiced, rough time estimate (hrs). Be conc
         XP.showXPToast(10);
       }
     } catch(e) {
-      if (resp) resp.textContent = '⚠️ AI unavailable. Check your connection.\n\nTip: Review the topic explanation in the day card instead!';
+      if (resp) resp.textContent = '⚠️ AI Mentor is unavailable. The server may be cold-starting — try again in a moment.';
     }
 
     isLoading = false;
@@ -6054,10 +6062,14 @@ APP.markAbsent = function () {
       panel.style.display = '';
     }
   };
-  // Also fix goBack to go to index.html (there are no other tabs here)
-  APP.goBack = function() {
-    window.location.href = 'index.html';
-  };
+  // FIX: previously this block unconditionally overrode APP.goBack to
+  // `window.location.href = 'index.html'`, which broke in-page back
+  // navigation. The original APP.goBack (defined earlier) already pops the
+  // navStack and falls through to switchTab('home') when the stack is empty,
+  // and switchTab('home') is mapped to 'ai' just above. So in-page back
+  // (Weeks→Levels, Days→Weeks) works correctly, AND an empty stack keeps the
+  // user on this page (showing the AI tab) instead of yanking them to index.
+  // Removing the override restores that behavior.
 })();
 
 document.addEventListener('DOMContentLoaded', function() {

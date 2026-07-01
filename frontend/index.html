@@ -2263,7 +2263,11 @@
   //  MY ROADMAPS FEATURE — injected into APP
   // ═══════════════════════════════════════════════
   (function() {
-    const API = 'https://roadmapx-backend-3qmc.onrender.com';
+    // FIX: was hardcoded to the Render URL, bypassing window.RX_API from config.js.
+    // In local dev (or any other env) this would call the production backend and
+    // the session cookie would not match — so the My Roadmaps feature silently
+    // failed for anyone running the site locally. Use the canonical URL instead.
+    const API = () => window.RX_API || '';
 
     let _roadmaps       = [];
     let _steps          = [];
@@ -2332,7 +2336,7 @@
       document.getElementById('myrm-list-content').style.display = 'none';
       try {
         const userId = uid();
-        const url = `${API}/api/roadmaps${userId ? '?userId='+encodeURIComponent(userId) : ''}`;
+        const url = `${API()}/api/roadmaps${userId ? '?userId='+encodeURIComponent(userId) : ''}`;
         const r = await fetch(url, { credentials: 'include' });
         const d = await r.json();
         _roadmaps = d.success ? (d.data || []) : [];
@@ -2396,7 +2400,7 @@
       if (!userId) { toast('Please log in first.'); return; }
       setBtn('myrm-btn-create', true, 'Creating...');
       try {
-        const r = await fetch(`${API}/api/roadmaps`, {
+        const r = await fetch(`${API()}/api/roadmaps`, {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, title, description: desc }),
@@ -2417,7 +2421,7 @@
       document.getElementById('myrm-steps-list').innerHTML = '';
       document.getElementById('myrm-steps-empty').style.display = 'none';
       try {
-        const r = await fetch(`${API}/api/steps/${roadmapId}`, { credentials: 'include' });
+        const r = await fetch(`${API()}/api/steps/${roadmapId}`, { credentials: 'include' });
         const d = await r.json();
         _steps = d.success ? (d.data || []) : [];
       } catch(e) { _steps = []; toast('Could not load steps.'); }
@@ -2461,7 +2465,7 @@
       _steps[idx].completedAt = new Date().toISOString();
       renderSteps();
       try {
-        const r = await fetch(`${API}/api/steps/${stepId}`, {
+        const r = await fetch(`${API()}/api/steps/${stepId}`, {
           method: 'PUT', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -2496,7 +2500,7 @@
       if (!_currentRoadmap) return;
       setBtn('myrm-btn-save-step', true, 'Saving...');
       try {
-        const r = await fetch(`${API}/api/steps`, {
+        const r = await fetch(`${API()}/api/steps`, {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roadmapId: _currentRoadmap._id, title, description: desc }),

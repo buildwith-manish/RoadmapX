@@ -658,7 +658,12 @@
 </div>
 
 <script>
-const API = window.RX_API;
+// IMPORTANT: config.js is loaded at the END of <body>, so window.RX_API is
+// not yet set when this inline block first runs. Use a getter so each fetch
+// reads the CURRENT value of window.RX_API at call time, not the value at
+// script-parse time. (Previously: `const API = window.RX_API;` captured
+// undefined and every fetch became `fetch("undefined/me")` → 404.)
+const API = () => window.RX_API || '';
 
 function _showUser(name) {
   const badge    = document.getElementById("username-badge");
@@ -687,7 +692,7 @@ async function loadStats() {
   };
 
   try {
-    const me     = await fetch(API + "/me", fetchOpts);
+    const me     = await fetch(API() + "/me", fetchOpts);
     const meData = await me.json();
     if (meData.success && meData.username) {
       username = meData.username;
@@ -727,7 +732,7 @@ async function loadStats() {
 
   // Attendance
   try {
-    const res = await authFetch(API + "/get-attendance");
+    const res = await authFetch(API() + "/get-attendance");
     if (res.ok) {
       const data    = await res.json();
       const records = data.data || [];
@@ -746,7 +751,7 @@ async function loadStats() {
 
   // Pomodoro
   try {
-    const res = await authFetch(API + "/get-pomo");
+    const res = await authFetch(API() + "/get-pomo");
     if (res.ok) {
       const data     = await res.json();
       const sessions = data.data || [];
@@ -761,7 +766,7 @@ async function loadStats() {
 
   // Progress
   try {
-    const res = await authFetch(API + "/get-progress");
+    const res = await authFetch(API() + "/get-progress");
     if (res.ok) {
       const data   = await res.json();
       const topics = data.data || [];
@@ -778,7 +783,7 @@ async function loadStats() {
 
   // Notes
   try {
-    const res = await authFetch(API + "/get-text");
+    const res = await authFetch(API() + "/get-text");
     if (res.ok) {
       const data  = await res.json();
       const notes = data.data || [];

@@ -2,11 +2,22 @@
 //  RoadmapX — Reset Password page script
 //  URL must be: reset-password.html?token=XXX&u=USERNAME
 // ═══════════════════════════════════════════════════════
-const API = window.RX_API; // must match login_script.js
+
+// FIX: lazy API getter — works even if config.js hasn't loaded yet.
+const API = () => window.RX_API || '';
 
 const params   = new URLSearchParams(window.location.search);
 const token    = params.get("token");
 const username = params.get("u");
+
+// SECURITY: immediately strip the token from the URL so it doesn't leak via
+// the browser history, the Referer header on subsequent navigations, or
+// shared screenshots. The values are already captured in `token` / `username`
+// closures above. (history.replaceState keeps the same document, so the page
+// doesn't reload.)
+if (token && username && window.history && history.replaceState) {
+  history.replaceState({}, document.title, window.location.pathname);
+}
 
 function showMsg(text, type) {
   const box = document.getElementById("msg");
@@ -50,7 +61,7 @@ async function resetPassword() {
   btn.textContent = "Saving…";
 
   try {
-    const res = await fetch(`${API}/reset-password`, {
+    const res = await fetch(`${API()}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, username, password: pw }),
@@ -60,7 +71,9 @@ async function resetPassword() {
 
     if (data.success) {
       showMsg(data.message || "Password updated. Redirecting to login…", "success");
-      setTimeout(() => { window.location.href = "login.html"; }, 1200);
+      // FIX: use replace() so the back button doesn't take the user back to
+      // the (now-consumed) reset form.
+      setTimeout(() => { window.location.replace("login.html"); }, 1200);
     } else {
       showMsg(data.message || "Could not reset password.", "error");
       btn.disabled = false;
