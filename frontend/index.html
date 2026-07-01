@@ -1,0 +1,3385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+    <meta name="theme-color" content="#05050f" />
+    <title>RoadmapX: Learn &amp; Track Tech Skills</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+/* ── Floating Action Button (FAB) ── */
+#fab-btn {
+  position: fixed; width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--c1,#00e5c8), var(--c2,#7c3aed));
+  box-shadow: 0 4px 20px rgba(0,229,200,.35), 0 2px 8px rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 9999; touch-action: none;
+  transition: transform .2s, box-shadow .2s;
+  bottom: calc(var(--nav-h,60px) + env(safe-area-inset-bottom,0px) + 14px);
+  right: 16px; pointer-events: all !important;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+#fab-btn svg { width: 22px; height: 22px; color: #fff; pointer-events: none; }
+#fab-btn:active { transform: scale(.93); }
+#fab-btn.fab-dragging { transform: scale(1.1); transition: none; }
+
+#fab-panel {
+  position: fixed; width: 280px; background: #0c0c20;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(0,229,200,.1);
+  z-index: 9998; overflow: hidden;
+  display: none; flex-direction: column;
+  pointer-events: all !important;
+}
+#fab-panel.fab-panel-open { display: flex; animation: fab-in .2s ease; }
+@keyframes fab-in {
+  from { opacity:0; transform: scale(.9) translateY(8px); }
+  to   { opacity:1; transform: scale(1)  translateY(0);   }
+}
+
+/* Header */
+#fab-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px 10px; border-bottom: 1px solid rgba(255,255,255,.07);
+}
+#fab-header-title {
+  font-family: var(--font-mono,monospace); font-size: 10px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--c1,#00e5c8);
+}
+#fab-close-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,.07); color: #8080a8;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; pointer-events: all !important;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+#fab-close-btn:active { background: rgba(255,255,255,.18); }
+
+/* Pomo section */
+#fab-pomo {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 16px 16px; gap: 12px;
+}
+
+/* Ring — CRITICAL: center overlay must never catch clicks */
+#fab-pomo-ring { position: relative; width: 116px; height: 116px; flex-shrink: 0; }
+#fab-pomo-svg  { width: 116px; height: 116px; display: block; }
+#fab-pomo-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#fab-pomo-time {
+  font-family: var(--font-mono,monospace); font-size: 23px; font-weight: 800;
+  color: #f0f0ff; letter-spacing: 1px; line-height: 1;
+}
+#fab-pomo-label {
+  font-family: var(--font-mono,monospace); font-size: 8px; font-weight: 700;
+  letter-spacing: 2.5px; color: var(--c1,#00e5c8); margin-top: 4px;
+}
+
+/* Preset chips */
+#fab-presets { display: flex; gap: 5px; width: 100%; }
+.fab-preset {
+  flex: 1; padding: 5px 2px; border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04); color: #9090b8;
+  font-family: var(--font-mono,monospace); font-size: 10px; font-weight: 700;
+  cursor: pointer; text-align: center;
+  pointer-events: all !important; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.fab-preset:active, .fab-preset.fab-p-active {
+  background: rgba(0,229,200,.18); border-color: var(--c1,#00e5c8);
+  color: var(--c1,#00e5c8);
+}
+
+/* Controls row — z-index ensures they sit above everything */
+#fab-pomo-controls {
+  display: flex; gap: 12px; align-items: center;
+  position: relative; z-index: 10;
+}
+.fab-ctrl-btn {
+  border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: all !important; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative; z-index: 10;
+  width: 42px; height: 42px;
+  background: rgba(255,255,255,.08); color: #f0f0ff;
+  transition: background .12s, transform .1s;
+}
+.fab-ctrl-btn:active { transform: scale(.88) !important; }
+#fab-pomo-start {
+  width: 52px; height: 52px;
+  background: rgba(0,229,200,.18); color: var(--c1,#00e5c8);
+  box-shadow: 0 0 18px rgba(0,229,200,.25);
+}
+#fab-pomo-start:active { background: rgba(0,229,200,.38); transform: scale(.88) !important; }
+#fab-pomo-pause {
+  width: 52px; height: 52px;
+  background: rgba(251,191,36,.15); color: #fbbf24;
+}
+#fab-pomo-pause:active { background: rgba(251,191,36,.32); transform: scale(.88) !important; }
+#fab-pomo-reset { background: rgba(239,68,68,.12); color: #ef4444; }
+#fab-pomo-reset:active { background: rgba(239,68,68,.3); }
+
+/* Session label */
+#fab-pomo-session {
+  font-family: var(--font-mono,monospace); font-size: 9px;
+  color: #8080a8; letter-spacing: .5px;
+}
+
+/* ── NAV: 5 equal tabs, no scroll ── */
+#bottom-nav { overflow-x: hidden !important; }
+#bottom-nav .nav-item {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  padding: 6px 2px !important;
+}
+
+/* ── MORE GRID ── */
+.more-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 4px 16px 20px;
+}
+.more-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 16px 8px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  cursor: pointer; transition: all 0.18s;
+  text-align: center;
+}
+.more-card:active { transform: scale(0.95); background: var(--bg3); }
+.more-card-ico {
+  width: 44px; height: 44px; border-radius: 10px;
+  border: 1px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.more-card-ico svg { width: 20px; height: 20px; }
+.more-card-title { font-size: 12px; font-weight: 700; color: var(--t1); }
+.more-card-sub {
+  font-size: 9px; color: var(--t3);
+  font-family: var(--font-mono); letter-spacing: 0.5px;
+}
+    </style>
+  </head>
+  <body>
+    <div id="app">
+
+      <!-- ══════════════════ HEADER ══════════════════ -->
+      <header id="header">
+        <div class="hdr-left">
+          <div class="hdr-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            RoadmapX
+          </div>
+          <div class="hdr-sub" id="hdr-sub"></div>
+        </div>
+        <div class="hdr-right">
+          <!-- hdr-streak is set via textContent by script, keep it simple -->
+          <div class="hdr-streak" id="hdr-streak">🔥 0</div>
+          <button class="hdr-btn" title="Stats" onclick="window.location.href='stats.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </button>
+          <!-- auth_guard.js dynamically injects: Sign In button (guest) OR username pill + Profile + Logout (logged in) -->
+        </div>
+      </header>
+
+      <!-- ══════════════════ CONTENT ══════════════════ -->
+      <div id="content">
+
+        <!-- ──────── TAB: HOME ──────── -->
+        <div class="tab-panel active" id="tab-home">
+          <div class="home-bg"></div>
+          <div class="home-orb home-orb-1"></div>
+          <div class="home-orb home-orb-2"></div>
+          <div class="home-inner">
+            <div class="home-logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="home-title">RoadmapX</div>
+            <div class="home-subtitle">Choose your path and start mastering skills</div>
+
+            <div class="home-paths">
+              <button class="home-path-card myrm-card" onclick="APP.openMyRoadmaps()">
+                <div class="home-card-ico" style="background:rgba(124,58,237,0.15);border-color:rgba(124,58,237,0.3);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title">My Roadmaps</div>
+                  <div class="home-card-desc">Create custom roadmaps and track your own steps</div>
+                  <div class="home-card-meta"><span class="home-card-tag" style="background:rgba(124,58,237,0.12);border-color:rgba(124,58,237,0.25);color:var(--c2);">CUSTOM</span></div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-myrm-prog" style="width:0%;background:var(--c2);"></div></div>
+                </div>
+                <div class="home-card-arrow">›</div>
+              </button>
+
+              <button class="home-path-card" onclick="window.location.href='ai-roadmap.html'" style="border-color:rgba(16,185,129,0.25);">
+                <div class="home-card-ico" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#10b981;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">AI Visual Roadmap</div>
+                  <div class="home-card-desc">Interactive graph — 23 sections, 117 topics, tap any node to explore</div>
+                  <div class="home-card-meta">
+                    <span class="home-card-tag" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.25);color:#10b981;">VISUAL GRAPH</span>
+                    <span class="home-card-tag" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.25);color:#10b981;">117 NODES</span>
+                  </div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-ai-rm-prog" style="width:0%;background:#10b981;"></div></div>
+                </div>
+                <div class="home-card-arrow" style="color:#10b981;">›</div>
+              </button>    
+
+              <button class="home-path-card ai-card" onclick="window.location.href='ai-steps.html'">
+                <div class="home-card-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">AI Roadmap</div>
+                  <div class="home-card-desc">Python → ML → Deep Learning → NLP → LLMs → MLOps</div>
+                  <div class="home-card-meta"><span class="home-card-tag">BEGINNER → PRO</span></div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-ai-prog" style="width:0%"></div></div>
+                </div>
+                <div class="home-card-arrow">›</div>
+              </button>
+
+              <!-- Backend Visual Roadmap card -->
+              <button class="home-path-card" onclick="window.location.href='backend-roadmap.html'" style="border-color:rgba(59,130,246,0.25);">
+                <div class="home-card-ico" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.25);color:#3b82f6;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">Backend Visual Roadmap</div>
+                  <div class="home-card-desc">Interactive graph — 26 sections, 98 nodes, tap any node to explore</div>
+                  <div class="home-card-meta">
+                    <span class="home-card-tag" style="background:rgba(59,130,246,0.12);border-color:rgba(59,130,246,0.25);color:#3b82f6;">VISUAL GRAPH</span>
+                    <span class="home-card-tag" style="background:rgba(59,130,246,0.12);border-color:rgba(59,130,246,0.25);color:#3b82f6;">98 NODES</span>
+                  </div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-be-rm-prog" style="width:0%;background:#3b82f6;"></div></div>
+                </div>
+                <div class="home-card-arrow" style="color:#3b82f6;">›</div>
+              </button>
+
+              <!-- Backend Roadmap (Steps) card -->
+              <button class="home-path-card" onclick="window.location.href='backend-steps.html'" style="border-color:rgba(234,88,12,0.25);">
+                <div class="home-card-ico" style="background:rgba(234,88,12,0.1);border-color:rgba(234,88,12,0.25);color:#ea580c;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">Backend Roadmap</div>
+                  <div class="home-card-desc">Node.js → Databases → Auth → Redis → Docker → Distributed Systems</div>
+                  <div class="home-card-meta">
+                    <span class="home-card-tag" style="background:rgba(234,88,12,0.12);border-color:rgba(234,88,12,0.25);color:#ea580c;">BEGINNER → PRO</span>
+                    <span class="home-card-tag" style="background:rgba(234,88,12,0.12);border-color:rgba(234,88,12,0.25);color:#ea580c;">270 DAYS</span>
+                  </div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-be-steps-prog" style="width:0%;background:#ea580c;"></div></div>
+                </div>
+                <div class="home-card-arrow" style="color:#ea580c;">›</div>
+              </button>
+
+              <button class="home-path-card" onclick="window.location.href='dsa-roadmap.html'" style="border-color:rgba(99,102,241,0.25);">
+                <div class="home-card-ico" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.25);color:#6366f1;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">DSA Visual Roadmap</div>
+                  <div class="home-card-desc">Interactive graph — 13 sections, 80+ nodes, tap any node to explore</div>
+                  <div class="home-card-meta">
+                    <span class="home-card-tag" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.25);color:#6366f1;">VISUAL GRAPH</span>
+                    <span class="home-card-tag" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.25);color:#6366f1;">C++ FOCUSED</span>
+                  </div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-dsa-rm-prog" style="width:0%;background:#6366f1;"></div></div>
+                </div>
+                <div class="home-card-arrow" style="color:#6366f1;">›</div>
+              </button>  
+
+              <button class="home-path-card dsa-card" onclick="window.location.href='dsa-steps.html'">
+                <div class="home-card-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">DSA Roadmap</div>
+                  <div class="home-card-desc">Arrays → Trees → Graphs → DP → Competitive Programming</div>
+                  <div class="home-card-meta"><span class="home-card-tag">20 TOPICS</span><span class="home-card-tag">C++ FOCUSED</span></div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-dsa-prog" style="width:0%"></div></div>
+                </div>
+                <div class="home-card-arrow">›</div>
+              </button>
+
+              <button class="home-path-card fe-card" onclick="APP.switchTab('fe')">
+                <div class="home-card-ico" style="background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.22);color:var(--cf)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">Frontend Visual Roadmap</div>
+                  <div class="home-card-desc"> Interactive graph — 16 sections, 80 nodes, tap any node to explore</div>
+                  <div class="home-card-meta"><span class="home-card-tag" style="background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.25);color:var(--cf);">180 DAYS</span><span class="home-card-tag" style="background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.25);color:var(--cf);">BEGINNER → PRO</span></div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-fe-prog" style="width:0%;background:var(--cf)"></div></div>
+                </div>
+                <div class="home-card-arrow">›</div>
+              </button>
+              
+              <button class="home-path-card fe-card" onclick="window.location.href='normal-rm-fe.html'">
+                <div class="home-card-ico" style="background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.22);color:var(--cf)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <div class="home-card-body">
+                  <div class="home-card-title" style="color:#F1F5F9;">Frontend Roadmap</div>
+                  <div class="home-card-desc">HTML → CSS → JS → React → Next.js → Production</div>
+                  <div class="home-card-meta">
+                    <span class="home-card-tag" style="background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.25);color:var(--cf);">187 DAYS</span>
+                    <span class="home-card-tag" style="background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.25);color:var(--cf);">BEGINNER → PRO</span>
+                  </div>
+                  <div class="home-card-prog"><div class="home-card-prog-fill" id="home-fe-norm-prog" style="width:0%;background:var(--cf)"></div></div>
+                </div>
+                <div class="home-card-arrow">›</div>
+              </button>            
+
+             </div>
+
+
+
+            <!-- ai-next-topic: smart next topic suggestion rendered here -->
+            <div id="ai-next-topic" style="width:100%"></div>
+
+
+          </div>
+        </div>
+        <!-- /tab-home -->
+
+        <!-- ──────── TAB: AI ROADMAP ──────── -->
+        <div class="tab-panel" id="tab-ai">
+          <div class="section-subtab-bar" id="ai-subtab-bar">
+            <button class="section-subtab active" id="ai-subtab-roadmap" onclick="APP.switchAISub('roadmap',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Roadmap
+            </button>
+            <button class="section-subtab" id="ai-subtab-revision" onclick="APP.switchAISub('revision',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+              Revision
+            </button>
+            <button class="section-subtab" id="ai-subtab-pomo" onclick="APP.switchAISub('pomo',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Pomo
+            </button>
+            <button class="section-subtab" id="ai-subtab-notes" onclick="APP.switchAISub('notes',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Notes
+            </button>
+            <button class="section-subtab" id="ai-subtab-projects" onclick="APP.switchAISub('projects',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Projects
+            </button>
+            <button class="section-subtab" id="ai-subtab-visual" onclick="window.location.href='ai-roadmap.html'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+              Visual
+            </button>
+          </div>
+
+          <!-- SUB: Roadmap -->
+          <div id="ai-sub-roadmap">
+            <div id="ai-screen-levels">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.goBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                  Home
+                </button>
+                <span class="back-home-title">AI Roadmap</span>
+              </div>
+              <div class="section" style="padding-top:10px">
+                <div class="section-title">Choose Your Level</div>
+                <div class="ai-level-subtitle">Select the right starting point for your AI journey</div>
+                <button class="ai-level-card beginner-card" onclick="APP.selectAILevel('beginner')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Beginner</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);font-size:10px;font-weight:800;color:var(--c5);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">45 Days</div>
+                      <div class="ai-level-goal">Start from zero — Python, logic, and core AI foundations. Build confidence step by step.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag">~90 HRS</span><span class="ai-ltag">PYTHON</span><span class="ai-ltag">BEGINNER FRIENDLY</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c5)">›</div>
+                </button>
+                <button class="ai-level-card intermediate-card" onclick="APP.selectAILevel('intermediate')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Intermediate</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);font-size:10px;font-weight:800;color:var(--c4);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">60 Days</div>
+                      <div class="ai-level-goal">Dive into Data Science and ML. Work with real datasets, build predictive models.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag itag">~120 HRS</span><span class="ai-ltag itag">ML/DATA</span><span class="ai-ltag itag">SKLEARN · PANDAS</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c4)">›</div>
+                </button>
+                <button class="ai-level-card advanced-card" onclick="APP.selectAILevel('advanced')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Advanced</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);font-size:10px;font-weight:800;color:var(--c3);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">90 Days</div>
+                      <div class="ai-level-goal">Master Deep Learning, NLP, LLMs and MLOps. Build production-ready AI systems.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag atag">~180 HRS</span><span class="ai-ltag atag">DL · NLP · CV</span><span class="ai-ltag atag">PRODUCTION</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c3)">›</div>
+                </button>
+              </div>
+            </div>
+
+            <div id="ai-screen-weeks" style="display:none">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.goBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Levels
+                </button>
+                <span class="back-home-title" id="ai-weeks-title">Beginner</span>
+              </div>
+              <div id="ai-inline-rev-weeks"></div>
+              <div id="ai-level-summary"></div>
+              <div class="section" style="padding-top:6px">
+                <!-- Search input for AI roadmap filter -->
+                <div class="search-wrap" style="padding:0 0 8px">
+                  <div class="search-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                  <input class="search-input" id="ai-search" type="text" placeholder="Search topics..." oninput="APP.filterRoadmap('ai')" />
+                </div>
+                <div id="ai-weeks-list"></div>
+              </div>
+            </div>
+
+            <div id="ai-screen-days" style="display:none">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.goBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Weeks
+                </button>
+                <span class="back-home-title" id="ai-days-title">Week 1</span>
+              </div>
+              <div id="ai-inline-rev-days"></div>
+              <div id="ai-week-summary"></div>
+              <div class="section" style="padding-top:6px">
+                <div id="ai-structured-days-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB: AI Revision -->
+          <div id="ai-sub-revision" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">AI Revision Schedule</span>
+            </div>
+            <div class="filter-row" style="padding:10px 12px 0">
+              <button class="filter-chip active" onclick="APP.setAIRevFilter('all',this)">All</button>
+              <button class="filter-chip" onclick="APP.setAIRevFilter('due',this)">Due Today</button>
+              <button class="filter-chip" onclick="APP.setAIRevFilter('overdue',this)">Overdue</button>
+              <button class="filter-chip" onclick="APP.setAIRevFilter('pending',this)">Upcoming</button>
+              <button class="filter-chip" onclick="APP.setAIRevFilter('done',this)">Done</button>
+            </div>
+            <div class="section" style="padding-top:8px"><div id="ai-revision-list"></div></div>
+          </div>
+
+          <!-- SUB: AI Pomo -->
+          <div id="ai-sub-pomo" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">AI Focus Timer</span>
+            </div>
+            <div class="pomo-dur-row">
+              <span class="pomo-dur-label">Focus:</span>
+              <input class="pomo-dur-input" id="ai-pomo-dur-input" type="number" value="25" min="1" max="120" />
+              <span class="pomo-dur-label">min</span>
+              <button class="pomo-dur-btn" onclick="APP.setSectionPomoDuration('ai')">Set</button>
+              <button class="pomo-alarm-btn" id="ai-pomo-alarm-stop" onclick="APP.stopSectionAlarm('ai')" style="display:none">Stop</button>
+            </div>
+            <div class="pomo-ring-wrap">
+              <div class="pomo-ring" id="ai-pomo-ring">
+                <div class="pomo-center">
+                  <div class="pomo-time" id="ai-pomo-time">25:00</div>
+                  <div class="pomo-mode" id="ai-pomo-mode">FOCUS</div>
+                </div>
+              </div>
+              <div class="pomo-session-count" id="ai-pomo-dots"></div>
+              <div class="pomo-controls">
+                <button class="pomo-btn start" id="ai-pomo-start-btn" onclick="APP.sectionPomoToggle('ai')">▶ Start</button>
+                <button class="pomo-btn reset" onclick="APP.sectionPomoReset('ai')">↺ Reset</button>
+                <button class="pomo-btn stop" onclick="APP.sectionPomoSkip('ai')">⏭ Skip</button>
+              </div>
+            </div>
+            <div class="section" style="padding-top:0">
+              <div class="focus-hours-card">
+                <div class="focus-hours-val" id="ai-pomo-focus-hours">0.0</div>
+                <div class="focus-hours-lbl">AI Focus Hours</div>
+              </div>
+              <div class="section-title">AI Sessions</div>
+              <div class="pomo-stats-row">
+                <div class="pomo-stat"><div class="pomo-stat-val" id="ai-ps-sessions">0</div><div class="pomo-stat-lbl">Sessions</div></div>
+                <div class="pomo-stat"><div class="pomo-stat-val" id="ai-ps-hours">0.0</div><div class="pomo-stat-lbl">Hours</div></div>
+                <div class="pomo-stat"><div class="pomo-stat-val" id="ai-ps-streak">0</div><div class="pomo-stat-lbl">Streak</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB: AI Notes -->
+          <div id="ai-sub-notes" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">AI Study Notes</span>
+            </div>
+            <div class="section">
+              <div class="section-title">AI Study Notes</div>
+              <div class="card" style="margin-bottom:10px">
+                <div class="card-header">
+                  <span class="card-title">Today's AI Notes</span>
+                  <span class="card-badge badge-done" id="ai-notes-pomo-badge">0 pomos</span>
+                </div>
+                <textarea class="notes-ta" id="ai-notes-ta" placeholder="Write what you studied in AI today...&#10;&#10;• Concepts learned&#10;• Model results&#10;• Code snippets&#10;• Papers to revisit" oninput="APP.aiAutoSaveNotes()"></textarea>
+                <div class="notes-meta">
+                  <span id="ai-notes-wc">0 words</span>
+                  <button class="notes-save-btn" onclick="APP.aiSaveNotes()">Save</button>
+                </div>
+              </div>
+              <div class="section-title">Saved AI Entries</div>
+              <div id="ai-notes-list"></div>
+            </div>
+          </div>
+
+          <!-- SUB: AI Projects -->
+          <div id="ai-sub-projects" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">AI Projects</span>
+            </div>
+            <div class="section">
+              <div class="section-title">My AI Projects</div>
+              <button class="add-btn" onclick="APP.openProjectModal('ai')">
+                <div class="add-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                <span>Add AI Project</span>
+              </button>
+              <div id="ai-projects-list"></div>
+            </div>
+          </div>
+        </div>
+        <!-- /tab-ai -->
+
+        <!-- ──────── TAB: AI VISUAL ROADMAP ──────── -->
+        <div class="tab-panel" id="tab-ai-rm">
+
+          <style>
+            #tab-ai-rm {
+              display: none;
+              flex-direction: column;
+              background: #05050f;
+              height: 100%;
+              overflow: hidden;
+              position: relative;
+            }
+            #tab-ai-rm.active {
+              display: flex;
+            }
+            .ai-rm-header {
+              position: sticky;
+              top: 0;
+              z-index: 50;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 12px 16px 11px;
+              background: #05050f;
+              border-bottom: 2px solid transparent;
+              background-clip: padding-box;
+              box-shadow: 0 1px 0 0 #10b981, 0 4px 20px rgba(0,0,0,0.6);
+              flex-shrink: 0;
+            }
+            .ai-rm-back-btn {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              background: rgba(16,185,129,0.08);
+              border: 1px solid rgba(16,185,129,0.2);
+              border-radius: 8px;
+              color: #10b981;
+              font-size: 12px;
+              font-weight: 600;
+              padding: 6px 10px;
+              cursor: pointer;
+              letter-spacing: 0.3px;
+              flex-shrink: 0;
+            }
+            .ai-rm-back-btn svg { width:14px; height:14px; }
+            .ai-rm-header-title {
+              font-family: var(--font-mono, monospace);
+              font-size: 13px;
+              font-weight: 800;
+              letter-spacing: 2px;
+              color: #10b981;
+              text-transform: uppercase;
+            }
+            .ai-rm-progress-pill {
+              background: rgba(16,185,129,0.1);
+              border: 1px solid rgba(16,185,129,0.25);
+              border-radius: 999px;
+              color: #10b981;
+              font-family: var(--font-mono, monospace);
+              font-size: 11px;
+              font-weight: 700;
+              padding: 4px 10px;
+              white-space: nowrap;
+              flex-shrink: 0;
+            }
+            .ai-rm-legend {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              padding: 8px 14px;
+              background: #0a0a18;
+              border-bottom: 1px solid rgba(255,255,255,0.05);
+              overflow-x: auto;
+              scrollbar-width: none;
+              flex-shrink: 0;
+            }
+            .ai-rm-legend::-webkit-scrollbar { display: none; }
+            .ai-rm-legend-item {
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              font-size: 10px;
+              color: #8080a8;
+              white-space: nowrap;
+              font-family: var(--font-mono, monospace);
+            }
+            .ai-rm-legend-dot {
+              width: 9px;
+              height: 9px;
+              border-radius: 50%;
+              flex-shrink: 0;
+            }
+            .ai-rm-legend-dot.green  { background: #10b981; }
+            .ai-rm-legend-dot.blue   { background: #3b82f6; }
+            .ai-rm-legend-dot.purple { background: #a855f7; }
+            .ai-rm-legend-dot.orange { background: #f97316; }
+            .ai-rm-legend-dot.dashed { background: transparent; border: 1.5px dashed #8080a8; }
+            .ai-rm-graph {
+              flex: 1;
+              overflow-y: auto;
+              overflow-x: hidden;
+              padding: 12px 10px 100px;
+              position: relative;
+              -webkit-overflow-scrolling: touch;
+            }
+            .ai-rm-graph::-webkit-scrollbar { width: 4px; }
+            .ai-rm-graph::-webkit-scrollbar-track { background: transparent; }
+            .ai-rm-graph::-webkit-scrollbar-thumb { background: rgba(16,185,129,0.25); border-radius: 4px; }
+            .ai-rm-svg-layer {
+              position: absolute;
+              top: 0; left: 0;
+              width: 100%; height: 100%;
+              pointer-events: none;
+              overflow: visible;
+              z-index: 0;
+            }
+            .ai-rm-section-label {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              margin: 18px 0 8px;
+              position: relative;
+              z-index: 2;
+            }
+            .ai-rm-section-num {
+              font-family: var(--font-mono, monospace);
+              font-size: 10px;
+              font-weight: 800;
+              color: #10b981;
+              opacity: 0.6;
+              flex-shrink: 0;
+            }
+            .ai-rm-section-title-text {
+              font-family: var(--font-mono, monospace);
+              font-size: 9px;
+              font-weight: 800;
+              color: #8080a8;
+              letter-spacing: 1.5px;
+              flex-shrink: 0;
+            }
+            .ai-rm-section-line {
+              flex: 1;
+              height: 1px;
+              background: linear-gradient(90deg, rgba(128,128,168,0.25), transparent);
+            }
+            .ai-rm-section-mini-prog {
+              font-family: var(--font-mono, monospace);
+              font-size: 9px;
+              color: #8080a8;
+              flex-shrink: 0;
+            }
+            .ai-rm-section-block {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              position: relative;
+              z-index: 2;
+            }
+            .ai-rm-node {
+              position: relative;
+              border-radius: 10px;
+              cursor: pointer;
+              transition: transform 0.15s, box-shadow 0.15s;
+              user-select: none;
+              -webkit-user-select: none;
+            }
+            .ai-rm-node:active { transform: scale(0.97); }
+            .ai-rm-trunk {
+              width: 58%;
+              max-width: 200px;
+              padding: 10px 12px 12px;
+              text-align: center;
+              margin: 0 auto;
+            }
+            .ai-rm-child {
+              width: 100%;
+              padding: 7px 10px;
+              margin-bottom: 6px;
+              text-align: left;
+            }
+            .ai-rm-node-label {
+              display: block;
+              font-size: 11px;
+              font-weight: 700;
+              line-height: 1.3;
+            }
+            .ai-rm-trunk .ai-rm-node-label {
+              font-size: 12px;
+              font-weight: 800;
+              letter-spacing: 0.5px;
+            }
+            .ai-rm-node-time {
+              display: block;
+              font-family: var(--font-mono, monospace);
+              font-size: 8px;
+              color: #8080a8;
+              margin-top: 3px;
+            }
+            .ai-rm-node-status-badge {
+              position: absolute;
+              top: -5px;
+              right: -5px;
+              width: 16px;
+              height: 16px;
+              border-radius: 50%;
+              display: none;
+              align-items: center;
+              justify-content: center;
+              font-size: 9px;
+              font-weight: 800;
+              z-index: 3;
+            }
+            .ai-rm-expand-dot {
+              width: 7px; height: 7px; border-radius: 50%;
+              background: #10b981; margin: 6px auto 0; opacity: 0.6;
+              transition: opacity 0.2s, transform 0.25s;
+            }
+            .ai-rm-trunk.ai-rm-expanded .ai-rm-expand-dot { transform: rotate(180deg); opacity: 0.9; }
+            .ai-rm-children-wrap {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 6px;
+              width: 88%;
+              margin: 8px auto 0;
+              padding: 0;
+              overflow: hidden;
+              max-height: 0;
+              transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s;
+              opacity: 0;
+            }
+            .ai-rm-children-wrap.ai-rm-children-open {
+              max-height: 2000px;
+              opacity: 1;
+            }
+            .ai-rm-child-col { display: flex; flex-direction: column; width: 100%; }
+            .ai-rm-done .ai-rm-node-status-badge { display: flex; background: #10b981; color: #fff; }
+            .ai-rm-done .ai-rm-node-status-badge::before { content: '✓'; }
+            .ai-rm-done { opacity: 0.72; }
+            .ai-rm-inprogress { animation: ai-rm-pulse 2s infinite; }
+            .ai-rm-inprogress .ai-rm-node-status-badge { display: flex; background: rgba(16,185,129,0.3); border: 1.5px solid #10b981; color: #10b981; font-size: 7px; }
+            .ai-rm-inprogress .ai-rm-node-status-badge::before { content: '●'; }
+            .ai-rm-skip { opacity: 0.35; }
+            .ai-rm-skip .ai-rm-node-status-badge { display: flex; background: rgba(128,128,168,0.2); color: #8080a8; }
+            .ai-rm-skip .ai-rm-node-status-badge::before { content: '–'; }
+            @keyframes ai-rm-pulse {
+              0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.3); }
+              50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+            }
+            .ai-rm-node-congrats {
+              background: linear-gradient(135deg, #051a10, #0a0a18) !important;
+              border: 2px solid #10b981 !important;
+              box-shadow: 0 0 30px rgba(16,185,129,0.2) !important;
+              padding: 20px !important;
+              text-align: center;
+            }
+            .ai-rm-node-congrats .ai-rm-node-label { font-size: 18px !important; color: #10b981 !important; }
+            .ai-rm-connector-wrap { display: flex; justify-content: center; position: relative; z-index: 1; }
+            .ai-rm-v-line { width: 2px; background: linear-gradient(180deg, #10b981, rgba(16,185,129,0.15)); border-radius: 2px; }
+            .ai-rm-bottom-bar {
+              position: absolute;
+              bottom: 0; left: 0; right: 0;
+              height: 3px;
+              background: rgba(255,255,255,0.05);
+              z-index: 60;
+              flex-shrink: 0;
+            }
+            .ai-rm-bottom-bar-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #10b981, #6366f1);
+              border-radius: 0 2px 2px 0;
+              transition: width 0.4s ease;
+              width: 0%;
+            }
+            .ai-rm-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(0,0,0,0.7);
+              z-index: 200;
+              display: none;
+              backdrop-filter: blur(2px);
+            }
+            .ai-rm-overlay.ai-rm-overlay-show { display: block; }
+            .ai-rm-sheet {
+              position: fixed;
+              bottom: 0; left: 0; right: 0;
+              z-index: 210;
+              background: #0c0c1a;
+              border-top: 1px solid rgba(255,255,255,0.08);
+              border-radius: 20px 20px 0 0;
+              max-height: 88vh;
+              overflow-y: auto;
+              transform: translateY(100%);
+              transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+              padding-bottom: env(safe-area-inset-bottom, 20px);
+            }
+            .ai-rm-sheet.ai-rm-sheet-open { transform: translateY(0); }
+            .ai-rm-sheet::-webkit-scrollbar { width: 3px; }
+            .ai-rm-sheet::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+            .ai-rm-sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 14px auto 0; }
+            .ai-rm-sheet-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 18px 4px; gap: 12px; }
+            .ai-rm-sheet-header-left { flex: 1; min-width: 0; }
+            .ai-rm-sheet-close { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.07); border: none; color: #8080a8; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+            .ai-rm-sheet-difficulty { display: inline-block; font-family: var(--font-mono, monospace); font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
+            .ai-rm-sheet-title { font-size: 18px; font-weight: 800; color: #f0f0ff; line-height: 1.25; }
+            .ai-rm-sheet-time { font-family: var(--font-mono, monospace); font-size: 10px; color: #8080a8; margin-top: 5px; }
+            .ai-rm-sheet-body { padding: 10px 18px 20px; }
+            .ai-rm-sheet-section-title { font-family: var(--font-mono, monospace); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: #10b981; text-transform: uppercase; margin: 16px 0 7px; }
+            .ai-rm-sheet-why { font-size: 13px; color: #a0a0c0; line-height: 1.65; }
+            .ai-rm-sheet-learn { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+            .ai-rm-sheet-learn li { font-size: 13px; color: #c0c0e0; padding-left: 16px; position: relative; line-height: 1.5; }
+            .ai-rm-sheet-learn li::before { content: '▸'; position: absolute; left: 0; color: #10b981; font-size: 10px; top: 2px; }
+            .ai-rm-sheet-prereq { font-size: 12px; color: #8080a8; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 11px; }
+            .ai-rm-sheet-task { font-size: 13px; color: #c0c0e0; background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.15); border-radius: 8px; padding: 10px 12px; line-height: 1.6; }
+            .ai-rm-sheet-resources { display: flex; gap: 10px; margin-top: 14px; }
+            .ai-rm-sheet-resource-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+            #ai-rm-sheet-youtube { background: rgba(255,0,0,0.12); border: 1px solid rgba(255,0,0,0.25); color: #ff4444; }
+            #ai-rm-sheet-docs { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; }
+            .ai-rm-sheet-status-row { display: flex; gap: 8px; margin-top: 14px; }
+            .ai-rm-status-btn { flex: 1; padding: 11px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: #8080a8; text-align: center; transition: all 0.15s; }
+            .ai-rm-status-btn.ai-rm-active-status[data-status="done"] { background: rgba(16,185,129,0.15); border-color: #10b981; color: #10b981; }
+            .ai-rm-status-btn.ai-rm-active-status[data-status="progress"] { background: rgba(99,102,241,0.15); border-color: #6366f1; color: #6366f1; }
+            .ai-rm-status-btn.ai-rm-active-status[data-status="skip"] { background: rgba(128,128,168,0.15); border-color: #8080a8; color: #8080a8; }
+            #ai-rm-toast {
+              position: fixed;
+              bottom: 100px;
+              left: 50%;
+              transform: translateX(-50%) translateY(20px);
+              background: #10b981;
+              color: #fff;
+              font-size: 13px;
+              font-weight: 700;
+              padding: 8px 20px;
+              border-radius: 999px;
+              z-index: 300;
+              opacity: 0;
+              pointer-events: none;
+              transition: opacity 0.2s, transform 0.2s;
+              white-space: nowrap;
+            }
+            #ai-rm-toast.ai-rm-toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+            .ai-rm-active-status { font-weight: 800 !important; }
+          </style>
+
+          <!-- Header -->
+          <div class="ai-rm-header">
+            <button class="ai-rm-back-btn" onclick="APP.goBack()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back
+            </button>
+            <div class="ai-rm-header-title">AI ROADMAP</div>
+            <div class="ai-rm-progress-pill" id="ai-rm-progress-pill">0 / 0 done</div>
+          </div>
+
+          <!-- Legend -->
+          <div class="ai-rm-legend">
+            <div class="ai-rm-legend-item"><div class="ai-rm-legend-dot green"></div>Foundation</div>
+            <div class="ai-rm-legend-item"><div class="ai-rm-legend-dot blue"></div>Tools / Libs</div>
+            <div class="ai-rm-legend-item"><div class="ai-rm-legend-dot purple"></div>Advanced</div>
+            <div class="ai-rm-legend-item"><div class="ai-rm-legend-dot orange"></div>Specialisation</div>
+            <div class="ai-rm-legend-item"><div class="ai-rm-legend-dot dashed"></div>Optional</div>
+          </div>
+
+          <!-- Graph Container -->
+          <div class="ai-rm-graph" id="ai-rm-graph"></div>
+
+          <!-- Bottom Progress Bar -->
+          <div class="ai-rm-bottom-bar">
+            <div class="ai-rm-bottom-bar-fill" id="ai-rm-bottom-fill"></div>
+          </div>
+
+          <!-- Overlay -->
+          <div class="ai-rm-overlay" id="ai-rm-overlay"></div>
+
+          <!-- Bottom Sheet -->
+          <div class="ai-rm-sheet" id="ai-rm-sheet">
+            <div class="ai-rm-sheet-handle"></div>
+            <div class="ai-rm-sheet-header">
+              <div class="ai-rm-sheet-header-left">
+                <div class="ai-rm-sheet-difficulty" id="ai-rm-sheet-difficulty">BEGINNER</div>
+                <div class="ai-rm-sheet-title" id="ai-rm-sheet-title">Node Title</div>
+                <div class="ai-rm-sheet-time" id="ai-rm-sheet-time">⏱ 2–3 weeks</div>
+              </div>
+              <button class="ai-rm-sheet-close" onclick="aiRmCloseSheet()">✕</button>
+            </div>
+            <div class="ai-rm-sheet-body">
+              <div class="ai-rm-sheet-section-title">WHY THIS MATTERS</div>
+              <div class="ai-rm-sheet-why" id="ai-rm-sheet-why"></div>
+              <div class="ai-rm-sheet-section-title">WHAT YOU'LL LEARN</div>
+              <ul class="ai-rm-sheet-learn" id="ai-rm-sheet-learn"></ul>
+              <div class="ai-rm-sheet-section-title">PREREQUISITES</div>
+              <div class="ai-rm-sheet-prereq" id="ai-rm-sheet-prereq"></div>
+              <div class="ai-rm-sheet-section-title">PRACTICE TASK</div>
+              <div class="ai-rm-sheet-task" id="ai-rm-sheet-task"></div>
+              <div class="ai-rm-sheet-resources">
+                <button class="ai-rm-sheet-resource-btn" id="ai-rm-sheet-youtube">▶ YouTube</button>
+                <button class="ai-rm-sheet-resource-btn" id="ai-rm-sheet-docs">📄 Docs</button>
+              </div>
+              <div class="ai-rm-sheet-status-row">
+                <button class="ai-rm-status-btn" id="ai-rm-btn-done"     data-status="done"     onclick="aiRmSetStatus(window._aiRmActiveNode,'done')">✓ Done</button>
+                <button class="ai-rm-status-btn" id="ai-rm-btn-progress" data-status="progress" onclick="aiRmSetStatus(window._aiRmActiveNode,'progress')">⟳ In Progress</button>
+                <button class="ai-rm-status-btn" id="ai-rm-btn-skip"     data-status="skip"     onclick="aiRmSetStatus(window._aiRmActiveNode,'skip')">– Skip</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toast -->
+          <div id="ai-rm-toast"></div>
+
+        </div>
+        <!-- /tab-ai-rm -->
+
+        <!-- ──────── TAB: DSA ROADMAP ──────── -->
+        <div class="tab-panel" id="tab-dsa">
+          <div class="section-subtab-bar" id="dsa-subtab-bar">
+            <button class="section-subtab active" id="dsa-subtab-roadmap" onclick="APP.switchDSASub('roadmap',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Roadmap
+            </button>
+            <button class="section-subtab" id="dsa-subtab-revision" onclick="APP.switchDSASub('revision',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+              Revision
+            </button>
+            <button class="section-subtab" id="dsa-subtab-pomo" onclick="APP.switchDSASub('pomo',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Pomo
+            </button>
+            <button class="section-subtab" id="dsa-subtab-notes" onclick="APP.switchDSASub('notes',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Notes
+            </button>
+            <button class="section-subtab" id="dsa-subtab-projects" onclick="APP.switchDSASub('projects',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Projects
+            </button>
+            <button class="section-subtab" id="dsa-subtab-visual" onclick="window.location.href='dsa-roadmap.html'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+              Visual
+            </button>
+          </div>
+
+          <!-- SUB: DSA Roadmap -->
+          <div id="dsa-sub-roadmap">
+            <div id="dsa-screen-weeks">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.goBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+                </button>
+                <span class="back-home-title">DSA Roadmap</span>
+              </div>
+              <div id="dsa-inline-rev-overview"></div>
+              <div class="section" style="padding-top:10px;padding-bottom:0">
+                <div class="hours-row">
+                  <div class="hours-card"><div class="hours-val" id="dsa-hrs-total">0</div><div class="hours-lbl">Total Hrs</div></div>
+                  <div class="hours-card"><div class="hours-val done-color" id="dsa-hrs-done">0</div><div class="hours-lbl">Done Hrs</div></div>
+                  <div class="hours-card"><div class="hours-val rem-color" id="dsa-hrs-rem">0</div><div class="hours-lbl">Remaining</div></div>
+                </div>
+                <div class="prog-wrap">
+                  <div class="prog-track"><div class="prog-fill" id="dsa-prog-fill" style="width:0%"></div></div>
+                  <div class="prog-label"><span id="dsa-prog-text">0 topics</span><span id="dsa-prog-pct">0%</span></div>
+                </div>
+              </div>
+              <div class="section" style="padding-top:8px">
+                <!-- Search for DSA -->
+                <div class="search-wrap" style="padding:0 0 8px">
+                  <div class="search-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                  <input class="search-input" id="dsa-search" type="text" placeholder="Search topics..." oninput="APP.filterRoadmap('dsa')" />
+                </div>
+                <div class="section-title">Weekly Plan</div>
+                <div id="dsa-weeks-list"></div>
+              </div>
+            </div>
+
+            <div id="dsa-screen-detail" style="display:none">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.goBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Weeks
+                </button>
+                <span class="back-home-title" id="dsa-detail-title">Week 1</span>
+              </div>
+              <div id="dsa-inline-rev"></div>
+              <div id="dsa-week-summary-bar"></div>
+              <div class="section" style="padding-top:6px"><div id="dsa-topics-list"></div></div>
+            </div>
+          </div>
+
+          <!-- SUB: DSA Revision -->
+          <div id="dsa-sub-revision" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Revision Schedule</span>
+            </div>
+            <div class="filter-row" style="padding:10px 12px 0">
+              <button class="filter-chip active" onclick="APP.setDSARevFilter('all',this)">All</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('due',this)">Due Today</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('overdue',this)">Overdue</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('pending',this)">Upcoming</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('done',this)">Done</button>
+            </div>
+            <div class="section" style="padding-top:8px"><div id="dsa-revision-list"></div></div>
+          </div>
+
+          <!-- SUB: DSA Pomo -->
+          <div id="dsa-sub-pomo" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Focus Timer</span>
+            </div>
+            <div class="pomo-dur-row">
+              <span class="pomo-dur-label">Focus:</span>
+              <input class="pomo-dur-input" id="dsa-pomo-dur-input" type="number" value="25" min="1" max="120" />
+              <span class="pomo-dur-label">min</span>
+              <button class="pomo-dur-btn" onclick="APP.setSectionPomoDuration('dsa')">Set</button>
+              <button class="pomo-alarm-btn" id="dsa-pomo-alarm-stop" onclick="APP.stopSectionAlarm('dsa')" style="display:none">Stop</button>
+            </div>
+            <div class="pomo-ring-wrap">
+              <div class="pomo-ring" id="dsa-pomo-ring">
+                <div class="pomo-center">
+                  <div class="pomo-time" id="dsa-pomo-time">25:00</div>
+                  <div class="pomo-mode" id="dsa-pomo-mode">FOCUS</div>
+                </div>
+              </div>
+              <div class="pomo-session-count" id="dsa-pomo-dots"></div>
+              <div class="pomo-controls">
+                <button class="pomo-btn start" id="dsa-pomo-start-btn" onclick="APP.sectionPomoToggle('dsa')">▶ Start</button>
+                <button class="pomo-btn reset" onclick="APP.sectionPomoReset('dsa')">↺ Reset</button>
+                <button class="pomo-btn stop" onclick="APP.sectionPomoSkip('dsa')">⏭ Skip</button>
+              </div>
+            </div>
+            <div class="section" style="padding-top:0">
+              <div class="focus-hours-card">
+                <div class="focus-hours-val" id="dsa-pomo-focus-hours">0.0</div>
+                <div class="focus-hours-lbl">DSA Focus Hours</div>
+              </div>
+              <div class="section-title">DSA Sessions</div>
+              <div class="pomo-stats-row">
+                <div class="pomo-stat"><div class="pomo-stat-val" id="dsa-ps-sessions">0</div><div class="pomo-stat-lbl">Sessions</div></div>
+                <div class="pomo-stat"><div class="pomo-stat-val" id="dsa-ps-hours">0.0</div><div class="pomo-stat-lbl">Hours</div></div>
+                <div class="pomo-stat"><div class="pomo-stat-val" id="dsa-ps-streak">0</div><div class="pomo-stat-lbl">Streak</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB: DSA Notes -->
+          <div id="dsa-sub-notes" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Study Notes</span>
+            </div>
+            <div class="section">
+              <div class="section-title">DSA Study Notes</div>
+              <div class="card" style="margin-bottom:10px">
+                <div class="card-header">
+                  <span class="card-title">Today's DSA Notes</span>
+                  <span class="card-badge badge-done" id="dsa-notes-pomo-badge">0 pomos</span>
+                </div>
+                <textarea class="notes-ta" id="dsa-notes-ta" placeholder="Write what you practiced in DSA today...&#10;&#10;• Problems solved&#10;• Patterns recognized&#10;• Time complexity notes&#10;• Edge cases to remember" oninput="APP.dsaAutoSaveNotes()"></textarea>
+                <div class="notes-meta">
+                  <span id="dsa-notes-wc">0 words</span>
+                  <button class="notes-save-btn" onclick="APP.dsaSaveNotes()">Save</button>
+                </div>
+              </div>
+              <div class="section-title">Saved DSA Entries</div>
+              <div id="dsa-notes-list"></div>
+            </div>
+          </div>
+
+          <!-- SUB: DSA Projects -->
+          <div id="dsa-sub-projects" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Projects</span>
+            </div>
+            <div class="section">
+              <div class="section-title">My DSA Projects</div>
+              <button class="add-btn" onclick="APP.openProjectModal('dsa')">
+                <div class="add-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                <span>Add DSA Project</span>
+              </button>
+              <div id="dsa-projects-list"></div>
+            </div>
+          </div>
+        </div>
+        <!-- /tab-dsa -->
+
+        <!-- ──────── TAB: DSA VISUAL ROADMAP ──────── -->
+        <div class="tab-panel" id="tab-dsa-rm" style="flex-direction:column;height:100%;background:#05050f;overflow:hidden;">
+          <iframe
+            src="dsa-roadmap.html"
+            id="dsa-rm-iframe"
+            style="width:100%;height:100%;border:none;display:block;flex:1;"
+            loading="lazy"
+            title="DSA Visual Roadmap"
+          ></iframe>
+        </div>
+        <!-- /tab-dsa-rm -->
+
+        <!-- ──────── TAB: FRONTEND ROADMAP ──────── -->
+        <div class="tab-panel" id="tab-fe" style="flex-direction:column;height:100%;background:#05050f;overflow:hidden;">
+          <iframe
+            src="frontend-roadmap.html"
+            id="fe-rm-iframe"
+            style="width:100%;height:100%;border:none;display:block;flex:1;"
+            loading="lazy"
+            title="Frontend Visual Roadmap"
+          ></iframe>
+        </div>
+        <!-- /tab-fe -->
+        <div class="tab-panel" id="tab-revision">
+          <div class="filter-row" style="padding-top:12px">
+            <button class="filter-chip active" onclick="APP.setRevFilter('all',this)">All</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('ai',this)">AI</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('dsa',this)">DSA</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('due',this)">Due Today</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('overdue',this)">Overdue</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('pending',this)">Pending</button>
+            <button class="filter-chip" onclick="APP.setRevFilter('done',this)">Done</button>
+          </div>
+          <div class="section"><div id="revision-list"></div></div>
+        </div>
+
+        <!-- ──────── TAB: POMO (standalone) ──────── -->
+        <div class="tab-panel" id="tab-pomo">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Pomodoro Timer
+            </div>
+          </div>
+          <!-- Type selector tabs -->
+          <div class="pomo-tabs">
+            <button class="pomo-tab active" onclick="APP.selectPomoType('ai',this)">AI</button>
+            <button class="pomo-tab" onclick="APP.selectPomoType('dsa',this)">DSA</button>
+            <button class="pomo-tab" onclick="APP.selectPomoType('projects',this)">Projects</button>
+            <button class="pomo-tab" onclick="APP.selectPomoType('extra',this)">Extra</button>
+          </div>
+          <!-- Duration row -->
+          <div class="pomo-duration-row">
+            <span class="pomo-dur-label">Focus:</span>
+            <input class="pomo-dur-input" id="pomo-dur-input" type="number" value="25" min="1" max="120" />
+            <span class="pomo-dur-label">min</span>
+            <button class="pomo-dur-btn" onclick="APP.setPomoDuration()">Set</button>
+            <button class="pomo-alarm-btn" id="pomo-alarm-stop" onclick="APP.stopAlarm()" style="display:none">Stop Alarm</button>
+          </div>
+          <!-- Ring -->
+          <div class="pomo-ring-wrap">
+            <div class="pomo-ring" id="pomo-ring">
+              <div class="pomo-center">
+                <div class="pomo-time" id="pomo-time">25:00</div>
+                <div class="pomo-mode" id="pomo-mode">FOCUS</div>
+              </div>
+            </div>
+            <div class="pomo-session-count" id="pomo-dots"></div>
+            <div class="pomo-controls">
+              <button class="pomo-btn start" id="pomo-start-btn" onclick="APP.pomodoroToggle()">▶ Start</button>
+              <button class="pomo-btn reset" onclick="APP.pomoReset()">↺ Reset</button>
+              <button class="pomo-btn stop" onclick="APP.pomoSkip()">⏭ Skip</button>
+            </div>
+          </div>
+          <!-- Stats -->
+          <div class="section" style="padding-top:0">
+            <div class="focus-hours-card">
+              <div class="focus-hours-val" id="pomo-focus-hours">0.0</div>
+              <div class="focus-hours-lbl">Total Focus Hours</div>
+            </div>
+            <div class="section-title">Sessions by Type</div>
+            <div class="pomo-stats-row">
+              <div class="pomo-stat"><div class="pomo-stat-val" id="ps-ai">0</div><div class="pomo-stat-lbl">AI</div></div>
+              <div class="pomo-stat"><div class="pomo-stat-val" id="ps-dsa">0</div><div class="pomo-stat-lbl">DSA</div></div>
+              <div class="pomo-stat"><div class="pomo-stat-val" id="ps-projects">0</div><div class="pomo-stat-lbl">Projects</div></div>
+              <div class="pomo-stat"><div class="pomo-stat-val" id="ps-extra">0</div><div class="pomo-stat-lbl">Extra</div></div>
+            </div>
+          </div>
+          <!-- Best study time placeholder — injected by script -->
+          <div id="pomo-best-study-time"></div>
+        </div>
+
+        <!-- ──────── TAB: STREAK ──────── -->
+        <div class="tab-panel" id="tab-streak">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              Study Streaks
+            </div>
+          </div>
+
+          <!-- Premium streak card (replaces emoji-based JS render) -->
+          <div id="streak-card-premium" style="margin:0 14px 12px;">
+
+            <!-- ── Main streak card ── -->
+            <div class="streak-main-card">
+
+              <!-- Header row -->
+              <div class="streak-card-hdr">
+                <div class="streak-card-hdr-left">
+                  <div class="streak-flame-ico">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                  </div>
+                  <div>
+                    <div class="streak-card-title">Study Streak</div>
+                    <div class="streak-card-warn" id="streak-warn-row">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      Study any part today to keep your streak
+                    </div>
+                  </div>
+                </div>
+                <div class="streak-sleep-ico" id="streak-sleep-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </div>
+              </div>
+
+              <!-- Stats grid -->
+              <div class="streak-stats-grid">
+                <div class="streak-stat-item">
+                  <div class="streak-stat-val streak-val-cyan" id="streak-current">—</div>
+                  <div class="streak-stat-lbl">Current</div>
+                </div>
+                <div class="streak-stat-sep"></div>
+                <div class="streak-stat-item">
+                  <div class="streak-stat-val streak-val-cyan" id="streak-longest">—</div>
+                  <div class="streak-stat-lbl">Longest</div>
+                </div>
+                <div class="streak-stat-sep"></div>
+                <div class="streak-stat-item">
+                  <div class="streak-stat-val streak-val-green" id="streak-total">—</div>
+                  <div class="streak-stat-lbl">Total Days</div>
+                </div>
+              </div>
+
+              <!-- Parts today -->
+              <div class="streak-parts-today">
+                <div class="streak-parts-val" id="streak-parts-today">0</div>
+                <div class="streak-parts-lbl">Parts Completed Today</div>
+              </div>
+
+              <!-- 14-day heatmap -->
+              <div class="streak-heatmap-wrap">
+                <div class="streak-heatmap-row" id="streak-heatmap"></div>
+                <div class="streak-heatmap-legend">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;opacity:0.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Last 14 days · darker = more parts studied
+                </div>
+              </div>
+
+              <!-- What counts section -->
+              <div class="streak-counts-card">
+                <div class="streak-counts-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></polyline></svg>
+                  Parts that count toward your streak
+                </div>
+                <div class="streak-counts-grid">
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-cyan">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    </div>
+                    <span>AI Roadmap topics</span>
+                  </div>
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-purple">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    </div>
+                    <span>DSA topics</span>
+                  </div>
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-orange">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <span>Frontend topics</span>
+                  </div>
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-blue">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    </div>
+                    <span>Backend topics</span>
+                  </div>
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-red">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <span>Pomodoro sessions</span>
+                  </div>
+                  <div class="streak-count-item">
+                    <div class="streak-count-ico streak-ico-green">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <span>Project milestones</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mark as studied button -->
+              <button class="streak-mark-btn" id="streak-mark-btn" onclick="APP && APP.markTodayStudied && APP.markTodayStudied()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark Today as Studied
+              </button>
+
+            </div><!-- /streak-main-card -->
+          </div><!-- /streak-card-premium -->
+
+          <!-- Original container kept for script.js compatibility -->
+          <div class="streak-cards" id="streak-cards" style="display:none"></div>
+        </div>
+
+        <!-- ──────── TAB: PROJECTS (standalone) ──────── -->
+        <div class="tab-panel" id="tab-projects">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              My Projects
+            </div>
+            <button class="add-btn" onclick="APP.openProjectModal('projects')">
+              <div class="add-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <span>Add Project</span>
+            </button>
+            <div id="projects-list"></div>
+          </div>
+        </div>
+
+        <!-- ──────── TAB: EXTRA NOTES ──────── -->
+        <div class="tab-panel" id="tab-extra">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Extra Notes
+            </div>
+            <div class="card" style="margin-bottom:10px">
+              <div class="card-header">
+                <span class="card-title">General Study Notes</span>
+                <span class="card-badge badge-done" id="extra-pomo-badge">0 pomos</span>
+              </div>
+              <textarea class="notes-ta" id="extra-notes-ta" placeholder="Write anything here...&#10;&#10;• General notes&#10;• Ideas&#10;• Resources&#10;• Observations" oninput="APP.extraAutoSaveNotes()"></textarea>
+              <div class="notes-meta">
+                <span id="notes-wc">0 words</span>
+                <button class="notes-save-btn" onclick="APP.extraSaveNotes()">Save</button>
+              </div>
+            </div>
+            <div class="section-title">Saved Entries</div>
+            <div id="extra-notes-list"></div>
+          </div>
+        </div>
+
+        <!-- ──────── TAB: FILES ──────── -->
+        <div class="tab-panel" id="tab-files">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              File Storage
+            </div>
+            <div class="file-upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+              <div class="file-upload-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </div>
+              <div class="file-upload-title">Tap to upload files</div>
+              <div class="file-upload-sub">PDF, images, docs — saved to browser storage</div>
+            </div>
+            <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" onchange="APP.handleFileUpload(event)" />
+            <!-- files-list used by APP.renderFiles, file-list used by top-level renderFiles() -->
+            <div id="files-list"></div>
+            <div id="file-list"></div>
+          </div>
+        </div>
+
+        <!-- ──────── TAB: PROFILE ──────── -->
+        <div class="tab-panel" id="tab-profile">
+          <div style="padding-top:12px">
+            <div class="profile-header">
+              <div class="profile-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px;color:#000"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="profile-name" id="profile-name">Learner</div>
+              <div class="profile-sub" id="profile-sub">Started your journey</div>
+            </div>
+            <div class="section" style="padding-top:0">
+              <div class="section-title">Overview Stats</div>
+              <div class="stats-grid">
+                <div class="stat-card ai"><div class="stat-val" id="p-ai-done">0</div><div class="stat-lbl">AI Days Done</div></div>
+                <div class="stat-card dsa"><div class="stat-val" id="p-dsa-done">0</div><div class="stat-lbl">DSA Days Done</div></div>
+                <div class="stat-card proj"><div class="stat-val" id="p-proj-count">0</div><div class="stat-lbl">Projects</div></div>
+                <div class="stat-card extra"><div class="stat-val" id="p-notes-count">0</div><div class="stat-lbl">Notes Saved</div></div>
+              </div>
+
+              <div class="section-title" style="margin-top:12px">Hours Tracking</div>
+              <div class="hours-row">
+                <div class="hours-card"><div class="hours-val" id="p-hrs-total">0</div><div class="hours-lbl">AI Total Hrs</div></div>
+                <div class="hours-card"><div class="hours-val done-color" id="p-hrs-done">0</div><div class="hours-lbl">Completed</div></div>
+                <div class="hours-card"><div class="hours-val rem-color" id="p-hrs-rem">0</div><div class="hours-lbl">Remaining</div></div>
+              </div>
+
+              <div class="section-title" style="margin-top:12px">Streaks</div>
+              <div class="stats-grid">
+                <div class="stat-card ai"><div class="stat-val" id="p-ai-streak">0</div><div class="stat-lbl">AI Streak</div></div>
+                <div class="stat-card dsa"><div class="stat-val" id="p-dsa-streak">0</div><div class="stat-lbl">DSA Streak</div></div>
+              </div>
+
+              <div class="section-title" style="margin-top:12px">Pomodoro Totals</div>
+              <div class="focus-hours-card">
+                <div class="focus-hours-val" id="p-focus-hours">0.0</div>
+                <div class="focus-hours-lbl">Total Focus Hours</div>
+              </div>
+              <div class="stats-grid">
+                <div class="stat-card ai"><div class="stat-val" id="p-pom-ai">0</div><div class="stat-lbl">AI Sessions</div></div>
+                <div class="stat-card dsa"><div class="stat-val" id="p-pom-dsa">0</div><div class="stat-lbl">DSA Sessions</div></div>
+                <div class="stat-card proj"><div class="stat-val" id="p-pom-proj">0</div><div class="stat-lbl">Project Sessions</div></div>
+                <div class="stat-card extra"><div class="stat-val" id="p-pom-extra">0</div><div class="stat-lbl">Extra Sessions</div></div>
+              </div>
+              <div class="stat-card total" style="margin-top:8px;padding:14px;background:linear-gradient(135deg,rgba(0,229,200,0.06),rgba(124,58,237,0.06));border:1px solid rgba(0,229,200,0.15);">
+                <div class="stat-val" id="p-pom-total">0</div>
+                <div class="stat-lbl" style="font-size:11px">Combined AI + DSA Pomodoro Sessions</div>
+              </div>
+
+              <div class="section-title" style="margin-top:12px">Progress Analytics</div>
+              <div class="graph-canvas-wrap">
+                <div class="graph-title">Daily Study Consistency (Last 14 Days)</div>
+                <canvas id="chart-consistency" class="mini-chart"></canvas>
+              </div>
+              <div class="graph-canvas-wrap">
+                <div class="graph-title">Pomodoro Sessions by Category</div>
+                <canvas id="chart-pomo" class="mini-chart"></canvas>
+              </div>
+              <div class="graph-canvas-wrap">
+                <div class="graph-title">Progress Over Time (AI Days Completed)</div>
+                <canvas id="chart-progress" class="mini-chart"></canvas>
+              </div>
+
+              <!-- Attendance inside Profile -->
+              <div class="section-title" style="margin-top:12px">Attendance Tracker</div>
+              <div class="att-btn-row">
+                <button class="att-btn present-btn" onclick="APP.markAttendance('present')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>
+                  Mark Present
+                </button>
+                <button class="att-btn absent-btn" onclick="APP.markAttendance('absent')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:inline;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Mark Absent
+                </button>
+              </div>
+              <!-- att-stats rendered by script -->
+              <div class="att-stats" id="att-stats"></div>
+              <!-- attendance-list + total + empty for renderAttendance() -->
+              <div style="font-size:10px;font-weight:700;color:var(--t2);letter-spacing:0.5px;text-transform:uppercase;font-family:var(--font-mono);margin:10px 0 4px;">
+                Last 35 Days — Total: <span id="attendance-total">0</span>
+              </div>
+              <div class="att-grid" id="att-grid"></div>
+              <div id="attendance-list"></div>
+              <div id="attendance-empty" style="display:none;text-align:center;font-size:12px;color:var(--t2);padding:16px;">No attendance records yet.</div>
+            </div>
+
+            <!-- Nested attendance tab (kept for script compatibility) -->
+            <div id="tab-attendance" style="display:none">
+              <div class="section">
+                <div class="att-btn-row">
+                  <button class="att-btn present-btn" onclick="APP.markAttendance('present')">Mark Present</button>
+                  <button class="att-btn absent-btn" onclick="APP.markAttendance('absent')">Mark Absent</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /tab-profile -->
+
+        <!-- ──────── TAB: CALENDAR ──────── -->
+        <div class="tab-panel" id="tab-calendar">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Study Calendar
+            </div>
+          </div>
+          <div class="calendar-wrap">
+            <div class="calendar-header">
+              <button class="cal-nav-btn" onclick="APP.calPrev()">‹</button>
+              <div class="cal-month-title" id="cal-month-title">April 2026</div>
+              <button class="cal-nav-btn" onclick="APP.calNext()">›</button>
+            </div>
+            <div class="cal-weekdays">
+              <div class="cal-weekday">Sun</div><div class="cal-weekday">Mon</div>
+              <div class="cal-weekday">Tue</div><div class="cal-weekday">Wed</div>
+              <div class="cal-weekday">Thu</div><div class="cal-weekday">Fri</div>
+              <div class="cal-weekday">Sat</div>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <!-- Attendance stats bar -->
+            <div class="att-stats-bar" id="att-stats-bar">
+              <div class="att-stat-item">
+                <div class="att-stat-val green" id="att-cal-present">0</div>
+                <div class="att-stat-lbl">Present</div>
+              </div>
+              <div class="att-stat-item">
+                <div class="att-stat-val red" id="att-cal-absent">0</div>
+                <div class="att-stat-lbl">Absent</div>
+              </div>
+              <div class="att-stat-item">
+                <div class="att-stat-val gold" id="att-cal-pct">—%</div>
+                <div class="att-stat-lbl">Rate</div>
+              </div>
+            </div>
+            <div class="cal-legend">
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(16,185,129,0.5)"></div>Present</div>
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(244,63,94,0.4)"></div>Absent</div>
+              <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(124,58,237,0.4)"></div>Revision</div>
+            </div>
+          </div>
+          <div class="section" style="padding-top:4px">
+            <div class="section-title">Day Detail</div>
+            <div id="cal-day-detail" style="font-size:12px;color:var(--t2);padding:10px;background:var(--bg2);border-radius:var(--r8);border:1px solid rgba(255,255,255,0.05);">
+              Click a day to see details.
+            </div>
+          </div>
+        </div>
+
+        <!-- ──────── TAB: GOALS ──────── -->
+        <div class="tab-panel" id="tab-goals">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              Study Goals
+            </div>
+            <div class="goals-set-row">
+              <div class="goals-input-wrap">
+                <div class="goals-input-label">Daily (hrs)</div>
+                <input class="goals-input" id="goal-daily" type="number" min="0.5" max="12" step="0.5" value="2" />
+              </div>
+              <div class="goals-input-wrap">
+                <div class="goals-input-label">Weekly (hrs)</div>
+                <input class="goals-input" id="goal-weekly" type="number" min="1" max="80" step="1" value="10" />
+              </div>
+              <div class="goals-input-wrap">
+                <div class="goals-input-label">Days/Month</div>
+                <input class="goals-input" id="goal-days" type="number" min="1" max="31" step="1" value="20" />
+              </div>
+              <button class="goals-save-btn" onclick="APP.saveGoals()">Set</button>
+            </div>
+          </div>
+          <div class="goals-grid" id="goals-grid"></div>
+          <div class="section" style="padding-top:4px">
+            <div class="section-title">Goal History</div>
+            <div id="goals-history" style="font-size:12px;color:var(--t2)"></div>
+          </div>
+        </div>
+
+        <!-- ──────── TAB: BADGES ──────── -->
+        <div class="tab-panel" id="tab-badges">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+              Achievements
+            </div>
+          </div>
+          <div class="xp-bar-wrap">
+            <div class="xp-level-row">
+              <div class="xp-level-badge">
+                <div class="xp-level-ico" id="xp-level-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <span class="xp-level-name" id="xp-level-name">Beginner</span>
+              </div>
+              <span class="xp-points-text" id="xp-points-text">0 XP</span>
+            </div>
+            <div class="xp-bar-track">
+              <div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="section" style="padding-top:4px">
+            <div class="section-title">Badges</div>
+          </div>
+          <div class="badges-grid" id="badges-grid"></div>
+        </div>
+
+        <!-- ──────── TAB: MORE ──────── -->
+        <div class="tab-panel" id="tab-more">
+          <div class="section">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+              More
+            </div>
+          </div>
+          <div class="more-grid">
+
+            <button class="more-card" onclick="APP.switchTab('files')">
+              <div class="more-card-ico" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="more-card-title">Files</div>
+              <div class="more-card-sub">PDFs & docs</div>
+            </button>
+
+            <button class="more-card" onclick="APP.switchTab('goals')">
+              <div class="more-card-ico" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </div>
+              <div class="more-card-title">Goals</div>
+              <div class="more-card-sub">Daily targets</div>
+            </button>
+
+            <button class="more-card" onclick="APP.switchTab('extra')">
+              <div class="more-card-ico" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div class="more-card-title">Notes</div>
+              <div class="more-card-sub">Study notes</div>
+            </button>
+
+            <button class="more-card" onclick="window.location.href='stats.html'">
+              <div class="more-card-ico" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </div>
+              <div class="more-card-title">Stats</div>
+              <div class="more-card-sub">Analytics</div>
+            </button>
+
+            <button class="more-card" onclick="window.location.href='reminder.html'">
+              <div class="more-card-ico" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div class="more-card-title">Reminder</div>
+              <div class="more-card-sub">Daily email</div>
+            </button>
+
+            <button class="more-card" onclick="window.location.href='share.html'">
+              <div class="more-card-ico" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              </div>
+              <div class="more-card-title">Share</div>
+              <div class="more-card-sub">Progress card</div>
+            </button>
+
+            <button class="more-card" onclick="APP.switchTab('calendar')">
+              <div class="more-card-ico" style="background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.22)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="more-card-title">Calendar</div>
+              <div class="more-card-sub">Attendance</div>
+            </button>
+
+            <button class="more-card" onclick="APP.switchTab('projects')">
+              <div class="more-card-ico" style="background:rgba(0,229,200,0.08);border-color:rgba(0,229,200,0.2)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#00e5c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div class="more-card-title">Projects</div>
+              <div class="more-card-sub">My builds</div>
+            </button>
+
+          </div>
+        </div>
+        <!-- /tab-more -->
+
+      </div>
+      <!-- /content -->
+
+      <!-- ══════════════════ BOTTOM NAV ══════════════════ -->
+      <nav id="bottom-nav">
+        <button class="nav-item active" id="nav-home" onclick="APP.switchTab('home')">
+          <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div class="nav-lbl">Home</div>
+        </button>
+        <button class="nav-item" id="nav-streak" onclick="APP.switchTab('streak')">
+          <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div>
+          <div class="nav-lbl">Activity</div>
+        </button>
+        <button class="nav-item" id="nav-leaderboard" onclick="window.location.href='leaderboard.html'">
+          <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div class="nav-lbl">Ranks</div>
+        </button>
+        <button class="nav-item" id="nav-badges" onclick="APP.switchTab('badges')">
+          <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+          <div class="nav-lbl">Badges</div>
+        </button>
+        <button class="nav-item" id="nav-more" onclick="APP.switchTab('more')">
+          <div class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></div>
+          <div class="nav-lbl">More</div>
+        </button>
+      </nav>
+
+      <!-- ══════════════════ MODALS ══════════════════ -->
+
+      <!-- Project Modal -->
+      <div class="modal-overlay" id="modal-project">
+        <div class="modal">
+          <div class="modal-title">
+            <span id="proj-modal-title">Add Project</span>
+            <button class="modal-close" onclick="APP.closeModal('modal-project')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <input type="hidden" id="proj-source" value="" />
+          <div class="field-group"><label class="field-label">Project Name</label><input class="field-input" id="proj-name" placeholder="e.g. AI Chatbot with RAG" /></div>
+          <div class="field-group"><label class="field-label">GitHub Link</label><input class="field-input" id="proj-github" type="url" placeholder="https://github.com/you/project" /></div>
+          <div class="field-group"><label class="field-label">Live Demo URL</label><input class="field-input" id="proj-demo" type="url" placeholder="https://your-demo.com" /></div>
+          <div class="field-group"><label class="field-label">Files Count</label><input class="field-input" id="proj-files" type="number" placeholder="Number of files" min="0" /></div>
+          <div class="field-group"><label class="field-label">Notes / Description</label><textarea class="field-input" id="proj-notes" placeholder="Describe the project..."></textarea></div>
+          <div class="field-group"><label class="field-label">Tech Stack / Tags</label><input class="field-input" id="proj-tags" placeholder="Python, TensorFlow, FastAPI..." /></div>
+          <div class="field-group"><label class="field-label">Progress % (0–100)</label><input class="field-input" id="proj-progress" type="number" placeholder="e.g. 40" min="0" max="100" /></div>
+          <div class="modal-actions">
+            <button class="btn-primary" onclick="APP.saveProject()">Save Project</button>
+            <button class="btn-secondary" onclick="APP.closeModal('modal-project')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Modal -->
+      <div class="modal-overlay" id="modal-confirm">
+        <div class="modal">
+          <div class="modal-title">
+            <span id="confirm-title">Confirm</span>
+            <button class="modal-close" onclick="APP.closeModal('modal-confirm')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p id="confirm-text" style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:16px;"></p>
+          <div class="modal-actions">
+            <button class="btn-primary" id="confirm-ok" style="background:linear-gradient(135deg,var(--c3),#ef476f);color:#fff;">Confirm</button>
+            <button class="btn-secondary" onclick="APP.closeModal('modal-confirm')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI MENTOR MODAL -->
+      <div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)APP.closeAIModal()">
+        <div class="ai-modal">
+          <div class="ai-modal-header">
+            <div class="ai-modal-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+              AI Mentor
+            </div>
+            <button class="ai-modal-close" onclick="APP.closeAIModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="ai-modal-tabs">
+            <button class="ai-tab-btn active" onclick="APP.setAITab('explain',this)">Explain</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('notes',this)">Notes</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('practice',this)">Practice</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('project',this)">Project Idea</button>
+          </div>
+          <div class="ai-modal-body">
+            <div class="ai-response-area" id="ai-response-area">Select a mode above and tap "Ask AI" to get started.</div>
+            <button class="ai-ask-btn" id="ai-ask-btn" onclick="APP.askAI()">Ask AI</button>
+            <textarea class="ai-note-area" id="ai-note-area" placeholder="AI-generated notes will appear here. You can edit them..." style="display:none"></textarea>
+            <button class="ai-save-note-btn" id="ai-save-note-btn" onclick="APP.saveAINote()" style="display:none">Save Note</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PWA INSTALL BANNER -->
+      <div class="pwa-banner" id="pwa-banner">
+        <div class="pwa-banner-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <div class="pwa-banner-text">
+          <div class="pwa-banner-title">Install RoadmapX</div>
+          <div class="pwa-banner-sub">Add to home screen for offline access</div>
+        </div>
+        <button class="pwa-install-btn" onclick="APP.installPWA()">Install</button>
+        <button class="pwa-close-btn" onclick="APP.dismissPWA()">✕</button>
+      </div>
+
+      <!-- XP TOAST -->
+      <div class="xp-toast" id="xp-toast">+50 XP</div>
+
+      <!-- TOAST -->
+      <div id="toast"></div>
+
+    <!-- MY ROADMAPS PANEL -->
+    <div id="myrm-panel" style="display:none;position:fixed;inset:0;z-index:150;background:var(--bg0);overflow-y:auto;">
+
+      <!-- Header -->
+      <div style="position:sticky;top:0;z-index:10;background:var(--bg1);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 16px;height:52px;display:flex;align-items:center;gap:12px;">
+        <button onclick="APP.closeMyRoadmaps()" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--bg3);border:1px solid rgba(255,255,255,0.06);cursor:pointer;color:var(--t1);flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--c2);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;" id="myrm-hdr-title">My Roadmaps</div>
+          <div style="font-size:9px;color:var(--t2);font-family:var(--font-mono);letter-spacing:0.5px;">ROADMAPX</div>
+        </div>
+      </div>
+
+      <!-- LIST VIEW -->
+      <div id="myrm-view-list" style="padding:16px;max-width:600px;margin:0 auto;">
+        <div id="myrm-list-loader" style="display:flex;justify-content:center;padding:32px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c1);animation:myrm-pulse 1s ease-in-out infinite;margin:0 3px;"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c2);animation:myrm-pulse 1s ease-in-out infinite 0.15s;margin:0 3px;"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c3);animation:myrm-pulse 1s ease-in-out infinite 0.3s;margin:0 3px;"></div>
+        </div>
+        <div id="myrm-list-content" style="display:none;">
+          <div id="myrm-list-label" style="font-size:9px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">— roadmaps</div>
+          <div id="myrm-cards"></div>
+          <div id="myrm-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--t2);font-size:13px;line-height:1.6;">
+        <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:6px;">No roadmaps yet</div>
+        Create your first roadmap to start tracking progress.
+          </div>
+          <div style="margin-top:12px;">
+        <button onclick="APP.myRmOpenCreate()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--c1),var(--c2));color:#000;font-weight:700;font-size:13px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:none;letter-spacing:0.3px;">Create Roadmap</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAIL VIEW -->
+      <div id="myrm-view-detail" style="display:none;padding:16px;max-width:600px;margin:0 auto;">
+        <!-- Meta card -->
+        <div style="background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
+        <div id="myrm-detail-title" style="font-size:16px;font-weight:700;color:var(--t1);"></div>
+        <span id="myrm-detail-pct-tag" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;font-family:var(--font-mono);letter-spacing:0.5px;text-transform:uppercase;background:rgba(0,229,200,0.10);color:var(--c1);border:1px solid rgba(0,229,200,0.2);">0%</span>
+          </div>
+          <div id="myrm-detail-desc" style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:12px;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t2);font-family:var(--font-mono);margin-bottom:5px;">
+        <span id="myrm-steps-label">0 / 0 steps</span>
+        <span id="myrm-pct-label">0%</span>
+          </div>
+          <div style="height:3px;background:var(--bg5);border-radius:2px;overflow:hidden;">
+        <div id="myrm-prog-fill" style="height:100%;background:linear-gradient(90deg,var(--c1),var(--c2));border-radius:2px;width:0%;transition:width 0.4s cubic-bezier(.4,0,.2,1);"></div>
+          </div>
+        </div>
+
+        <!-- Steps header + add button -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div id="myrm-steps-count" style="font-size:9px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1.5px;text-transform:uppercase;">— steps</div>
+          <button id="myrm-btn-add-step" onclick="APP.myRmToggleAddStep()" style="padding:8px 14px;background:var(--bg3);color:var(--t1);font-weight:600;font-size:12px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);">+ Add Step</button>
+        </div>
+
+        <!-- Add step form -->
+        <div id="myrm-add-form" style="display:none;background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div style="margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Step title</div>
+        <input id="myrm-step-title" type="text" maxlength="120" placeholder="e.g. Complete module 1" style="width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);font-family:var(--font-ui);" />
+          </div>
+          <div style="margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Description (optional)</div>
+        <textarea id="myrm-step-desc" rows="2" placeholder="Brief note..." style="width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);font-family:var(--font-ui);resize:none;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="APP.myRmToggleAddStep()" style="padding:10px 14px;background:transparent;color:var(--t2);font-size:12px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);">Cancel</button>
+        <button id="myrm-btn-save-step" onclick="APP.myRmSaveStep()" style="flex:1;padding:10px;background:linear-gradient(135deg,var(--c1),var(--c2));color:#000;font-weight:700;font-size:12px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:none;">Save Step</button>
+          </div>
+        </div>
+
+        <!-- Steps list -->
+        <div id="myrm-steps-loader" style="display:none;justify-content:center;padding:32px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c1);animation:myrm-pulse 1s ease-in-out infinite;margin:0 3px;"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c2);animation:myrm-pulse 1s ease-in-out infinite 0.15s;margin:0 3px;"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--c3);animation:myrm-pulse 1s ease-in-out infinite 0.3s;margin:0 3px;"></div>
+        </div>
+        <div id="myrm-steps-list"></div>
+        <div id="myrm-steps-empty" style="display:none;text-align:center;padding:32px 20px;color:var(--t2);font-size:13px;line-height:1.6;">
+          <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:6px;">No steps yet</div>
+          Add your first step above.
+        </div>
+      </div>
+
+    </div><!-- /myrm-panel -->
+
+    <!-- CREATE ROADMAP MODAL -->
+    <div id="myrm-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;">
+      <div style="background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-bottom:none;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:600px;animation:myrm-slideup 0.22s ease;">
+        <div style="width:36px;height:4px;background:var(--bg5);border-radius:2px;margin:0 auto 18px;"></div>
+        <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:16px;">New Roadmap</div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Title</div>
+          <input id="myrm-create-title" type="text" maxlength="100" placeholder="e.g. Learn Machine Learning" style="width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);font-family:var(--font-ui);" />
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--t2);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Description (optional)</div>
+          <textarea id="myrm-create-desc" rows="3" placeholder="What is this roadmap about?" style="width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--t1);font-family:var(--font-ui);resize:none;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button onclick="APP.myRmCloseCreate()" style="padding:10px 16px;background:var(--bg3);color:var(--t1);font-weight:600;font-size:12px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);">Cancel</button>
+          <button id="myrm-btn-create" onclick="APP.myRmCreate()" style="flex:1;padding:13px;background:linear-gradient(135deg,var(--c1),var(--c2));color:#000;font-weight:700;font-size:13px;font-family:var(--font-ui);border-radius:8px;cursor:pointer;border:none;">Create</button>
+        </div>
+      </div>
+    </div><!-- /myrm-modal -->
+
+    <style>
+      @keyframes myrm-pulse {
+        0%,80%,100%{transform:scale(0.5);opacity:0.4}
+        40%{transform:scale(1);opacity:1}
+      }
+      @keyframes myrm-slideup {
+        from{transform:translateY(100%);opacity:0}
+        to{transform:translateY(0);opacity:1}
+      }
+      .myrm-card .home-card-ico svg { color: var(--c2); }
+      #myrm-step-title:focus, #myrm-step-desc:focus,
+      #myrm-create-title:focus, #myrm-create-desc:focus {
+        border-color: rgba(124,58,237,0.4) !important;
+        outline: none;
+      }
+    </style>
+
+
+    </div>
+    <!-- /app -->
+
+    <script src="config.js"></script>
+    <script src="auth_guard.js"></script>
+    <script src="hybrid_data.js"></script>
+    <script src="script.js"></script>
+    <script src="roadmap_bridge.js"></script>
+    <script src="notes_storage.js"></script>
+    <script>
+      // Initialise Lucide icons after DOM is ready
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+
+    <script>
+    /* ══════════════════════════════════════════════════════
+       ROADMAPX — Premium Roadmap UI Enhancer
+       Progressively upgrades dynamically rendered roadmap
+       cards with structured, premium CSS classes.
+       Does NOT touch any data, logic, or click handlers.
+    ══════════════════════════════════════════════════════ */
+    (function () {
+      'use strict';
+
+      // SVG icons for section headers
+      const ICONS = {
+        goal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+        explanation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+        resources: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+        clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+        check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+        link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+      };
+
+      /**
+       * Determine section type from title text
+       */
+      function getSectionType(titleText) {
+        const t = (titleText || '').toLowerCase();
+        if (t.includes('goal'))        return 'goal';
+        if (t.includes('explanation') || t.includes('explain') || t.includes('concept') || t.includes('theory') || t.includes('what')) return 'explanation';
+        if (t.includes('resource') || t.includes('link') || t.includes('reference') || t.includes('material')) return 'resources';
+        return null;
+      }
+
+      /**
+       * Upgrade .body-section elements inside a .day-card-body or .day-body-inner
+       */
+      function upgradeBodySections(root) {
+        root.querySelectorAll('.body-section').forEach(section => {
+          if (section.dataset.enhanced) return;
+          section.dataset.enhanced = '1';
+
+          const titleEl = section.querySelector('.body-section-title');
+          if (!titleEl) return;
+
+          const rawTitle = titleEl.textContent.trim();
+          const type = getSectionType(rawTitle);
+
+          if (type) {
+            // Add semantic class
+            section.classList.add(type + '-section');
+
+            // Inject icon into title
+            if (!titleEl.querySelector('svg')) {
+              const iconSpan = document.createElement('span');
+              iconSpan.innerHTML = ICONS[type] || '';
+              iconSpan.style.display = 'inline-flex';
+              iconSpan.style.alignItems = 'center';
+              iconSpan.style.flexShrink = '0';
+              titleEl.insertBefore(iconSpan, titleEl.firstChild);
+            }
+          }
+
+          // Upgrade resource links inside resources section
+          if (type === 'resources') {
+            upgradeResourceLinks(section);
+          }
+        });
+      }
+
+      /**
+       * Add .resource class + icon to resource links
+       */
+      function upgradeResourceLinks(container) {
+        container.querySelectorAll('.resource-link, a').forEach(link => {
+          if (link.dataset.enhanced) return;
+          link.dataset.enhanced = '1';
+          link.classList.add('resource');
+
+          // Ensure icon wrapper exists
+          if (!link.querySelector('.resource-icon') && !link.querySelector('svg')) {
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'resource-icon';
+            iconWrap.innerHTML = ICONS.link;
+            link.insertBefore(iconWrap, link.firstChild);
+          }
+
+          // Wrap text in label span if not already wrapped
+          const textNodes = [...link.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
+          textNodes.forEach(tn => {
+            const span = document.createElement('span');
+            span.className = 'resource-label';
+            span.textContent = tn.textContent.trim();
+            link.replaceChild(span, tn);
+          });
+        });
+      }
+
+      /**
+       * Add .week-meta pills to .week-card-header and .ai-week-header
+       * Only if not already enhanced
+       */
+      function upgradeWeekCards(root) {
+        // DSA week cards
+        root.querySelectorAll('.week-card').forEach(card => {
+          if (card.dataset.metaEnhanced) return;
+          card.dataset.metaEnhanced = '1';
+          const metaEl = card.querySelector('.week-meta');
+          if (metaEl && !metaEl.dataset.pillified) {
+            metaEl.dataset.pillified = '1';
+            // Wrap existing plain text in pills if not already
+            const rawText = metaEl.textContent.trim();
+            if (rawText && !metaEl.querySelector('.week-meta-pill')) {
+              // Split by common separators
+              const parts = rawText.split(/[·•|,]+/).map(s => s.trim()).filter(Boolean);
+              metaEl.innerHTML = '';
+              parts.forEach((part, i) => {
+                const pill = document.createElement('span');
+                pill.className = 'week-meta-pill ' + (i === 0 ? 'duration' : 'days-done');
+                if (i === 0) pill.innerHTML = ICONS.clock + ' ' + part;
+                else pill.innerHTML = ICONS.check + ' ' + part;
+                metaEl.appendChild(pill);
+              });
+            }
+          }
+        });
+
+        // AI week cards (already have their own structure, just add glow class if needed)
+        root.querySelectorAll('.ai-week-card').forEach(card => {
+          if (card.dataset.metaEnhanced) return;
+          card.dataset.metaEnhanced = '1';
+          // Already structured, just ensure ai-week-sub has meta pills
+          const subEl = card.querySelector('.ai-week-sub');
+          if (subEl && !subEl.querySelector('.week-meta-pill')) {
+            const rawText = subEl.textContent.trim();
+            if (rawText) {
+              const parts = rawText.split(/[·•|,]+/).map(s => s.trim()).filter(Boolean);
+              if (parts.length > 1) {
+                subEl.innerHTML = '';
+                subEl.className = 'ai-week-sub week-meta';
+                parts.forEach((part, i) => {
+                  const pill = document.createElement('span');
+                  pill.className = 'week-meta-pill ' + (i === 0 ? 'duration' : 'days-done');
+                  pill.innerHTML = (i === 0 ? ICONS.clock : ICONS.check) + ' ' + part;
+                  subEl.appendChild(pill);
+                });
+              }
+            }
+          }
+        });
+      }
+
+      /**
+       * Main enhancer: runs on a given root element
+       */
+      function enhanceRoadmapUI(root) {
+        upgradeBodySections(root);
+        upgradeWeekCards(root);
+        upgradeResourceLinks(root); // catch any top-level resource links
+      }
+
+      /**
+       * MutationObserver to watch for dynamically rendered roadmap content
+       */
+      const WATCH_IDS = [
+        'ai-weeks-list', 'ai-structured-days-list',
+        'dsa-weeks-list', 'dsa-topics-list',
+        'ai-week-summary', 'dsa-week-summary-bar',
+        'ai-level-summary', 'dsa-week-summary-bar',
+        'tab-ai', 'tab-dsa'
+      ];
+
+      function startObservers() {
+        WATCH_IDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const obs = new MutationObserver(() => enhanceRoadmapUI(el));
+          obs.observe(el, { childList: true, subtree: true });
+        });
+
+        // Also watch the whole content area for any dynamic render
+        const content = document.getElementById('content');
+        if (content) {
+          const obs = new MutationObserver((mutations) => {
+            mutations.forEach(m => {
+              m.addedNodes.forEach(node => {
+                if (node.nodeType === 1) enhanceRoadmapUI(node);
+              });
+            });
+          });
+          obs.observe(content, { childList: true, subtree: true });
+        }
+
+        // Run on current state too
+        enhanceRoadmapUI(document.body);
+      }
+
+      // Start after DOM + scripts are ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startObservers);
+      } else {
+        startObservers();
+      }
+
+      // Also run periodically to catch late renders (safety net)
+      let runCount = 0;
+      const interval = setInterval(() => {
+        enhanceRoadmapUI(document.body);
+        if (++runCount > 10) clearInterval(interval);
+      }, 800);
+
+    })();
+    </script>
+
+    <!-- GUEST MODE BANNER — soft upsell shown after 10s for unauthenticated users -->
+    <div id="guest-banner">
+      <button class="guest-banner-close" onclick="document.getElementById('guest-banner').style.display='none'" aria-label="Dismiss">✕</button>
+      <div class="guest-banner-body">
+        <div class="guest-banner-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="guest-banner-text">
+          <div class="guest-banner-title">Save your progress</div>
+          <div class="guest-banner-sub">Sign in to sync across all devices</div>
+        </div>
+      </div>
+      <div class="guest-banner-local">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Progress is saved locally. Sign in anytime to sync.
+      </div>
+      <div class="guest-banner-actions">
+        <button class="guest-banner-signin" onclick="window.location.href='login.html'">Sign In / Sign Up</button>
+        <button class="guest-banner-dismiss" onclick="document.getElementById('guest-banner').style.display='none'">Continue as Guest</button>
+      </div>
+    </div>
+
+
+  <!-- ── Attendance Mark Modal ── -->
+  <div class="att-modal-overlay" id="att-modal-overlay" onclick="AttModal.bgClose(event)">
+    <div class="att-modal">
+      <div class="att-modal-date" id="att-modal-date"></div>
+      <div class="att-modal-current" id="att-modal-current"></div>
+      <div class="att-modal-btns">
+        <button class="att-modal-btn present" onclick="AttModal.mark('present')">✅ Present</button>
+        <button class="att-modal-btn absent"  onclick="AttModal.mark('absent')">❌ Absent</button>
+        <button class="att-modal-btn reset"   onclick="AttModal.reset()" id="att-modal-reset-btn">🗑 Remove</button>
+      </div>
+      <button class="att-modal-cancel" onclick="AttModal.close()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+  // ═══════════════════════════════════════════════
+  //  MY ROADMAPS FEATURE — injected into APP
+  // ═══════════════════════════════════════════════
+  (function() {
+    const API = 'https://roadmapx-backend-3qmc.onrender.com';
+
+    let _roadmaps       = [];
+    let _steps          = [];
+    let _currentRoadmap = null;
+    let _addStepOpen    = false;
+
+    // ── helpers ─────────────────────────────────
+    function uid() {
+      try { return localStorage.getItem('rx_user') || sessionStorage.getItem('rx_user') || ''; } catch(e) { return ''; }
+    }
+
+    function toast(msg) {
+      // reuse existing app toast if present, else console
+      if (window.APP && APP.showToast) { APP.showToast(msg); return; }
+      const el = document.getElementById('toast') || document.getElementById('snackbar');
+      if (el) { el.textContent = msg; el.className = (el.className||'') + ' show'; setTimeout(()=>el.classList.remove('show'),2200); }
+    }
+
+    function escH(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function setBtn(id, disabled, label) {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.disabled = disabled;
+      b.textContent = label;
+    }
+
+    // ── panel open/close ─────────────────────────
+    function openMyRoadmaps() {
+      document.getElementById('myrm-panel').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      showListView();
+      loadRoadmaps();
+    }
+
+    function closeMyRoadmaps() {
+      document.getElementById('myrm-panel').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function showListView() {
+      document.getElementById('myrm-view-list').style.display = 'block';
+      document.getElementById('myrm-view-detail').style.display = 'none';
+      document.getElementById('myrm-hdr-title').textContent = 'My Roadmaps';
+      _currentRoadmap = null;
+    }
+
+    function showDetailView(rm) {
+      _currentRoadmap = rm;
+      document.getElementById('myrm-view-list').style.display = 'none';
+      document.getElementById('myrm-view-detail').style.display = 'block';
+      document.getElementById('myrm-hdr-title').textContent = rm.title;
+      document.getElementById('myrm-detail-title').textContent = rm.title;
+      document.getElementById('myrm-detail-desc').textContent = rm.description || 'No description.';
+      closeAddStepForm();
+      document.getElementById('myrm-step-title').value = '';
+      document.getElementById('myrm-step-desc').value  = '';
+      loadSteps(rm._id);
+    }
+
+    // ── roadmaps ─────────────────────────────────
+    async function loadRoadmaps() {
+      document.getElementById('myrm-list-loader').style.display = 'flex';
+      document.getElementById('myrm-list-content').style.display = 'none';
+      try {
+        const userId = uid();
+        const url = `${API}/api/roadmaps${userId ? '?userId='+encodeURIComponent(userId) : ''}`;
+        const r = await fetch(url, { credentials: 'include' });
+        const d = await r.json();
+        _roadmaps = d.success ? (d.data || []) : [];
+      } catch(e) { _roadmaps = []; toast('Could not load roadmaps.'); }
+      renderRoadmaps();
+      document.getElementById('myrm-list-loader').style.display = 'none';
+      document.getElementById('myrm-list-content').style.display = 'block';
+    }
+
+    function renderRoadmaps() {
+      const container = document.getElementById('myrm-cards');
+      const empty     = document.getElementById('myrm-empty');
+      document.getElementById('myrm-list-label').textContent =
+        `${_roadmaps.length} roadmap${_roadmaps.length !== 1 ? 's' : ''}`;
+
+      if (_roadmaps.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      container.innerHTML = _roadmaps.map((rm, i) => {
+        const total = rm._stepCount || 0;
+        const done  = rm._completedCount || 0;
+        const pct   = total > 0 ? Math.round(done/total*100) : 0;
+        return `
+          <div onclick="window._myRm.openDetail('${rm._id}')" style="background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s,background 0.15s;" onmouseover="this.style.borderColor='rgba(124,58,237,0.3)';this.style.background='var(--bg3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)';this.style.background='var(--bg2)'">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+              <div style="font-size:14px;font-weight:600;color:var(--t1);line-height:1.3;">${escH(rm.title)}</div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            ${rm.description ? `<div style="font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:10px;">${escH(rm.description)}</div>` : ''}
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t2);font-family:var(--font-mono);margin-bottom:5px;">
+              <span>${done} / ${total} steps</span><span>${pct}%</span>
+            </div>
+            <div style="height:3px;background:var(--bg5);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;background:linear-gradient(90deg,var(--c1),var(--c2));border-radius:2px;width:${pct}%;transition:width 0.4s;"></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── create roadmap ───────────────────────────
+    function openCreate() {
+      document.getElementById('myrm-create-title').value = '';
+      document.getElementById('myrm-create-desc').value  = '';
+      const m = document.getElementById('myrm-modal');
+      m.style.display = 'flex';
+      setTimeout(() => document.getElementById('myrm-create-title').focus(), 100);
+    }
+
+    function closeCreate() {
+      document.getElementById('myrm-modal').style.display = 'none';
+    }
+
+    async function createRoadmap() {
+      const title  = document.getElementById('myrm-create-title').value.trim();
+      const desc   = document.getElementById('myrm-create-desc').value.trim();
+      const userId = uid();
+      if (!title) { toast('Title is required.'); return; }
+      if (!userId) { toast('Please log in first.'); return; }
+      setBtn('myrm-btn-create', true, 'Creating...');
+      try {
+        const r = await fetch(`${API}/api/roadmaps`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, title, description: desc }),
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.message);
+        closeCreate();
+        toast('Roadmap created.');
+        await loadRoadmaps();
+      } catch(e) { toast('Could not create roadmap.'); }
+      finally { setBtn('myrm-btn-create', false, 'Create'); }
+    }
+
+    // ── steps ────────────────────────────────────
+    async function loadSteps(roadmapId) {
+      const loader = document.getElementById('myrm-steps-loader');
+      loader.style.display = 'flex';
+      document.getElementById('myrm-steps-list').innerHTML = '';
+      document.getElementById('myrm-steps-empty').style.display = 'none';
+      try {
+        const r = await fetch(`${API}/api/steps/${roadmapId}`, { credentials: 'include' });
+        const d = await r.json();
+        _steps = d.success ? (d.data || []) : [];
+      } catch(e) { _steps = []; toast('Could not load steps.'); }
+      loader.style.display = 'none';
+      renderSteps();
+    }
+
+    function renderSteps() {
+      const container = document.getElementById('myrm-steps-list');
+      const empty     = document.getElementById('myrm-steps-empty');
+      const done      = _steps.filter(s => s.completed).length;
+      const total     = _steps.length;
+      const pct       = total > 0 ? Math.round(done/total*100) : 0;
+
+      document.getElementById('myrm-steps-count').textContent  = `${total} step${total!==1?'s':''}`;
+      document.getElementById('myrm-steps-label').textContent  = `${done} / ${total} steps`;
+      document.getElementById('myrm-pct-label').textContent    = `${pct}%`;
+      document.getElementById('myrm-prog-fill').style.width    = `${pct}%`;
+      document.getElementById('myrm-detail-pct-tag').textContent = `${pct}%`;
+
+      if (total === 0) { container.innerHTML=''; empty.style.display='block'; return; }
+      empty.style.display = 'none';
+
+      container.innerHTML = _steps.map(s => `
+        <div id="myrm-step-${s._id}" style="display:flex;align-items:flex-start;gap:12px;background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px;margin-bottom:8px;opacity:${s.completed?'0.55':'1'};transition:opacity 0.2s;">
+          <div onclick="window._myRm.toggleStep('${s._id}',${s.completed})" style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${s.completed?'transparent':'rgba(255,255,255,0.12)'};background:${s.completed?'linear-gradient(135deg,var(--c1),var(--c2))':'var(--bg3)'};flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:background 0.15s;">
+            ${s.completed ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--t1);line-height:1.3;${s.completed?'text-decoration:line-through;color:var(--t2);':''}">${escH(s.title)}</div>
+            ${s.description ? `<div style="font-size:11px;color:var(--t2);margin-top:3px;line-height:1.5;">${escH(s.description)}</div>` : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    async function toggleStep(stepId, currentlyDone) {
+      if (currentlyDone) return;
+      const idx = _steps.findIndex(s => s._id === stepId);
+      if (idx === -1) return;
+      _steps[idx].completed   = true;
+      _steps[idx].completedAt = new Date().toISOString();
+      renderSteps();
+      try {
+        const r = await fetch(`${API}/api/steps/${stepId}`, {
+          method: 'PUT', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.message);
+        toast('Step completed.');
+      } catch(e) {
+        _steps[idx].completed = false;
+        _steps[idx].completedAt = null;
+        renderSteps();
+        toast('Could not update step.');
+      }
+    }
+
+    function toggleAddStepForm() {
+      _addStepOpen = !_addStepOpen;
+      document.getElementById('myrm-add-form').style.display = _addStepOpen ? 'block' : 'none';
+      document.getElementById('myrm-btn-add-step').textContent = _addStepOpen ? '- Cancel' : '+ Add Step';
+      if (_addStepOpen) setTimeout(() => document.getElementById('myrm-step-title').focus(), 80);
+    }
+
+    function closeAddStepForm() {
+      _addStepOpen = false;
+      document.getElementById('myrm-add-form').style.display = 'none';
+      document.getElementById('myrm-btn-add-step').textContent = '+ Add Step';
+    }
+
+    async function saveStep() {
+      const title = document.getElementById('myrm-step-title').value.trim();
+      const desc  = document.getElementById('myrm-step-desc').value.trim();
+      if (!title) { toast('Step title is required.'); return; }
+      if (!_currentRoadmap) return;
+      setBtn('myrm-btn-save-step', true, 'Saving...');
+      try {
+        const r = await fetch(`${API}/api/steps`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roadmapId: _currentRoadmap._id, title, description: desc }),
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.message);
+        _steps.push(d.data);
+        document.getElementById('myrm-step-title').value = '';
+        document.getElementById('myrm-step-desc').value  = '';
+        closeAddStepForm();
+        renderSteps();
+        toast('Step added.');
+      } catch(e) { toast('Could not add step.'); }
+      finally { setBtn('myrm-btn-save-step', false, 'Save Step'); }
+    }
+
+    // ── expose to window ─────────────────────────
+    window._myRm = {
+      openDetail: (id) => {
+        const rm = _roadmaps.find(r => r._id === id);
+        if (rm) showDetailView(rm);
+      },
+      toggleStep,
+    };
+
+    // ── attach to APP ────────────────────────────
+    Object.assign(APP, {
+      openMyRoadmaps:      openMyRoadmaps,
+      closeMyRoadmaps:     closeMyRoadmaps,
+      myRmOpenCreate:      openCreate,
+      myRmCloseCreate:     closeCreate,
+      myRmCreate:          createRoadmap,
+      myRmToggleAddStep:   toggleAddStepForm,
+      myRmSaveStep:        saveStep,
+    });
+
+    // enter key shortcuts
+    document.getElementById('myrm-create-title').addEventListener('keydown', e => { if(e.key==='Enter') createRoadmap(); });
+    document.getElementById('myrm-step-title').addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey) saveStep(); });
+    // close modal on backdrop click
+    document.getElementById('myrm-modal').addEventListener('click', e => { if(e.target===document.getElementById('myrm-modal')) closeCreate(); });
+
+  })();
+  </script>
+  <script>
+(function() {
+  const _prevSwitchTab = APP.switchTab.bind(APP);
+  APP.switchTab = function(name) {
+    if (name === 'fe') {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      // Hide inline-styled panels
+      const dsaRm = document.getElementById('tab-dsa-rm');
+      if (dsaRm) dsaRm.style.display = 'none';
+      const aiRmP = document.getElementById('tab-ai-rm');
+      if (aiRmP) aiRmP.style.display = 'none';
+      const panel = document.getElementById('tab-fe');
+      if (panel) panel.classList.add('active');
+      const nav = document.getElementById('bottom-nav');
+      if (nav) nav.style.display = '';
+      document.getElementById('nav-home')?.classList.add('active');
+      if (typeof feRmApplyProgress === 'function') feRmApplyProgress();
+      // Push to nav stack so back button works
+      if (window.__pushNavState) window.__pushNavState({ tab: 'fe' });
+      return;
+    }
+    _prevSwitchTab(name);
+  };
+  // Expose __pushNavState for use in overrides
+  window.__pushNavStateProxy = function(s) {
+    if (typeof __pushNavState === 'function') __pushNavState(s);
+  };
+})();
+</script>
+  <script>
+(function() {
+  const _prevSwitchTab2 = APP.switchTab.bind(APP);
+  APP.switchTab = function(name) {
+    if (name === 'dsa-rm') {
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.remove('active');
+        if (p.id === 'tab-dsa-rm') p.style.display = 'none';
+        if (p.id === 'tab-ai-rm') p.style.display = 'none';
+      });
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const panel = document.getElementById('tab-dsa-rm');
+      if (panel) {
+        panel.classList.add('active');
+        panel.style.display = 'flex';
+      }
+      const nav = document.getElementById('bottom-nav');
+      if (nav) nav.style.display = '';
+      document.getElementById('nav-home')?.classList.add('active');
+      if (typeof dsaRmApplyProgress === 'function') dsaRmApplyProgress();
+      // Update home progress pill
+      const prog = JSON.parse(localStorage.getItem('dsa_visual_progress') || '{}');
+      const done = Object.values(prog).filter(v => v.status === 'done').length;
+      const bar = document.getElementById('home-dsa-rm-prog');
+      if (bar) bar.style.width = Math.round((done / 80) * 100) + '%';
+      // Push to nav stack so back button works
+      if (window.__pushNavStateProxy) window.__pushNavStateProxy({ tab: 'dsa-rm' });
+      return;
+    }
+    if (name === 'ai-rm') {
+      // Navigate to the standalone ai-roadmap.html page
+      window.location.href = 'ai-roadmap.html';
+      return;
+    }
+    _prevSwitchTab2(name);
+  };
+})();
+</script>
+<script>
+// ── More tab wiring ────────────────────────────────────
+(function() {
+  const _prev = APP.switchTab.bind(APP);
+  APP.switchTab = function(name) {
+    if (name === 'more') {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const panel = document.getElementById('tab-more');
+      if (panel) panel.classList.add('active');
+      const btn = document.getElementById('nav-more');
+      if (btn) btn.classList.add('active');
+      if (window.__pushNavState) window.__pushNavState({ tab: 'more' });
+      return;
+    }
+    _prev(name);
+  };
+})();
+</script>
+    <!-- tab-ai-rm-part6.js, tab-ai-rm-integration.js, tab-dsa-part6.js removed — files not yet built -->
+
+  <!-- ============================================================ -->
+  <!-- FLOATING ACTION BUTTON                                        -->
+  <!-- ============================================================ -->
+  <div id="fab-btn" title="Pomodoro Timer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </div>
+
+  <div id="fab-panel">
+    <!-- Header -->
+    <div id="fab-header">
+      <span id="fab-header-title">Pomodoro</span>
+      <button id="fab-close-btn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Pomodoro body -->
+    <div id="fab-pomo">
+      <!-- Ring -->
+      <div id="fab-pomo-ring">
+        <svg id="fab-pomo-svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="42" fill="none"
+            stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle id="fab-pomo-arc" cx="50" cy="50" r="42" fill="none"
+            stroke="var(--c1,#00e5c8)" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="264" stroke-dashoffset="0"
+            transform="rotate(-90 50 50)"/>
+        </svg>
+        <div id="fab-pomo-center">
+          <div id="fab-pomo-time">25:00</div>
+          <div id="fab-pomo-label">FOCUS</div>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div id="fab-presets">
+        <button class="fab-preset" data-m="15">15m</button>
+        <button class="fab-preset fab-p-active" data-m="25">25m</button>
+        <button class="fab-preset" data-m="45">45m</button>
+        <button class="fab-preset" data-m="60">60m</button>
+        <button class="fab-preset" data-m="90">90m</button>
+      </div>
+
+      <!-- Controls -->
+      <div id="fab-pomo-controls">
+        <button id="fab-pomo-reset" class="fab-ctrl-btn" aria-label="Reset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               width="15" height="15" style="color:#ef4444">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.67"/>
+          </svg>
+        </button>
+        <button id="fab-pomo-start" class="fab-ctrl-btn" aria-label="Start">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </button>
+        <button id="fab-pomo-pause" class="fab-ctrl-btn" aria-label="Pause" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+        <button id="fab-pomo-skip" class="fab-ctrl-btn" aria-label="Skip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               width="14" height="14">
+            <polygon points="5 4 15 12 5 20 5 4"/>
+            <line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="fab-pomo-session">Session <span id="fab-pomo-count">1</span> of 4</div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    var LS_POS = 'fab_pos2', LS_DUR = 'fab_dur2';
+    var CIRCUM = 2 * Math.PI * 42;
+    var DEFAULT_WORK = 25, DEFAULT_BREAK = 5;
+
+    // ── state ─────────────────────────────────────────────────
+    var pomo = {
+      workMins  : DEFAULT_WORK,
+      breakMins : DEFAULT_BREAK,
+      seconds   : DEFAULT_WORK * 60,
+      total     : DEFAULT_WORK * 60,
+      running   : false,
+      isBreak   : false,
+      session   : 1,
+      timer     : null
+    };
+    var fabOpen = false, isDragging = false, dragOffX = 0, dragOffY = 0;
+
+    // ── dom ───────────────────────────────────────────────────
+    var FAB, PANEL, ARC, TIME_EL, LABEL_EL, START_BTN, PAUSE_BTN,
+        RESET_BTN, SKIP_BTN, COUNT_EL, CLOSE_BTN;
+
+    function init() {
+      FAB       = document.getElementById('fab-btn');
+      PANEL     = document.getElementById('fab-panel');
+      ARC       = document.getElementById('fab-pomo-arc');
+      TIME_EL   = document.getElementById('fab-pomo-time');
+      LABEL_EL  = document.getElementById('fab-pomo-label');
+      START_BTN = document.getElementById('fab-pomo-start');
+      PAUSE_BTN = document.getElementById('fab-pomo-pause');
+      RESET_BTN = document.getElementById('fab-pomo-reset');
+      SKIP_BTN  = document.getElementById('fab-pomo-skip');
+      COUNT_EL  = document.getElementById('fab-pomo-count');
+      CLOSE_BTN = document.getElementById('fab-close-btn');
+      if (!FAB || !PANEL) return;
+
+      // load saved duration
+      try {
+        var d = parseInt(localStorage.getItem(LS_DUR)) || DEFAULT_WORK;
+        pomo.workMins = clamp(d, 1, 180);
+        pomo.seconds = pomo.workMins * 60;
+        pomo.total   = pomo.workMins * 60;
+
+      } catch(e){}
+
+      restorePos();
+      setupDrag();
+      setupPanel();
+      setupPomo();
+      renderUI();
+    }
+
+    // ── position ──────────────────────────────────────────────
+    // Store as ratio of viewport so position survives scroll/resize/rotation.
+    function restorePos() {
+      try {
+        var p = JSON.parse(localStorage.getItem(LS_POS) || 'null');
+        FAB.style.right = FAB.style.bottom = 'auto';
+        if (p && typeof p.rx === 'number') {
+          FAB.style.left = clamp(p.rx * window.innerWidth,  0, window.innerWidth  - FAB.offsetWidth)  + 'px';
+          FAB.style.top  = clamp(p.ry * window.innerHeight, 0, window.innerHeight - FAB.offsetHeight) + 'px';
+        } else {
+          FAB.style.left = (window.innerWidth  - FAB.offsetWidth  - 16) + 'px';
+          FAB.style.top  = (window.innerHeight - FAB.offsetHeight - 74) + 'px';
+        }
+      } catch(e){}
+    }
+    function savePos() {
+      try {
+        var r = FAB.getBoundingClientRect();
+        localStorage.setItem(LS_POS, JSON.stringify({
+          rx: r.left / window.innerWidth,
+          ry: r.top  / window.innerHeight
+        }));
+      } catch(e){}
+    }
+    function snapEdge() {
+      var r = FAB.getBoundingClientRect();
+      var cx = r.left + r.width / 2;
+      var sx = cx < window.innerWidth / 2 ? 12 : window.innerWidth - r.width - 12;
+      var sy = clamp(r.top, 10, window.innerHeight - r.height - 10);
+      FAB.style.transition = 'left .22s cubic-bezier(.25,.46,.45,.94)';
+      FAB.style.left = sx + 'px';
+      FAB.style.top  = sy + 'px';
+      setTimeout(function(){ FAB.style.transition = ''; savePos(); }, 250);
+    }
+
+    // ── drag ──────────────────────────────────────────────────
+    // FAB._active = true ONLY when the touch/mousedown started on the FAB itself.
+    // dragMove on document checks this flag so it NEVER moves the FAB when the
+    // user is tapping roadmap nodes or anything else on the page.
+    function setupDrag() {
+      FAB.addEventListener('touchstart', dragStart, {passive:false});
+      FAB.addEventListener('mousedown',  dragStart);
+      document.addEventListener('touchmove', dragMove, {passive:false});
+      document.addEventListener('mousemove',  dragMove);
+      document.addEventListener('touchend',  dragEnd);
+      document.addEventListener('mouseup',   dragEnd);
+    }
+    function xy(e) {
+      if (e.touches && e.touches.length)
+        return {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      if (e.changedTouches && e.changedTouches.length)
+        return {x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY};
+      return {x: e.clientX, y: e.clientY};
+    }
+    function dragStart(e) {
+      var p = xy(e), r = FAB.getBoundingClientRect();
+      dragOffX = p.x - r.left; dragOffY = p.y - r.top;
+      isDragging = false;
+      FAB._active = true;   // ← only set when touch starts ON the FAB
+      FAB._sx = p.x; FAB._sy = p.y;
+      // Switch from right/bottom to left/top — r.left/top are viewport px for position:fixed
+      FAB.style.transition = '';
+      FAB.style.right = FAB.style.bottom = 'auto';
+      FAB.style.left = r.left + 'px'; FAB.style.top = r.top + 'px';
+      // Don't preventDefault here — let click/touchend still fire for tap detection
+    }
+    function dragMove(e) {
+      if (!FAB._active) return;   // ← touch didn't start on FAB, ignore completely
+      var p = xy(e);
+      var dx = Math.abs(p.x - (FAB._sx||0)), dy = Math.abs(p.y - (FAB._sy||0));
+      if (!isDragging && dx < 8 && dy < 8) return;
+      if (!isDragging) { isDragging = true; FAB.classList.add('fab-dragging'); closePanel(); }
+      FAB.style.left = clamp(p.x - dragOffX, 0, window.innerWidth  - FAB.offsetWidth)  + 'px';
+      FAB.style.top  = clamp(p.y - dragOffY, 0, window.innerHeight - FAB.offsetHeight) + 'px';
+      if (e.cancelable) e.preventDefault();
+    }
+    function dragEnd() {
+      FAB._active = false;  // ← always clear so future non-FAB touches are ignored
+      if (!isDragging) return;
+      FAB.classList.remove('fab-dragging');
+      isDragging = false;
+      snapEdge();
+      closePanel();
+    }
+
+    function setupPanel() {
+      // FAB tap — open/close
+      FAB.addEventListener('touchend', function(e) {
+        if (isDragging) return;
+        e.preventDefault();
+        fabOpen ? closePanel() : openPanel();
+      });
+      FAB.addEventListener('click', function() {
+        if (isDragging) return;
+        fabOpen ? closePanel() : openPanel();
+      });
+
+      // Close button
+      if (CLOSE_BTN) tap(CLOSE_BTN, closePanel);
+
+      // Outside tap closes panel using a flag.
+      // When any touch/mousedown starts inside the panel, we set _panelTouched = true.
+      // The document touchend/mouseup checks this flag — if set, the interaction
+      // was inside the panel so we skip closing.
+      var _insideTouched = false;
+      PANEL.addEventListener('touchstart', function(){ _insideTouched = true; }, {passive:true});
+      PANEL.addEventListener('mousedown',  function(){ _insideTouched = true; });
+      FAB.addEventListener('touchstart',   function(){ _insideTouched = true; }, {passive:true});
+      FAB.addEventListener('mousedown',    function(){ _insideTouched = true; });
+
+      document.addEventListener('touchend', function(e) {
+        if (_insideTouched) { _insideTouched = false; return; }
+        if (!fabOpen) return;
+        // Only close if the touch ended outside both FAB and PANEL
+        var t = e.target;
+        if (FAB.contains(t) || PANEL.contains(t)) return;
+        closePanel();
+      }, {passive:true});
+      document.addEventListener('click', function(e) {
+        if (_insideTouched) { _insideTouched = false; return; }
+        if (!fabOpen) return;
+        // Only close if the click was outside both FAB and PANEL
+        if (FAB.contains(e.target) || PANEL.contains(e.target)) return;
+        closePanel();
+      });
+    }
+    function openPanel()  { fabOpen = true;  posPanel(); PANEL.classList.add('fab-panel-open'); }
+    function closePanel() { fabOpen = false; PANEL.classList.remove('fab-panel-open'); }
+    function posPanel() {
+      var r = FAB.getBoundingClientRect(), pw = 280, ph = 370, gap = 10;
+      var left = r.left + r.width/2 - pw/2;
+      var top  = r.top - ph - gap;
+      left = clamp(left, 8, window.innerWidth - pw - 8);
+      if (top < 8) top = r.bottom + gap;
+      PANEL.style.left = left + 'px';
+      PANEL.style.top  = top  + 'px';
+    }
+
+    // ── pomo ──────────────────────────────────────────────────
+    function setupPomo() {
+      tap(START_BTN, startPomo);
+      tap(PAUSE_BTN, pausePomo);
+      tap(RESET_BTN, resetPomo);
+      if (SKIP_BTN) tap(SKIP_BTN, skipPhase);
+
+      // Preset chips
+      document.querySelectorAll('.fab-preset').forEach(function(btn) {
+        tap(btn, function() {
+          var m = parseInt(btn.getAttribute('data-m')) || 25;
+          document.querySelectorAll('.fab-preset').forEach(function(b){ b.classList.remove('fab-p-active'); });
+          btn.classList.add('fab-p-active');
+          applyDuration(m);
+        });
+      });
+    }
+
+    function applyDuration(mins) {
+      pomo.workMins = clamp(mins || pomo.workMins, 1, 180);
+      try { localStorage.setItem(LS_DUR, pomo.workMins); } catch(e){}
+      // Always reset timer to new duration (stop first if running)
+      if (pomo.running) {
+        clearInterval(pomo.timer);
+        pomo.running = false;
+        START_BTN.style.display = 'flex';
+        PAUSE_BTN.style.display = 'none';
+      }
+      pomo.isBreak = false;
+      pomo.seconds = pomo.workMins * 60;
+      pomo.total   = pomo.workMins * 60;
+      // Update preset highlight
+      document.querySelectorAll('.fab-preset').forEach(function(b){
+        b.classList.toggle('fab-p-active', parseInt(b.getAttribute('data-m')) === pomo.workMins);
+      });
+      renderUI();
+    }
+
+    function startPomo() {
+      if (pomo.running) return;
+      pomo.running = true;
+      START_BTN.style.display = 'none';
+      PAUSE_BTN.style.display = 'flex';
+      pomo.timer = setInterval(tick, 1000);
+    }
+    function pausePomo() {
+      pomo.running = false;
+      clearInterval(pomo.timer);
+      START_BTN.style.display = 'flex';
+      PAUSE_BTN.style.display = 'none';
+    }
+    function resetPomo() {
+      pausePomo();
+      pomo.isBreak = false;
+      pomo.seconds = pomo.workMins * 60;
+      pomo.total   = pomo.workMins * 60;
+      renderUI();
+    }
+    function skipPhase() {
+      pausePomo();
+      pomo.isBreak = !pomo.isBreak;
+      pomo.seconds = (pomo.isBreak ? pomo.breakMins : pomo.workMins) * 60;
+      pomo.total   = pomo.seconds;
+      renderUI();
+    }
+    function tick() {
+      if (pomo.seconds <= 0) { clearInterval(pomo.timer); pomo.running = false; onEnd(); return; }
+      pomo.seconds--;
+      renderUI();
+    }
+    function onEnd() {
+      START_BTN.style.display = 'flex';
+      PAUSE_BTN.style.display = 'none';
+      beep();
+      openPanel();
+      if (!pomo.isBreak) {
+        pomo.isBreak = true;
+        var longBreak = pomo.session >= 4;
+        pomo.breakMins = longBreak ? 15 : DEFAULT_BREAK;
+        if (longBreak) pomo.session = 1;
+        pomo.seconds = pomo.breakMins * 60;
+        pomo.total   = pomo.seconds;
+      } else {
+        pomo.isBreak = false;
+        pomo.seconds = pomo.workMins * 60;
+        pomo.total   = pomo.seconds;
+        if (pomo.session < 4) pomo.session++;
+      }
+      renderUI();
+    }
+    function renderUI() {
+      var m = Math.floor(pomo.seconds / 60), s = pomo.seconds % 60;
+      TIME_EL.textContent  = pad(m) + ':' + pad(s);
+      LABEL_EL.textContent = pomo.isBreak ? 'BREAK' : 'FOCUS';
+      LABEL_EL.style.color = pomo.isBreak ? 'var(--c2,#7c3aed)' : 'var(--c1,#00e5c8)';
+      ARC.style.stroke = pomo.isBreak ? 'var(--c2,#7c3aed)' : 'var(--c1,#00e5c8)';
+      var pct = pomo.total > 0 ? pomo.seconds / pomo.total : 0;
+      ARC.style.strokeDashoffset = CIRCUM * (1 - pct);
+      COUNT_EL.textContent = pomo.session;
+    }
+    function beep() {
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        var ctx = new AC();
+        [0, .3, .6].forEach(function(d) {
+          var osc = ctx.createOscillator(), g = ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          osc.type = 'sine'; osc.frequency.value = 880;
+          g.gain.setValueAtTime(.4, ctx.currentTime + d);
+          g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + d + .35);
+          osc.start(ctx.currentTime + d); osc.stop(ctx.currentTime + d + .35);
+        });
+      } catch(e){}
+    }
+
+    // ── helpers ───────────────────────────────────────────────
+    // tap() wires BOTH touchend (with preventDefault to kill ghost-click)
+    // AND click for desktop — this is the key fix for Android
+    // NOTE: we skip preventDefault for input/button elements so the
+    // native keyboard and focus events still fire on mobile.
+    function tap(el, fn) {
+      el.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        fn();
+      });
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fn();
+      });
+    }
+    function clamp(v,mn,mx){ return Math.min(Math.max(v,mn),mx); }
+    function pad(n){ return String(n).padStart(2,'0'); }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+  <!-- ============================================================ -->
+  <!-- END FLOATING ACTION BUTTON                                    -->
+  <!-- ============================================================ -->
+
+  <script>
+  // Sync AI Visual Roadmap progress pill from localStorage on load
+  (function() {
+    function updateAiRmPill() {
+      try {
+        const prog = JSON.parse(localStorage.getItem('ai_visual_progress') || '{}');
+        const done = Object.values(prog).filter(v => v && v.status === 'done').length;
+        const total = 117;
+        const bar = document.getElementById('home-ai-rm-prog');
+        if (bar) bar.style.width = Math.round((done / total) * 100) + '%';
+      } catch(e) {}
+    }
+    // Run on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateAiRmPill);
+    } else {
+      updateAiRmPill();
+    }
+    // Also update whenever the page regains focus (user returns from ai-roadmap.html)
+    window.addEventListener('focus', updateAiRmPill);
+    window.addEventListener('pageshow', updateAiRmPill);
+  })();
+  </script>
+
+  <script>
+  // Sync Backend Visual Roadmap progress pill from localStorage on load
+  (function() {
+    function updateBeRmPill() {
+      try {
+        const prog = JSON.parse(localStorage.getItem('backend_visual_progress') || '{}');
+        const done = Object.values(prog).filter(v => v && v.status === 'done').length;
+        const total = 98; // total backend nodes
+        const bar = document.getElementById('home-be-rm-prog');
+        if (bar) bar.style.width = Math.round((done / total) * 100) + '%';
+      } catch(e) {}
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateBeRmPill);
+    } else {
+      updateBeRmPill();
+    }
+    window.addEventListener('focus', updateBeRmPill);
+    window.addEventListener('pageshow', updateBeRmPill);
+  })();
+
+  // Sync Backend Steps Roadmap progress pill from localStorage on load
+  (function() {
+    function updateBeStepsPill() {
+      try {
+        // backend-steps.js stores progress as 'backend_struct_beginner', 'backend_struct_intermediate', 'backend_struct_advanced'
+        let done = 0, total = 0;
+        ['beginner','intermediate','advanced'].forEach(function(level) {
+          const prog = JSON.parse(localStorage.getItem('backend_struct_' + level) || '{}');
+          Object.values(prog).forEach(function(v) {
+            if (v && typeof v === 'object') {
+              total++;
+              if (v.done) done++;
+            }
+          });
+        });
+        const bar = document.getElementById('home-be-steps-prog');
+        if (bar && total > 0) bar.style.width = Math.round((done / total) * 100) + '%';
+      } catch(e) {}
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateBeStepsPill);
+    } else {
+      updateBeStepsPill();
+    }
+    window.addEventListener('focus', updateBeStepsPill);
+    window.addEventListener('pageshow', updateBeStepsPill);
+  })();
+  </script>
+
+  <!-- ══ PREMIUM STREAK UI — styles ══ -->
+  <style>
+  /* ── Main card ── */
+  .streak-main-card {
+    background: var(--bg2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r16);
+    padding: 18px;
+    box-shadow: var(--sh-card);
+    display: flex; flex-direction: column; gap: 16px;
+    position: relative; overflow: hidden;
+  }
+  .streak-main-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3));
+    border-radius: var(--r16) var(--r16) 0 0;
+  }
+
+  /* ── Card header ── */
+  .streak-card-hdr {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  }
+  .streak-card-hdr-left { display: flex; align-items: flex-start; gap: 12px; }
+  .streak-flame-ico {
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.22);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--c3);
+  }
+  .streak-flame-ico svg { width: 18px; height: 18px; }
+  .streak-card-title {
+    font-size: 15px; font-weight: 800; color: var(--t1); letter-spacing: -0.2px;
+  }
+  .streak-card-warn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; color: var(--c4); margin-top: 3px;
+    font-family: var(--font-mono); letter-spacing: 0.2px;
+  }
+  .streak-sleep-ico {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--c2); flex-shrink: 0;
+  }
+  .streak-sleep-ico svg { width: 14px; height: 14px; }
+
+  /* ── Stats grid ── */
+  .streak-stats-grid {
+    display: flex; align-items: center; gap: 0;
+    background: var(--bg3); border: 1px solid var(--border-subtle);
+    border-radius: var(--r12); overflow: hidden;
+  }
+  .streak-stat-item {
+    flex: 1; text-align: center; padding: 12px 6px;
+  }
+  .streak-stat-sep {
+    width: 1px; height: 40px; background: var(--border-subtle); flex-shrink: 0;
+  }
+  .streak-stat-val {
+    font-size: 28px; font-weight: 900; font-family: var(--font-mono); line-height: 1;
+  }
+  .streak-val-cyan  { color: var(--c1); text-shadow: 0 0 16px rgba(0,229,200,0.35); }
+  .streak-val-green { color: var(--c5); text-shadow: 0 0 16px rgba(16,185,129,0.35); }
+  .streak-stat-lbl  { font-size: 10px; color: var(--t2); margin-top: 4px; letter-spacing: 0.3px; }
+
+  /* ── Parts today ── */
+  .streak-parts-today {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid var(--border-subtle);
+    border-radius: var(--r10); padding: 10px 14px;
+  }
+  .streak-parts-val {
+    font-size: 22px; font-weight: 900; font-family: var(--font-mono);
+    color: var(--c2); min-width: 32px;
+  }
+  .streak-parts-lbl { font-size: 11px; color: var(--t2); }
+
+  /* ── 14-day heatmap ── */
+  .streak-heatmap-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .streak-heatmap-row {
+    display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px;
+  }
+  .streak-heatmap-cell {
+    aspect-ratio: 1; border-radius: 4px;
+    background: var(--bg4);
+    transition: background 0.2s;
+    position: relative;
+  }
+  .streak-heatmap-cell[data-level="1"] { background: rgba(0,229,200,0.18); }
+  .streak-heatmap-cell[data-level="2"] { background: rgba(0,229,200,0.38); }
+  .streak-heatmap-cell[data-level="3"] { background: rgba(0,229,200,0.65); }
+  .streak-heatmap-cell[data-level="today"] {
+    outline: 2px solid var(--c1); outline-offset: -2px;
+    background: rgba(0,229,200,0.3);
+  }
+  .streak-heatmap-legend {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9px; color: var(--t2); font-family: var(--font-mono); justify-content: center;
+  }
+
+  /* ── What counts card ── */
+  .streak-counts-card {
+    background: var(--bg3); border: 1px solid var(--border-subtle);
+    border-radius: var(--r12); padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .streak-counts-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; color: var(--t1);
+    letter-spacing: 0.2px;
+  }
+  .streak-counts-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .streak-count-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 500; color: var(--t2);
+  }
+  .streak-count-ico {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .streak-count-ico svg { width: 13px; height: 13px; }
+  .streak-ico-cyan   { background: rgba(0,229,200,0.1);  border: 1px solid rgba(0,229,200,0.2);   color: var(--c1); }
+  .streak-ico-purple { background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2); color: var(--c2); }
+  .streak-ico-orange { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); color: var(--cf); }
+  .streak-ico-blue   { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: var(--c6); }
+  .streak-ico-red    { background: rgba(244,63,94,0.1);  border: 1px solid rgba(244,63,94,0.2);  color: var(--c3); }
+  .streak-ico-green  { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--c5); }
+
+  /* ── Mark button ── */
+  .streak-mark-btn {
+    width: 100%; padding: 13px 16px; border-radius: var(--r10);
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    color: #000; font-size: 14px; font-weight: 800; letter-spacing: 0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s var(--ease); cursor: pointer; border: none;
+    box-shadow: 0 4px 20px rgba(0,229,200,0.25);
+    position: relative; overflow: hidden;
+  }
+  .streak-mark-btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%);
+    background-size: 200% 100%; animation: shimmerSweep 2.5s linear infinite;
+  }
+  .streak-mark-btn:active { transform: scale(0.97); }
+  .streak-mark-btn:hover  { box-shadow: 0 6px 28px rgba(0,229,200,0.38); filter: brightness(1.06); }
+  .streak-mark-btn.marked {
+    background: rgba(16,185,129,0.15); color: var(--c5);
+    border: 1px solid rgba(16,185,129,0.3);
+    box-shadow: 0 0 20px rgba(16,185,129,0.15);
+  }
+  </style>
+
+  <!-- ══ PREMIUM STREAK UI — data bridge ══ -->
+  <script>
+  (function() {
+    function syncPremiumStreak() {
+      try {
+        // Read streak data from localStorage (keys used by script.js)
+        var today = new Date().toISOString().split('T')[0];
+
+        // Try common storage keys
+        var streakData = null;
+        var keys = ['streak_data', 'streakData', 'study_streak', 'streak'];
+        for (var i = 0; i < keys.length; i++) {
+          var raw = localStorage.getItem(keys[i]);
+          if (raw) { try { streakData = JSON.parse(raw); break; } catch(e){} }
+        }
+
+        // Pull individual values if available
+        var current = parseInt(localStorage.getItem('streak_current') || (streakData && streakData.current) || 0);
+        var longest  = parseInt(localStorage.getItem('streak_longest') || (streakData && streakData.longest)  || 0);
+        var total    = parseInt(localStorage.getItem('streak_total')   || (streakData && streakData.totalDays) || 0);
+        var parts    = parseInt(localStorage.getItem('streak_parts_today') || (streakData && streakData.partsToday) || 0);
+
+        // Update DOM
+        var el = function(id){ return document.getElementById(id); };
+        if (el('streak-current')) el('streak-current').textContent = current || '0';
+        if (el('streak-longest')) el('streak-longest').textContent = longest || '0';
+        if (el('streak-total'))   el('streak-total').textContent   = total   || '0';
+        if (el('streak-parts-today')) el('streak-parts-today').textContent = parts || '0';
+
+        // Heatmap — try to read daily log
+        var heatEl = el('streak-heatmap');
+        if (heatEl) {
+          heatEl.innerHTML = '';
+          var dailyLog = null;
+          var logKeys = ['streak_daily', 'daily_log', 'study_log', 'streakLog'];
+          for (var j = 0; j < logKeys.length; j++) {
+            var lr = localStorage.getItem(logKeys[j]);
+            if (lr) { try { dailyLog = JSON.parse(lr); break; } catch(e){} }
+          }
+          for (var d = 13; d >= 0; d--) {
+            var dt = new Date(); dt.setDate(dt.getDate() - d);
+            var ds = dt.toISOString().split('T')[0];
+            var cell = document.createElement('div');
+            cell.className = 'streak-heatmap-cell';
+            var count = dailyLog && dailyLog[ds] ? dailyLog[ds] : 0;
+            var isToday = ds === today;
+            if (isToday) { cell.dataset.level = 'today'; }
+            else if (count >= 5) { cell.dataset.level = '3'; }
+            else if (count >= 2) { cell.dataset.level = '2'; }
+            else if (count >= 1) { cell.dataset.level = '1'; }
+            cell.title = ds + (count ? ' · ' + count + ' parts' : '');
+            heatEl.appendChild(cell);
+          }
+        }
+
+        // Mark button state
+        var markBtn = el('streak-mark-btn');
+        var studiedToday = localStorage.getItem('studied_today') === today
+          || (streakData && streakData.lastStudied === today);
+        if (markBtn && studiedToday) {
+          markBtn.classList.add('marked');
+          markBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg> Studied Today ✓';
+        }
+
+        // Hide warning if already studied
+        var warn = el('streak-warn-row');
+        if (warn && studiedToday) warn.style.display = 'none';
+
+        // Sleep icon — hide if active
+        var sleep = el('streak-sleep-ico');
+        if (sleep && (current > 0 || studiedToday)) sleep.style.opacity = '0.35';
+
+      } catch(e) {}
+    }
+
+    // Override APP.markTodayStudied to also update premium UI
+    function patchApp() {
+      if (window.APP && APP.markTodayStudied) {
+        var orig = APP.markTodayStudied.bind(APP);
+        APP.markTodayStudied = function() {
+          orig();
+          setTimeout(syncPremiumStreak, 200);
+        };
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        syncPremiumStreak();
+        setTimeout(patchApp, 500);
+      });
+    } else {
+      syncPremiumStreak();
+      setTimeout(patchApp, 500);
+    }
+    window.addEventListener('focus', syncPremiumStreak);
+    // Also re-sync whenever tab-streak becomes visible
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'nav-streak') setTimeout(syncPremiumStreak, 100);
+    });
+  })();
+  </script>
+
+</body>
+</html>

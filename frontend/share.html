@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Progress Card</title>
+  <meta property="og:title" content="My RoadmapX Progress" />
+  <meta property="og:description" content="Check out my learning progress on RoadmapX!" />
+  <meta property="og:image" content="" id="og-image" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #05050f; --bg2: #0c0c20; --bg3: #101028;
+      --c1: #00e5c8; --c2: #7c3aed; --c3: #f43f5e;
+      --c4: #f59e0b; --c5: #10b981;
+      --t1: #f0f0ff; --t2: #8080a8; --t3: #404060;
+      --r12: 12px; --r16: 16px; --r20: 20px;
+      --font-ui: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Bebas Neue', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg0); color: var(--t1);
+      font-family: var(--font-ui); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(0,229,200,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,200,0.015) 1px,transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .page-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 24px; width: 100%; max-width: 480px;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg3); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--t2); padding: 7px 14px; border-radius: var(--r12);
+      font-family: var(--font-mono); font-size: 11px; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .back-btn:hover { border-color: rgba(0,229,200,0.25); color: var(--c1); }
+    .page-title {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      color: var(--c4); letter-spacing: 1.5px;
+    }
+
+    /* ── CARD CANVAS WRAPPER ── */
+    .card-wrap {
+      width: 100%; max-width: 480px;
+      border-radius: var(--r20);
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,229,200,0.08), 0 20px 60px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
+      position: relative; z-index: 1;
+    }
+    #share-canvas {
+      width: 100%; display: block;
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .actions {
+      display: flex; flex-direction: column; gap: 10px;
+      width: 100%; max-width: 480px; margin-bottom: 24px;
+    }
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, var(--c1), var(--c2));
+      color: #fff; border: none; border-radius: var(--r12);
+      padding: 14px; font-family: var(--font-ui); font-size: 14px;
+      font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--bg3); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--t1); border-radius: var(--r12);
+      padding: 13px; font-family: var(--font-ui); font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: rgba(0,229,200,0.2); }
+
+    /* ── SHARE LINK BOX ── */
+    .link-box {
+      width: 100%; max-width: 480px;
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--r12); padding: 14px 16px;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .link-url {
+      flex: 1; font-family: var(--font-mono); font-size: 11px;
+      color: var(--c1); overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .copy-btn {
+      flex-shrink: 0; background: rgba(0,229,200,0.1);
+      border: 1px solid rgba(0,229,200,0.25); color: var(--c1);
+      padding: 6px 12px; border-radius: 8px;
+      font-family: var(--font-mono); font-size: 10px;
+      cursor: pointer; transition: all 0.2s; font-weight: 700;
+    }
+    .copy-btn:hover { background: rgba(0,229,200,0.18); }
+    .copy-btn.copied { color: var(--c5); border-color: rgba(16,185,129,0.3); }
+
+    /* ── PRIVACY TOGGLE ── */
+    .privacy-row {
+      width: 100%; max-width: 480px;
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--r12); padding: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .privacy-label { font-size: 13px; font-weight: 600; color: var(--t1); }
+    .privacy-sub { font-size: 11px; color: var(--t2); margin-top: 2px; font-family: var(--font-mono); }
+    .toggle {
+      position: relative; width: 44px; height: 24px;
+      background: var(--bg3); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; cursor: pointer; transition: all 0.25s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: rgba(0,229,200,0.2); border-color: rgba(0,229,200,0.4); }
+    .toggle::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--t3); transition: all 0.25s;
+    }
+    .toggle.on::after { left: 23px; background: var(--c1); }
+
+    /* ── LOADING / ERROR STATES ── */
+    .state-box {
+      width: 100%; max-width: 480px;
+      background: var(--bg2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--r20); padding: 48px 24px;
+      text-align: center;
+    }
+    .state-ico { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+    .state-txt { font-family: var(--font-mono); font-size: 12px; color: var(--t2); }
+
+    .dot-loader { display: inline-flex; gap: 5px; }
+    .dot-loader span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--c4); animation: dp 1.2s infinite;
+    }
+    .dot-loader span:nth-child(2) { animation-delay: .2s; }
+    .dot-loader span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dp { 0%,100%{opacity:.2;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <a href="index.html" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back
+  </a>
+  <div class="page-title">// SHARE CARD</div>
+</div>
+
+<!-- Loading state -->
+<div class="state-box" id="loading-box">
+  <div class="dot-loader"><span></span><span></span><span></span></div>
+  <div class="state-txt" style="margin-top:12px">Building your card...</div>
+</div>
+
+<!-- Private state -->
+<div class="state-box" id="private-box" style="display:none">
+  <div class="state-ico">🔒</div>
+  <div class="state-txt">This profile is private.<br>Enable sharing below to create your card.</div>
+</div>
+
+<!-- Card -->
+<div class="card-wrap" id="card-wrap" style="display:none">
+  <canvas id="share-canvas"></canvas>
+</div>
+
+<!-- Actions -->
+<div class="actions" id="actions" style="display:none">
+  <button class="btn-primary" onclick="SC.download()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Save Image
+  </button>
+  <button class="btn-secondary" onclick="SC.nativeShare()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Share
+  </button>
+</div>
+
+<!-- Share link -->
+<div class="link-box" id="link-box" style="display:none">
+  <div class="link-url" id="link-url"></div>
+  <button class="copy-btn" id="copy-btn" onclick="SC.copyLink()">Copy</button>
+</div>
+
+<!-- Privacy toggle -->
+<div class="privacy-row" id="privacy-row" style="display:none">
+  <div>
+    <div class="privacy-label">Public Profile</div>
+    <div class="privacy-sub">Allow anyone to view your share card</div>
+  </div>
+  <div class="toggle" id="privacy-toggle" onclick="SC.togglePrivacy()"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+const SC = (() => {
+  const API = window.RX_API;
+  let _data     = null;
+  let _username = null;
+  let _isPublic = false;
+  let _canvas   = null;
+
+  // ── Get username from URL or session ────────────────
+  async function getUsername() {
+    const params = new URLSearchParams(location.search);
+    const u = params.get('u');
+    if (u) return u;
+    // Own card — get from session
+    const res = await fetch(`${API}/me`, { credentials: 'include' });
+    const j   = await res.json();
+    return j.success ? j.username : null;
+  }
+
+  // ── Draw the card onto canvas ────────────────────────
+  function drawCard(data) {
+    const canvas = document.getElementById('share-canvas');
+    _canvas = canvas;
+    const W = 900, H = 500;
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // ── Background ──────────────────────────────────
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0,   '#05050f');
+    bgGrad.addColorStop(0.5, '#080818');
+    bgGrad.addColorStop(1,   '#05050f');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(0,229,200,0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Glow top-right
+    const glowR = ctx.createRadialGradient(W * 0.85, H * 0.15, 0, W * 0.85, H * 0.15, 280);
+    glowR.addColorStop(0, 'rgba(0,229,200,0.06)');
+    glowR.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowR;
+    ctx.fillRect(0, 0, W, H);
+
+    // Glow bottom-left
+    const glowL = ctx.createRadialGradient(W * 0.15, H * 0.85, 0, W * 0.15, H * 0.85, 240);
+    glowL.addColorStop(0, 'rgba(124,58,237,0.07)');
+    glowL.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowL;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Top accent bar ──────────────────────────────
+    const barGrad = ctx.createLinearGradient(0, 0, W, 0);
+    barGrad.addColorStop(0,   'transparent');
+    barGrad.addColorStop(0.3, '#00e5c8');
+    barGrad.addColorStop(0.7, '#7c3aed');
+    barGrad.addColorStop(1,   'transparent');
+    ctx.fillStyle = barGrad;
+    ctx.fillRect(0, 0, W, 3);
+
+    // ── Branding ────────────────────────────────────
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(0,229,200,0.6)';
+    ctx.fillText('// ROADMAPX', 52, 58);
+
+    // ── Username ─────────────────────────────────────
+    ctx.font = '800 52px "Bebas Neue", sans-serif';
+    ctx.fillStyle = '#f0f0ff';
+    ctx.letterSpacing = '2px';
+    ctx.fillText(data.username.toUpperCase(), 52, 130);
+
+    // Join date
+    const joined = data.joinedAt ? new Date(data.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+    ctx.font = '400 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#404060';
+    ctx.fillText(`Member since ${joined}`, 54, 158);
+
+    // ── Stat cards ──────────────────────────────────
+    const stats = [
+      { label: 'STREAK',      value: data.streak,     unit: 'days',  color: '#f43f5e' },
+      { label: 'LONGEST',     value: data.longest,    unit: 'days',  color: '#f59e0b' },
+      { label: 'TOPICS DONE', value: data.topicsDone, unit: 'done',  color: '#10b981' },
+      { label: 'FOCUS POMOS', value: data.totalPomos, unit: 'sessions', color: '#00e5c8' },
+    ];
+
+    const cardW = 176, cardH = 130, cardGap = 16;
+    const startX = 52, startY = 200;
+
+    stats.forEach((s, i) => {
+      const x = startX + i * (cardW + cardGap);
+      const y = startY;
+
+      // Card bg
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      roundRect(ctx, x, y, cardW, cardH, 12);
+      ctx.fill();
+
+      // Card border
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, x, y, cardW, cardH, 12);
+      ctx.stroke();
+
+      // Color accent top
+      ctx.fillStyle = s.color;
+      roundRect(ctx, x, y, cardW, 3, [12, 12, 0, 0]);
+      ctx.fill();
+
+      // Value
+      ctx.font = `700 36px "JetBrains Mono", monospace`;
+      ctx.fillStyle = s.color;
+      ctx.fillText(String(s.value), x + 16, y + 56);
+
+      // Unit
+      ctx.font = '400 11px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#404060';
+      ctx.fillText(s.unit, x + 16, y + 76);
+
+      // Label
+      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#606080';
+      ctx.fillText(s.label, x + 16, y + 108);
+    });
+
+    // ── Badge strip ──────────────────────────────────
+    const badges = data.badges || [];
+    const badgeEmojis = {
+      'first_day': '🌱', 'streak_7': '🔥', 'streak_30': '⚡',
+      'topics_10': '📚', 'topics_50': '🎓', 'pomo_10': '🍅',
+      'pomo_50': '💪', 'ai_complete': '🤖', 'dsa_complete': '💡',
+    };
+    if (badges.length > 0) {
+      ctx.font = '400 12px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#404060';
+      ctx.fillText('BADGES', 52, 375);
+      badges.slice(0, 8).forEach((b, i) => {
+        const emoji = badgeEmojis[b] || '🏅';
+        ctx.font = '22px sans-serif';
+        ctx.fillText(emoji, 52 + i * 36, 406);
+      });
+    }
+
+    // ── Bottom watermark ─────────────────────────────
+    ctx.font = '600 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.textAlign = 'right';
+    ctx.fillText('roadmapx.pages.dev', W - 52, H - 32);
+    ctx.textAlign = 'left';
+
+    // ── Bottom accent bar ────────────────────────────
+    const bottomGrad = ctx.createLinearGradient(0, 0, W, 0);
+    bottomGrad.addColorStop(0,   'transparent');
+    bottomGrad.addColorStop(0.3, 'rgba(124,58,237,0.6)');
+    bottomGrad.addColorStop(0.7, 'rgba(0,229,200,0.6)');
+    bottomGrad.addColorStop(1,   'transparent');
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(0, H - 3, W, 3);
+  }
+
+  // ── Rounded rect helper ──────────────────────────────
+  function roundRect(ctx, x, y, w, h, r) {
+    const radii = Array.isArray(r) ? r : [r, r, r, r];
+    ctx.beginPath();
+    ctx.moveTo(x + radii[0], y);
+    ctx.lineTo(x + w - radii[1], y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radii[1]);
+    ctx.lineTo(x + w, y + h - radii[2]);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radii[2], y + h);
+    ctx.lineTo(x + radii[3], y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radii[3]);
+    ctx.lineTo(x, y + radii[0]);
+    ctx.quadraticCurveTo(x, y, x + radii[0], y);
+    ctx.closePath();
+  }
+
+  // ── Show card UI ─────────────────────────────────────
+  function showCard(data, username, isOwn) {
+    document.getElementById('loading-box').style.display = 'none';
+    document.getElementById('private-box').style.display = 'none';
+    document.getElementById('card-wrap').style.display   = 'block';
+    document.getElementById('actions').style.display     = 'flex';
+
+    drawCard(data);
+
+    if (isOwn) {
+      // Show link box + privacy toggle for own card
+      const shareUrl = `${location.origin}/share.html?u=${encodeURIComponent(username)}`;
+      document.getElementById('link-url').textContent = shareUrl;
+      document.getElementById('link-box').style.display     = 'flex';
+      document.getElementById('privacy-row').style.display  = 'flex';
+      updateToggle(data.sharePublic);
+    }
+  }
+
+  function updateToggle(isPublic) {
+    _isPublic = isPublic;
+    const t = document.getElementById('privacy-toggle');
+    t.classList.toggle('on', isPublic);
+  }
+
+  // ── Public API ───────────────────────────────────────
+
+  async function init() {
+    try {
+      _username = await getUsername();
+      if (!_username) {
+        document.getElementById('loading-box').innerHTML =
+          '<div class="state-ico">🔒</div><div class="state-txt">Please log in first.</div>';
+        return;
+      }
+
+      // Check if viewing own card
+      const meRes = await fetch(`${API}/me`, { credentials: 'include' });
+      const me    = await meRes.json();
+      const isOwn = me.success && me.username === _username;
+
+      // Fetch share data
+      const res  = await fetch(`${API}/api/share/${encodeURIComponent(_username)}`);
+      const json = await res.json();
+
+      if (!json.success && json.code === 'PRIVATE') {
+        if (isOwn) {
+          // Owner sees card in preview mode with private toggle
+          document.getElementById('loading-box').style.display = 'none';
+          document.getElementById('privacy-row').style.display = 'flex';
+          document.getElementById('private-box').style.display = 'block';
+          updateToggle(false);
+          // Still build card with cached/empty data for preview
+          const preview = { username: _username, streak: 0, longest: 0, topicsDone: 0, totalPomos: 0, badges: [], joinedAt: new Date() };
+          document.getElementById('private-box').style.display = 'none';
+          document.getElementById('card-wrap').style.display   = 'block';
+          document.getElementById('actions').style.display     = 'flex';
+          document.getElementById('link-box').style.display    = 'flex';
+          const shareUrl = `${location.origin}/share.html?u=${encodeURIComponent(_username)}`;
+          document.getElementById('link-url').textContent = shareUrl;
+          drawCard(preview);
+          updateToggle(false);
+          _data = preview;
+        } else {
+          document.getElementById('loading-box').style.display = 'none';
+          document.getElementById('private-box').style.display = 'block';
+        }
+        return;
+      }
+
+      if (!json.success) {
+        document.getElementById('loading-box').innerHTML =
+          `<div class="state-ico">⚠️</div><div class="state-txt">${json.message || 'Failed to load.'}</div>`;
+        return;
+      }
+
+      _data = json.data;
+      showCard(_data, _username, isOwn);
+    } catch (err) {
+      document.getElementById('loading-box').innerHTML =
+        '<div class="state-ico">⚠️</div><div class="state-txt">Could not load card.</div>';
+    }
+  }
+
+  function download() {
+    if (!_canvas) return;
+    const a = document.createElement('a');
+    a.download = `roadmapx-${_username || 'card'}.png`;
+    a.href = _canvas.toDataURL('image/png');
+    a.click();
+  }
+
+  function nativeShare() {
+    if (!_canvas) return;
+    _canvas.toBlob(async (blob) => {
+      const file = new File([blob], `roadmapx-${_username}.png`, { type: 'image/png' });
+      const shareUrl = `${location.origin}/share.html?u=${encodeURIComponent(_username)}`;
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${_username}'s RoadmapX Progress`,
+          text:  `Check out my learning progress on RoadmapX! 🔥`,
+          url:   shareUrl,
+          files: [file],
+        });
+      } else if (navigator.share) {
+        await navigator.share({ title: `RoadmapX Progress`, url: shareUrl });
+      } else {
+        copyLink();
+      }
+    }, 'image/png');
+  }
+
+  function copyLink() {
+    const url = `${location.origin}/share.html?u=${encodeURIComponent(_username)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  async function togglePrivacy() {
+    const newVal = !_isPublic;
+    updateToggle(newVal);
+    try {
+      const res  = await fetch(`${API}/api/share/toggle`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newVal }),
+      });
+      const json = await res.json();
+      if (!json.success) updateToggle(!newVal); // revert on fail
+    } catch (_) {
+      updateToggle(!newVal);
+    }
+  }
+
+  // Init
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  return { download, nativeShare, copyLink, togglePrivacy };
+})();
+</script>
+</body>
+</html>

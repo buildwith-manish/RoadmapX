@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Sign In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #070711;
+      --surface:    rgba(10, 10, 26, 0.92);
+      --border:     rgba(123, 47, 255, 0.22);
+      --cyan:       #00f5d4;
+      --purple:     #7b2fff;
+      --red:        #ff2d6e;
+      --text:       #c9d1e0;
+      --text-dim:   #5a6480;
+      --radius:     16px;
+      --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(123,47,255,0.20) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 90% 110%, rgba(0,245,212,0.12) 0%, transparent 60%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text);
+      padding: 24px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 4px);
+      pointer-events: none; z-index: 0;
+    }
+
+    .card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px 36px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow:
+        0 0 0 1px rgba(123,47,255,0.07),
+        0 4px 32px rgba(0,0,0,0.65),
+        0 0 80px rgba(123,47,255,0.10);
+      animation: cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── LOGO ── */
+    .logo-area { text-align: center; margin-bottom: 28px; }
+
+    .logo-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 54px; height: 54px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(0,245,212,0.14), rgba(123,47,255,0.22));
+      border: 1px solid rgba(0,245,212,0.22);
+      margin-bottom: 14px;
+      box-shadow: 0 0 28px rgba(0,245,212,0.14);
+    }
+    .logo-icon svg { width: 26px; height: 26px; }
+
+    .app-title {
+      font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--cyan) 0%, #a78bfa 55%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; line-height: 1.2;
+    }
+
+    .app-subtitle {
+      margin-top: 6px; font-size: 0.78rem; color: var(--text-dim);
+      font-family: 'Courier New', monospace; letter-spacing: 0.06em;
+    }
+
+    /* ── GUEST FIRST VIEW ── */
+    #guest-first-view { display: flex; flex-direction: column; gap: 12px; }
+
+    .guest-notice {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+      padding: 4px 0 8px;
+    }
+
+    .guest-notice .notice-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0,245,212,0.12), rgba(123,47,255,0.12));
+      border: 1px solid rgba(0,245,212,0.2);
+      margin-bottom: 10px;
+    }
+    .guest-notice .notice-icon svg { width: 16px; height: 16px; color: var(--cyan); }
+
+    .guest-notice strong {
+      display: block; font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 4px;
+    }
+
+    .local-save-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(0,245,212,0.07);
+      border: 1px solid rgba(0,245,212,0.18);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.72rem; font-family: 'Courier New', monospace;
+      color: rgba(0,245,212,0.75); letter-spacing: 0.04em;
+      margin-top: 6px;
+    }
+    .local-save-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+    /* ── PRIMARY GUEST BUTTON ── */
+    .btn-guest {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, rgba(0,245,212,0.10), rgba(123,47,255,0.14));
+      border: 1.5px solid rgba(0,245,212,0.30);
+      border-radius: 12px;
+      color: var(--cyan);
+      font-size: 0.97rem; font-weight: 700;
+      font-family: inherit; letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .btn-guest::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,245,212,0); transition: background var(--transition);
+    }
+    .btn-guest:hover::before { background: rgba(0,245,212,0.06); }
+    .btn-guest:hover { border-color: rgba(0,245,212,0.50); box-shadow: 0 0 20px rgba(0,245,212,0.12); }
+    .btn-guest:active { transform: scale(0.985); }
+    .btn-guest svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── DIVIDER ── */
+    .or-divider {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.74rem; color: var(--text-dim);
+      font-family: 'Courier New', monospace; letter-spacing: 0.08em;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(123,47,255,0.2), transparent);
+    }
+
+    /* ── SIGN IN BUTTON (secondary) ── */
+    .btn-signin-secondary {
+      width: 100%; padding: 13px;
+      background: rgba(123,47,255,0.08);
+      border: 1px solid rgba(123,47,255,0.25);
+      border-radius: 12px;
+      color: #a78bfa;
+      font-size: 0.93rem; font-weight: 600;
+      font-family: inherit; letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all var(--transition);
+    }
+    .btn-signin-secondary:hover {
+      background: rgba(123,47,255,0.14);
+      border-color: rgba(123,47,255,0.40);
+      box-shadow: 0 0 16px rgba(123,47,255,0.12);
+    }
+    .btn-signin-secondary:active { transform: scale(0.985); }
+    .btn-signin-secondary svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* ── AUTH FORM VIEW (hidden by default) ── */
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .back-to-guest {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: none; border: none;
+      color: var(--text-dim); font-size: 0.78rem;
+      font-family: 'Courier New', monospace; letter-spacing: 0.04em;
+      cursor: pointer; padding: 0 0 16px;
+      transition: color var(--transition);
+    }
+    .back-to-guest:hover { color: var(--cyan); }
+    .back-to-guest svg { width: 13px; height: 13px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+
+
+    .panels { position: relative; }
+
+    .panel { display: flex; flex-direction: column; gap: 16px; }
+    .panel.hidden { display: none; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 0.77rem; font-family: 'Courier New', monospace;
+      color: #8090b0; letter-spacing: 0.08em;
+      text-transform: uppercase; font-weight: 600;
+    }
+
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    .input-wrap input { flex: 1; }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 42px 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(123,47,255,0.20);
+      border-radius: 9px; color: var(--text);
+      font-size: 0.94rem; font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder { color: var(--text-dim); opacity: 0.55; }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--cyan);
+      background: rgba(0,245,212,0.03);
+      box-shadow: 0 0 0 3px rgba(0,245,212,0.09), 0 0 12px rgba(0,245,212,0.06);
+    }
+
+    .eye-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; padding: 4px; cursor: pointer;
+      color: var(--text-dim);
+      display: flex; align-items: center; justify-content: center;
+      transition: color var(--transition); line-height: 0;
+    }
+    .eye-btn:hover { color: var(--cyan); }
+    .eye-btn .eye-off { display: none; }
+    .eye-btn.showing .eye-on  { display: none; }
+    .eye-btn.showing .eye-off { display: block; }
+
+    .remember {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; user-select: none;
+    }
+    .remember input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border: 1px solid rgba(123,47,255,0.35); border-radius: 4px;
+      background: rgba(255,255,255,0.03); cursor: pointer; flex-shrink: 0;
+      position: relative;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    }
+    .remember input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-color: transparent;
+      box-shadow: 0 0 10px rgba(0,245,212,0.28);
+    }
+    .remember input[type="checkbox"]:checked::after {
+      content: ''; position: absolute;
+      top: 2px; left: 5px; width: 4px; height: 8px;
+      border: 2px solid #070711; border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+    .remember span { font-size: 0.82rem; color: var(--text-dim); }
+
+    .btn-submit {
+      position: relative; width: 100%; padding: 13px; border: none;
+      border-radius: 10px; color: #fff;
+      font-size: 0.95rem; font-weight: 600; font-family: inherit;
+      letter-spacing: 0.04em; cursor: pointer; overflow: hidden;
+      transition: box-shadow var(--transition), transform var(--transition), opacity var(--transition);
+    }
+
+    .btn-submit::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(255,255,255,0); transition: background var(--transition);
+    }
+    .btn-submit:hover:not(:disabled)::before { background: rgba(255,255,255,0.07); }
+    .btn-submit:hover:not(:disabled) { box-shadow: 0 0 24px rgba(0,245,212,0.22); }
+    .btn-submit:active:not(:disabled) { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .spinner {
+      display: none; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    }
+    .btn-submit.loading .btn-text { opacity: 0; }
+    .btn-submit.loading .spinner  { display: block; }
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+    .btn-back {
+      background: none; border: none;
+      color: var(--text-dim); font-size: 0.82rem;
+      cursor: pointer; padding: 4px 0;
+      text-align: left; width: fit-content;
+      transition: color var(--transition);
+      font-family: 'Courier New', monospace;
+    }
+    .btn-back:hover { color: var(--cyan); }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(123,47,255,0.18), transparent);
+    }
+
+    .msg-box {
+      display: none; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 0.84rem; line-height: 1.4;
+      border: 1px solid transparent;
+    }
+    .msg-box.visible { display: flex; }
+    .msg-box.error   {
+      background: rgba(255,45,110,0.08); border-color: rgba(255,45,110,0.25);
+      color: #ff6b8a;
+    }
+    .msg-box.success {
+      background: rgba(0,245,212,0.08); border-color: rgba(0,245,212,0.25);
+      color: var(--cyan);
+    }
+    .msg-icon { font-size: 1rem; flex-shrink: 0; }
+
+    /* ── SIGNUP PROGRESS (no step numbers in primary view, only in step 2) ── */
+    .signup-progress {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin-bottom: 4px;
+    }
+    .sdot {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.70rem; font-weight: 700;
+      font-family: 'Courier New', monospace;
+      border: 1.5px solid rgba(123,47,255,0.28);
+      color: var(--text-dim);
+      background: rgba(123,47,255,0.05);
+      transition: all var(--transition);
+    }
+    .sdot.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,245,212,0.09); box-shadow: 0 0 10px rgba(0,245,212,0.13); }
+    .sdot.done   { border-color: var(--purple); color: #fff; background: linear-gradient(135deg, var(--cyan), var(--purple)); }
+    .sline { width: 36px; height: 1.5px; background: rgba(123,47,255,0.18); transition: background var(--transition); }
+    .sline.done { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+
+    .s-step { display: none; flex-direction: column; gap: 16px; }
+    .s-step.active { display: flex; }
+    /* ── GOOGLE BUTTON ── */
+    .btn-google {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 20px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.13);
+      background: rgba(255,255,255,0.06);
+      color: #fff; font-size: 0.88rem; font-weight: 600;
+      letter-spacing: 0.01em; text-decoration: none; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+    .btn-google:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.28); }
+    .btn-google:active { transform: scale(0.985); }
+    .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .google-loading { opacity: 0.6; pointer-events: none; }
+
+
+    input[type="email"], input[type="tel"] {
+      width: 100%;
+      padding: 13px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(123,47,255,0.20);
+      border-radius: 10px; color: var(--text);
+      font-size: 0.94rem; font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+    input[type="email"]::placeholder,
+    input[type="tel"]::placeholder  { color: var(--text-dim); opacity: 0.55; }
+    input[type="email"]:focus,
+    input[type="tel"]:focus {
+      border-color: var(--cyan);
+      background: rgba(0,245,212,0.03);
+      box-shadow: 0 0 0 3px rgba(0,245,212,0.09), 0 0 12px rgba(0,245,212,0.06);
+    }
+
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+  <div class="card">
+
+    <!-- ── LOGO ── -->
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#00f5d4"/>
+              <stop offset="100%" stop-color="#7b2fff"/>
+            </linearGradient>
+          </defs>
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div class="app-title">RoadmapX</div>
+      <div class="app-subtitle" id="subtitle">// Track your AI journey</div>
+    </div>
+
+    <!-- ══ GUEST-FIRST VIEW ══ -->
+    <div id="guest-first-view">
+
+      <div class="guest-notice">
+        <div class="notice-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:#00f5d4">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <strong>Start learning instantly</strong>
+        No account needed — jump in and track your progress locally.
+        <br/>
+        <div style="display:flex;justify-content:center;margin-top:8px;">
+          <span class="local-save-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Your progress is saved locally. Sign in anytime to sync.
+          </span>
+        </div>
+      </div>
+
+      <!-- Primary action: Continue as Guest -->
+      <a href="index.html" style="text-decoration:none;">
+        <button class="btn-guest" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          Continue as Guest
+        </button>
+      </a>
+
+      <div class="or-divider">or</div>
+
+      <!-- Google Sign-In -->
+      <button class="btn-google" id="btn-google" type="button" onclick="startGoogleSignIn()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+
+
+    </div>
+    <!-- /guest-first-view -->
+
+
+  </div>
+
+  <!-- Google Identity Services — only needed for desktop One-Tap -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    // ── View switching (auth-form-view removed) ──
+    function showAuthForm() { /* removed */ }
+    function showGuestFirst() { /* removed */ }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  GOOGLE SIGN-IN  (v3 — redirect-first, always works on Android)
+    //
+    //  Strategy:
+    //    • Mobile (any touch device or narrow screen): ALWAYS use redirect.
+    //      GSI One-Tap is unreliable on Android Chrome, Samsung Internet,
+    //      Firefox and WebView — the prompt callback simply never fires.
+    //    • Desktop: Try GSI One-Tap first; if suppressed, fall back to redirect.
+    //
+    //  The redirect flow:
+    //    1. User clicks button → browser navigates to /auth/google/redirect
+    //    2. Backend builds Google OAuth URL → redirects to accounts.google.com
+    //    3. User logs in on Google → Google redirects to /auth/google/callback
+    //    4. Backend verifies token, sets session → redirects to
+    //       login.html?google=ok&user=USERNAME
+    //    5. This page reads the params, writes localStorage, redirects to index.html
+    //
+    //  NOTE: API is read lazily via getAPI() so it works regardless of
+    //        whether config.js has already run.
+    // ─────────────────────────────────────────────────────────────────────
+
+    const GOOGLE_CLIENT_ID = '659466725316-onvlvclmfn6r6n7h5p7in9ffqdvcbpm3.apps.googleusercontent.com';
+
+    // Lazy API getter — always safe even if config.js hasn't run yet
+    function getAPI() {
+      return window.RX_API || 'https://roadmapx-backend-3qmc.onrender.com';
+    }
+
+    // Detect mobile/touch devices
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent)
+        || window.innerWidth < 768
+        || ('ontouchstart' in window);
+    }
+
+    // SVG for restoring the button
+    const GOOGLE_SVG =
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;flex-shrink:0">' +
+        '<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>' +
+        '<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>' +
+        '<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>' +
+        '<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>' +
+      '</svg>Continue with Google';
+
+    function _resetGoogleBtn() {
+      const btn = document.getElementById('btn-google');
+      if (!btn) return;
+      btn.innerHTML = GOOGLE_SVG;
+      btn.classList.remove('google-loading');
+      btn.disabled = false;
+    }
+
+    function _showGoogleError(msg) {
+      _resetGoogleBtn();
+      const box = document.getElementById('login-msg');
+      const txt = document.getElementById('login-msg-text');
+      if (box && txt) {
+        txt.textContent = msg;
+        box.className = 'msg-box error visible';
+      }
+    }
+
+    // ── MAIN ENTRY POINT ─────────────────────────────────────────────────
+    async function startGoogleSignIn() {
+      const btn = document.getElementById('btn-google');
+      if (btn) {
+        btn.classList.add('google-loading');
+        btn.innerHTML = '<span>Signing in…</span>';
+        btn.disabled = true;
+      }
+
+      // ── Capacitor: open Google OAuth in system browser (Chrome), NOT WebView ──
+      // This avoids Google's "disallowed_useragent" error in the embedded WebView.
+      if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({
+            url: getAPI() + '/auth/google'
+          });
+          // Button will reset when user returns to the app
+          _resetGoogleBtn();
+          return;
+        } catch (err) {
+          console.error('[Capacitor Browser] Error:', err);
+          // Fall through to web flow
+          _resetGoogleBtn();
+        }
+      }
+
+      // ── Web flow ──
+      if (btn) {
+        btn.innerHTML = '<span>Redirecting to Google…</span>';
+      }
+
+      if (isMobile()) {
+        // Mobile: go straight to redirect — don't even try GSI
+        _doRedirect();
+      } else {
+        // Desktop: try GSI One-Tap, fall back to redirect after 4s if it
+        // doesn't show (covers ad-blockers, privacy settings, etc.)
+        _tryGSIWithRedirectFallback();
+      }
+    }
+
+    function _doRedirect() {
+      window.location.href = getAPI() + '/auth/google/redirect';
+    }
+
+    function _tryGSIWithRedirectFallback() {
+      // If GSI library hasn't loaded in 3s, just redirect
+      let redirectTimer = setTimeout(_doRedirect, 3000);
+
+      const tryInit = () => {
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+          clearTimeout(redirectTimer);
+          _initGSIPrompt();
+        } else {
+          setTimeout(tryInit, 150);
+        }
+      };
+      tryInit();
+    }
+
+    function _initGSIPrompt() {
+      // If prompt doesn't fire within 4s, use redirect
+      let fallbackTimer = setTimeout(_doRedirect, 4000);
+
+      google.accounts.id.initialize({
+        client_id:            GOOGLE_CLIENT_ID,
+        callback:             function(response) {
+          clearTimeout(fallbackTimer);
+          _handleGSICredential(response);
+        },
+        auto_select:          false,
+        cancel_on_tap_outside: true,
+      });
+
+      google.accounts.id.prompt(function(notification) {
+        clearTimeout(fallbackTimer);
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          _doRedirect();
+        }
+        // else: prompt is showing — wait for user, callback handles it
+      });
+    }
+
+    // Called when GSI One-Tap succeeds on desktop
+    async function _handleGSICredential(response) {
+      const btn = document.getElementById('btn-google');
+      if (btn) { btn.classList.add('google-loading'); btn.disabled = true; }
+
+      try {
+        const res = await fetch(getAPI() + '/auth/google', {
+          method:      'POST',
+          credentials: 'include',
+          headers:     { 'Content-Type': 'application/json' },
+          body:        JSON.stringify({ credential: response.credential }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('rx_token', 'true');
+          localStorage.setItem('rx_user', data.username);
+          try {
+            if (window.HybridData && typeof window.HybridData.onLoginSuccess === 'function') {
+              await window.HybridData.onLoginSuccess(data.username);
+            }
+          } catch (e) { /* ignore */ }
+          window.location.replace('index.html');
+        } else {
+          _showGoogleError(data.message || 'Google sign-in failed.');
+        }
+      } catch (err) {
+        console.error('[Google] credential exchange error:', err);
+        _showGoogleError('Network error. Please try again.');
+      }
+    }
+
+    // ── Handle redirect callback result ──────────────────────────────────
+    // Backend redirects here as: login.html?google=ok&user=NAME
+    //                         or: login.html?google=fail&msg=reason
+    (function handleGoogleRedirectReturn() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('google')) return;
+
+      // Clean the URL immediately so a refresh doesn't re-trigger
+      history.replaceState({}, '', window.location.pathname + window.location.hash);
+
+      if (params.get('google') === 'ok') {
+        const username = params.get('user') || '';
+        localStorage.setItem('rx_token', 'true');
+        localStorage.setItem('rx_user', username);
+
+        try {
+          if (window.HybridData && typeof window.HybridData.onLoginSuccess === 'function') {
+            window.HybridData.onLoginSuccess(username).catch(() => {});
+          }
+        } catch (e) { /* ignore */ }
+
+        window.location.replace('index.html');
+
+      } else {
+        // Show failure inline after DOM is ready
+        const reason = params.get('msg') || 'Google sign-in was cancelled.';
+        document.addEventListener('DOMContentLoaded', function() {
+          showAuthForm();
+          const box = document.getElementById('login-msg');
+          const txt = document.getElementById('login-msg-text');
+          if (box && txt) {
+            txt.textContent = reason;
+            box.className = 'msg-box error visible';
+          }
+        });
+      }
+    })();
+
+    // ── Capacitor: listen for app returning to foreground after OAuth ──
+    // When the user completes Google Sign-In in Chrome and returns to the app,
+    // check if they are now logged in via the session cookie.
+    if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(function(module) {
+        module.App.addListener('appStateChange', async function(state) {
+          if (state.isActive) {
+            try {
+              var res = await fetch(getAPI() + '/me', {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+              });
+              if (res.ok) {
+                var data = await res.json();
+                if (data && data.success && data.username) {
+                  localStorage.setItem('rx_token', 'true');
+                  localStorage.setItem('rx_user', data.username);
+                  try {
+                    if (window.HybridData && typeof window.HybridData.onLoginSuccess === 'function') {
+                      await window.HybridData.onLoginSuccess(data.username);
+                    }
+                  } catch (e) { /* ignore */ }
+                  window.location.replace('index.html');
+                }
+              }
+            } catch (err) {
+              console.warn('[Capacitor] appStateChange auth check failed:', err);
+            }
+          }
+        });
+      }).catch(function(err) {
+        console.warn('[Capacitor] Could not import @capacitor/app:', err);
+      });
+    }
+
+  </script>
+
+  <!-- config.js MUST load first (no defer) so window.RX_API is set before any other script -->
+  <script src="config.js"></script>
+  <script src="login_script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — My Stats</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    /* ── DESIGN TOKENS (matching main app) ── */
+    :root {
+      --bg0: #05050f;
+      --bg1: #08081a;
+      --bg2: #0c0c20;
+      --bg3: #101028;
+      --bg4: #141432;
+      --bg5: #1a1a40;
+      --bg6: #1e1e4a;
+
+      --c1: #00e5c8;
+      --c2: #7c3aed;
+      --c3: #f43f5e;
+      --c4: #f59e0b;
+      --c5: #10b981;
+      --c6: #3b82f6;
+
+      --glow1: rgba(0,229,200,0.12);
+      --glow2: rgba(124,58,237,0.12);
+      --glow3: rgba(244,63,94,0.12);
+      --glow4: rgba(245,158,11,0.12);
+      --glow5: rgba(16,185,129,0.12);
+
+      --t1: #f0f0ff;
+      --t2: #8080a8;
+      --t3: #404060;
+
+      --border-subtle: rgba(255,255,255,0.05);
+      --border-default: rgba(255,255,255,0.08);
+      --border-accent: rgba(0,229,200,0.25);
+
+      --r8: 8px;
+      --r10: 10px;
+      --r12: 12px;
+      --r16: 16px;
+
+      --font-ui: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Instrument Serif', Georgia, serif;
+
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --dur: 0.22s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg0);
+      color: var(--t1);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      padding-bottom: 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,229,200,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,200,0.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      height: 56px;
+      background: rgba(5,5,15,0.94);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--c1), var(--c2), transparent);
+      opacity: 0.3;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border-default);
+      color: var(--t2);
+      padding: 6px 12px;
+      border-radius: var(--r8);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all var(--dur) var(--ease);
+    }
+    .back-btn:hover { border-color: var(--border-accent); color: var(--c1); background: rgba(0,229,200,0.06); }
+    .back-btn svg { width: 12px; height: 12px; }
+
+    .header-title {
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 700;
+      color: var(--c1); letter-spacing: 1.5px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .header-title svg { color: var(--c1); }
+
+    .username-badge {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--t2);
+      background: var(--bg3);
+      border: 1px solid var(--border-default);
+      padding: 5px 11px; border-radius: 9999px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      position: relative; z-index: 1;
+      padding: 20px 16px;
+      max-width: 600px; margin: 0 auto;
+    }
+
+    /* ── HERO CARD ── */
+    .hero-card {
+      background: linear-gradient(135deg, var(--bg2) 0%, #12082a 50%, #080c1e 100%);
+      border: 1px solid var(--border-default);
+      border-radius: var(--r16);
+      padding: 24px;
+      margin-bottom: 24px;
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.4s var(--ease) both;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute; top: -60px; right: -40px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(0,229,200,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-card::after {
+      content: '';
+      position: absolute; bottom: -40px; left: 10%;
+      width: 160px; height: 100px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 9px; color: var(--c1);
+      letter-spacing: 3px; text-transform: uppercase;
+      margin-bottom: 10px; opacity: 0.8;
+    }
+
+    /* The professional username display */
+    .hero-name {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 400;
+      color: var(--t1);
+      line-height: 1.1;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .hero-name .accent-dot {
+      color: var(--c1);
+      font-style: italic;
+    }
+
+    .hero-sub {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--t2);
+      letter-spacing: 0.5px;
+    }
+
+    /* Divider */
+    .hero-divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-accent), transparent);
+      margin: 18px 0;
+      opacity: 0.5;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .hero-stat {
+      text-align: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r10);
+      padding: 14px 8px;
+      position: relative; overflow: hidden;
+      transition: border-color var(--dur) var(--ease);
+    }
+    .hero-stat:hover { border-color: var(--border-default); }
+
+    .hero-stat-val {
+      font-family: var(--font-mono);
+      font-size: 22px; font-weight: 700;
+      color: var(--c4); line-height: 1;
+    }
+    .hero-stat-val.cyan { color: var(--c1); }
+    .hero-stat-val.red { color: var(--c3); }
+
+    .hero-stat-label {
+      font-size: 9px; color: var(--t3);
+      margin-top: 5px; letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; margin-top: 4px;
+    }
+    .section-icon {
+      width: 28px; height: 28px; border-radius: var(--r8);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-icon svg { width: 14px; height: 14px; }
+    .section-icon.cyan { background: rgba(0,229,200,0.1); color: var(--c1); border: 1px solid rgba(0,229,200,0.2); }
+    .section-icon.amber { background: rgba(245,158,11,0.1); color: var(--c4); border: 1px solid rgba(245,158,11,0.2); }
+    .section-icon.green { background: rgba(16,185,129,0.1); color: var(--c5); border: 1px solid rgba(16,185,129,0.2); }
+    .section-icon.purple { background: rgba(124,58,237,0.1); color: var(--c2); border: 1px solid rgba(124,58,237,0.2); }
+    .section-icon.red { background: rgba(244,63,94,0.1); color: var(--c3); border: 1px solid rgba(244,63,94,0.2); }
+
+    .section-title-text {
+      font-family: var(--font-mono);
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--t2);
+    }
+    .section-line {
+      flex: 1; height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r12);
+      padding: 18px 16px;
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.45s var(--ease) both;
+      transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+      cursor: default;
+    }
+    .stat-card:hover { border-color: var(--border-default); transform: translateY(-1px); }
+
+    /* Color accent bar — top edge */
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .stat-card.cyan::before  { background: linear-gradient(90deg, var(--c1), transparent); }
+    .stat-card.amber::before { background: linear-gradient(90deg, var(--c4), transparent); }
+    .stat-card.green::before { background: linear-gradient(90deg, var(--c5), transparent); }
+    .stat-card.purple::before{ background: linear-gradient(90deg, var(--c2), transparent); }
+    .stat-card.red::before   { background: linear-gradient(90deg, var(--c3), transparent); }
+
+    .stat-card-label {
+      font-family: var(--font-mono);
+      font-size: 9px; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--t3);
+      margin-bottom: 8px;
+    }
+    .stat-card.cyan   .stat-card-label { color: rgba(0,229,200,0.5); }
+    .stat-card.amber  .stat-card-label { color: rgba(245,158,11,0.5); }
+    .stat-card.green  .stat-card-label { color: rgba(16,185,129,0.5); }
+    .stat-card.purple .stat-card-label { color: rgba(124,58,237,0.5); }
+    .stat-card.red    .stat-card-label { color: rgba(244,63,94,0.5); }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 30px; font-weight: 700;
+      line-height: 1; margin-bottom: 4px;
+    }
+    .stat-card.cyan   .stat-value { color: var(--c1); }
+    .stat-card.amber  .stat-value { color: var(--c4); }
+    .stat-card.green  .stat-value { color: var(--c5); }
+    .stat-card.purple .stat-value { color: var(--c2); }
+    .stat-card.red    .stat-value { color: var(--c3); }
+
+    .stat-desc {
+      font-size: 11px; color: var(--t2);
+    }
+
+    /* ── WIDE CARD (progress bars) ── */
+    .wide-card {
+      background: var(--bg2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r12);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      animation: fadeUp 0.5s var(--ease) both;
+      transition: border-color var(--dur) var(--ease);
+    }
+    .wide-card:hover { border-color: var(--border-default); }
+
+    .wide-card-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .wide-card-title {
+      font-size: 13px; font-weight: 600; color: var(--t1);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .wide-card-title svg { width: 14px; height: 14px; color: var(--t2); }
+
+    .wide-card-pct {
+      font-family: var(--font-mono);
+      font-size: 18px; font-weight: 700; color: var(--c1);
+    }
+    .wide-card-pct.amber { color: var(--c4); }
+    .wide-card-pct.green { color: var(--c5); }
+
+    .wide-card-meta {
+      font-size: 11px; color: var(--t2); margin-top: -8px; margin-bottom: 10px;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      height: 5px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 1.2s cubic-bezier(0.34,1.1,0.64,1);
+    }
+    .progress-fill.cyan  { background: linear-gradient(90deg, rgba(0,229,200,0.4), var(--c1)); }
+    .progress-fill.amber { background: linear-gradient(90deg, rgba(245,158,11,0.4), var(--c4)); }
+    .progress-fill.green { background: linear-gradient(90deg, rgba(16,185,129,0.4), var(--c5)); }
+
+    /* ── NOTES LIST ── */
+    .notes-card {
+      background: var(--bg2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r12);
+      overflow: hidden;
+      animation: fadeUp 0.55s var(--ease) both;
+    }
+
+    .notes-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .notes-header-title {
+      font-size: 13px; font-weight: 600; color: var(--t1);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .notes-header-title svg { width: 14px; height: 14px; color: var(--t2); }
+    .notes-count-badge {
+      font-family: var(--font-mono);
+      font-size: 10px; color: var(--c2);
+      background: rgba(124,58,237,0.1);
+      border: 1px solid rgba(124,58,237,0.2);
+      padding: 2px 8px; border-radius: 9999px;
+    }
+
+    .note-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background var(--dur) var(--ease);
+    }
+    .note-row:last-child { border-bottom: none; }
+    .note-row:hover { background: rgba(255,255,255,0.02); }
+
+    .note-indicator {
+      width: 2px; height: 28px;
+      border-radius: 2px;
+      background: var(--c1);
+      flex-shrink: 0;
+    }
+
+    .note-body { flex: 1; min-width: 0; }
+    .note-title {
+      font-size: 13px; font-weight: 500; color: var(--t1);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .note-date {
+      font-family: var(--font-mono);
+      font-size: 9px; color: var(--t3); letter-spacing: 0.5px;
+    }
+
+    .note-row:nth-child(odd)  .note-indicator { background: var(--c1); }
+    .note-row:nth-child(even) .note-indicator { background: var(--c2); }
+
+    /* ── EMPTY / LOADING / ERROR ── */
+    .state-msg {
+      text-align: center; padding: 32px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--t3);
+      letter-spacing: 0.5px;
+    }
+    .state-msg.error { color: rgba(244,63,94,0.6); }
+
+    .dot-loader {
+      display: inline-flex; gap: 4px; align-items: center;
+    }
+    .dot-loader span {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--t3); display: inline-block;
+      animation: dotPulse 1.2s infinite;
+    }
+    .dot-loader span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-loader span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotPulse {
+      0%,100% { opacity: 0.2; transform: scale(0.8); }
+      50%      { opacity: 1;   transform: scale(1); }
+    }
+
+    /* ── GUEST BANNER ── */
+    .guest-banner {
+      background: linear-gradient(135deg, rgba(0,229,200,0.06), rgba(124,58,237,0.06));
+      border: 1px solid rgba(0,229,200,0.15);
+      border-radius: var(--r12);
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      animation: fadeUp 0.35s var(--ease) both;
+    }
+    .guest-banner-text {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--t2);
+    }
+    .guest-banner-actions {
+      display: flex; gap: 8px;
+    }
+    .guest-btn {
+      padding: 7px 16px; border-radius: var(--r8);
+      font-size: 12px; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+      transition: all var(--dur) var(--ease);
+    }
+    .guest-btn.primary {
+      background: rgba(0,229,200,0.12);
+      border: 1px solid rgba(0,229,200,0.3);
+      color: var(--c1);
+    }
+    .guest-btn.primary:hover { background: rgba(0,229,200,0.2); }
+    .guest-btn.secondary {
+      background: rgba(124,58,237,0.1);
+      border: 1px solid rgba(124,58,237,0.25);
+      color: var(--c2);
+    }
+    .guest-btn.secondary:hover { background: rgba(124,58,237,0.18); }
+
+    /* ── SPACING UTILITY ── */
+    .mb20 { margin-bottom: 20px; }
+    .mb24 { margin-bottom: 24px; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-grid .stat-card:nth-child(2) { animation-delay: 0.10s; }
+    .stat-grid .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-grid .stat-card:nth-child(4) { animation-delay: 0.20s; }
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <a href="index.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back
+    </a>
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      STATS
+    </div>
+  </div>
+  <div class="username-badge" id="username-badge">loading...</div>
+</div>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero-card">
+    <div class="hero-eyebrow">// learning analytics</div>
+    <div class="hero-name" id="hero-name">Loading<span class="accent-dot">.</span></div>
+    <div class="hero-sub" id="hero-sub">fetching your data</div>
+    <div class="hero-divider"></div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="total-days">—</div>
+        <div class="hero-stat-label">Days Tracked</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val cyan" id="total-pomo">—</div>
+        <div class="hero-stat-label">Pomo Mins</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val red" id="total-notes">—</div>
+        <div class="hero-stat-label">Notes Saved</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE SECTION -->
+  <div class="section-header">
+    <div class="section-icon green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </div>
+    <div class="section-title-text">Attendance</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="stat-grid mb20">
+    <div class="stat-card green">
+      <div class="stat-card-label">Present</div>
+      <div class="stat-value" id="att-present">—</div>
+      <div class="stat-desc">Days attended</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-card-label">Absent</div>
+      <div class="stat-value" id="att-absent">—</div>
+      <div class="stat-desc">Days missed</div>
+    </div>
+  </div>
+
+  <div class="wide-card mb24">
+    <div class="wide-card-row">
+      <div class="wide-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Attendance Rate
+      </div>
+      <div class="wide-card-pct green" id="att-rate">—%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill green" id="att-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- POMODORO SECTION -->
+  <div class="section-header">
+    <div class="section-icon red">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="section-title-text">Pomodoro</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="stat-grid mb24">
+    <div class="stat-card red">
+      <div class="stat-card-label">Sessions</div>
+      <div class="stat-value" id="pomo-sessions">—</div>
+      <div class="stat-desc">Total completed</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-card-label">Focus Time</div>
+      <div class="stat-value" id="pomo-hours">—</div>
+      <div class="stat-desc">Hours invested</div>
+    </div>
+  </div>
+
+  <!-- TOPICS SECTION -->
+  <div class="section-header">
+    <div class="section-icon purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    </div>
+    <div class="section-title-text">Topics Progress</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="stat-grid mb20">
+    <div class="stat-card cyan">
+      <div class="stat-card-label">Completed</div>
+      <div class="stat-value" id="prog-done">—</div>
+      <div class="stat-desc">Topics mastered</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-card-label">Total</div>
+      <div class="stat-value" id="prog-total">—</div>
+      <div class="stat-desc">Topics in roadmap</div>
+    </div>
+  </div>
+
+  <div class="wide-card mb24">
+    <div class="wide-card-row">
+      <div class="wide-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Completion Rate
+      </div>
+      <div class="wide-card-pct" id="prog-rate">—%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill cyan" id="prog-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- NOTES SECTION -->
+  <div class="section-header">
+    <div class="section-icon amber">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </div>
+    <div class="section-title-text">Notes</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="notes-card" id="notes-container">
+    <div class="state-msg">
+      <div class="dot-loader">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = window.RX_API;
+
+function _showUser(name) {
+  const badge    = document.getElementById("username-badge");
+  const heroName = document.getElementById("hero-name");
+  const heroSub  = document.getElementById("hero-sub");
+  if (badge)    badge.textContent = "@" + name;
+  if (heroName) heroName.innerHTML = name + '<span class="accent-dot">.</span>';
+  if (heroSub)  heroSub.textContent = "// your learning analytics";
+}
+
+async function loadStats() {
+  const token  = localStorage.getItem('rx_token');
+  const cached = localStorage.getItem('rx_user');
+
+  let username = null;
+  let isGuest  = false;
+
+  if (token && cached) {
+    username = cached;
+    _showUser(username);
+  }
+
+  const fetchOpts = {
+    credentials: "include",
+    headers: { 'Accept': 'application/json' }
+  };
+
+  try {
+    const me     = await fetch(API + "/me", fetchOpts);
+    const meData = await me.json();
+    if (meData.success && meData.username) {
+      username = meData.username;
+      localStorage.setItem('rx_token', 'true');
+      localStorage.setItem('rx_user', username);
+      _showUser(username);
+    } else {
+      if (!username) isGuest = true;
+    }
+  } catch {
+    if (!username) isGuest = true;
+  }
+
+  if (isGuest) {
+    document.getElementById("username-badge").textContent = "@guest";
+    document.getElementById("hero-name").innerHTML = 'Guest<span class="accent-dot">.</span>';
+    document.getElementById("hero-sub").textContent = "// sign in to track your stats";
+
+    // Insert guest banner after hero
+    const heroCard = document.querySelector(".hero-card");
+    const banner = document.createElement("div");
+    banner.className = "guest-banner";
+    banner.innerHTML = `
+      <div class="guest-banner-text">Stats sync to the cloud when you're signed in.</div>
+      <div class="guest-banner-actions">
+        <a href="login.html" class="guest-btn primary">Sign in</a>
+        <a href="index.html" class="guest-btn secondary">Continue as guest</a>
+      </div>
+    `;
+    heroCard.insertAdjacentElement("afterend", banner);
+
+    _loadStatsFromLocalStorage();
+    return;
+  }
+
+  const authFetch = (url) => fetch(url, fetchOpts);
+
+  // Attendance
+  try {
+    const res = await authFetch(API + "/get-attendance");
+    if (res.ok) {
+      const data    = await res.json();
+      const records = data.data || [];
+      const present = records.filter(r => r.status === "present").length;
+      const absent  = records.filter(r => r.status === "absent").length;
+      const total   = records.length;
+      const rate    = total > 0 ? Math.round((present / total) * 100) : 0;
+
+      document.getElementById("att-present").textContent = present;
+      document.getElementById("att-absent").textContent  = absent;
+      document.getElementById("att-rate").textContent    = rate + "%";
+      document.getElementById("att-bar").style.width     = rate + "%";
+      document.getElementById("total-days").textContent  = total;
+    }
+  } catch {}
+
+  // Pomodoro
+  try {
+    const res = await authFetch(API + "/get-pomo");
+    if (res.ok) {
+      const data     = await res.json();
+      const sessions = data.data || [];
+      const totalMins = sessions.reduce((sum, s) => sum + (s.minutes || 0), 0);
+      const hours = (totalMins / 60).toFixed(1);
+
+      document.getElementById("pomo-sessions").textContent = sessions.length;
+      document.getElementById("pomo-hours").textContent    = hours + "h";
+      document.getElementById("total-pomo").textContent    = totalMins;
+    }
+  } catch {}
+
+  // Progress
+  try {
+    const res = await authFetch(API + "/get-progress");
+    if (res.ok) {
+      const data   = await res.json();
+      const topics = data.data || [];
+      const done   = topics.filter(t => t.completed).length;
+      const total  = topics.length;
+      const rate   = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      document.getElementById("prog-done").textContent  = done;
+      document.getElementById("prog-total").textContent = total;
+      document.getElementById("prog-rate").textContent  = rate + "%";
+      document.getElementById("prog-bar").style.width   = rate + "%";
+    }
+  } catch {}
+
+  // Notes
+  try {
+    const res = await authFetch(API + "/get-text");
+    if (res.ok) {
+      const data  = await res.json();
+      const notes = data.data || [];
+      document.getElementById("total-notes").textContent = notes.length;
+      _renderNotes(notes);
+    }
+  } catch {
+    document.getElementById("notes-container").innerHTML =
+      '<div class="state-msg error">Could not load notes</div>';
+  }
+}
+
+function _renderNotes(notes) {
+  const container = document.getElementById("notes-container");
+  if (notes.length === 0) {
+    container.innerHTML = '<div class="state-msg">No notes saved yet</div>';
+    return;
+  }
+
+  const headerEl = `
+    <div class="notes-header">
+      <div class="notes-header-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Recent Notes
+      </div>
+      <div class="notes-count-badge">${notes.length} total</div>
+    </div>
+  `;
+
+  const rowsEl = notes.slice(0, 6).map(n => {
+    const date = n.createdAt
+      ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+    return `
+      <div class="note-row">
+        <div class="note-indicator"></div>
+        <div class="note-body">
+          <div class="note-title">${n.title || 'Untitled Note'}</div>
+          ${date ? `<div class="note-date">${date}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = headerEl + rowsEl;
+}
+
+function _loadStatsFromLocalStorage() {
+  // ── Attendance ──
+  try {
+    const attendance = JSON.parse(localStorage.getItem("attendance") || "{}");
+    const days    = Object.values(attendance);
+    const present = days.filter(v => v === "present").length;
+    const absent  = days.filter(v => v === "absent").length;
+    const total   = days.length;
+    const rate    = total > 0 ? Math.round((present / total) * 100) : 0;
+
+    const $ = id => document.getElementById(id);
+    if ($("att-present")) $("att-present").textContent = present;
+    if ($("att-absent"))  $("att-absent").textContent  = absent;
+    if ($("att-rate"))    $("att-rate").textContent    = rate + "%";
+    if ($("att-bar"))     $("att-bar").style.width     = rate + "%";
+    if ($("total-days"))  $("total-days").textContent  = total;
+  } catch {}
+
+  // ── Pomodoro ──
+  try {
+    const pomo     = JSON.parse(localStorage.getItem("pomodoroStats") || "{}");
+    const legacyMins = (pomo.ai||0) + (pomo.dsa||0) + (pomo.projects||0) + (pomo.extra||0);
+
+    // Merge custom-roadmap pomodoro sessions (crm_stats key)
+    const crmStats  = JSON.parse(localStorage.getItem("crm_stats") || "{}");
+    const crmPomos  = crmStats.totalPomodoro || 0;           // count of sessions
+    const totalSessions = (legacyMins > 0 ? Math.ceil(legacyMins / 25) : 0) + crmPomos;
+    const totalMins     = legacyMins + crmPomos * 25;        // estimate: 25min per session
+
+    const $ = id => document.getElementById(id);
+    if ($("pomo-sessions")) $("pomo-sessions").textContent = totalSessions;
+    if ($("pomo-hours"))    $("pomo-hours").textContent    = (totalMins / 60).toFixed(1) + "h";
+    if ($("total-pomo"))    $("total-pomo").textContent    = totalSessions;
+  } catch {}
+
+  // ── Custom Roadmap — Completed Days ──
+  try {
+    const crmStats = JSON.parse(localStorage.getItem("crm_stats") || "{}");
+    const crmDone  = crmStats.completedDays || 0;
+
+    // Update hero stats if those elements exist (total-days might already be set from attendance)
+    const $ = id => document.getElementById(id);
+    // Show in a dedicated element if present, or add to total-days
+    if ($("crm-completed-days")) {
+      $("crm-completed-days").textContent = crmDone;
+    }
+    // Also surface in progress section: if prog-done / prog-total exist, show roadmap progress
+    const crmData   = JSON.parse(localStorage.getItem("crm_v2_data") || '{"roadmaps":[]}');
+    const roadmaps  = crmData.roadmaps || [];
+    let totalDays = 0, doneDays = 0;
+    roadmaps.forEach(rm => {
+      (rm.weeks || []).forEach(wk => {
+        (wk.days || []).forEach(d => {
+          totalDays++;
+          if (d.completed) doneDays++;
+        });
+      });
+    });
+    const rate = totalDays > 0 ? Math.round(doneDays / totalDays * 100) : 0;
+    if ($("prog-done"))  $("prog-done").textContent  = doneDays;
+    if ($("prog-total")) $("prog-total").textContent = totalDays;
+    if ($("prog-rate"))  $("prog-rate").textContent  = rate + "%";
+    if ($("prog-bar"))   $("prog-bar").style.width   = rate + "%";
+  } catch {}
+
+  document.getElementById("notes-container").innerHTML =
+    '<div class="state-msg">Sign in to view your notes</div>';
+}
+
+loadStats();
+</script>
+<!-- Bug #11 fix: auth_guard.js redirects unauthenticated visitors to login.html -->
+<script src="config.js"></script>
+<script src="auth_guard.js"></script>
+</body>
+</html>

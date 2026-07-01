@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#05050f">
+  <title>RoadmapX</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #05050f; color: #f0f0ff; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .loader { text-align: center; }
+    .loader svg { width: 48px; height: 48px; animation: pulse 1.5s ease-in-out infinite; }
+    .loader p { margin-top: 16px; font-size: 14px; color: #8080a8; }
+    @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#00e5c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    <p>Loading RoadmapX...</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+    <meta name="theme-color" content="#05050f" />
+    <title>DSA Roadmap — RoadmapX</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+      /* ── DSA Bottom Nav (mirrors AI nav pattern exactly) ── */
+      #dsa-bottom-nav {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 60px;
+        background: var(--bg2, #0d0d1a);
+        border-top: 1px solid rgba(255,255,255,0.07);
+        display: flex;
+        align-items: stretch;
+        z-index: 100;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .dsa-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--t3, #555);
+        padding: 6px 4px;
+        transition: color 0.2s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .dsa-nav-item.active {
+        color: var(--c1, #00e5c8);
+      }
+      .dsa-nav-item.active svg {
+        filter: drop-shadow(0 0 4px rgba(0,229,200,0.4));
+      }
+      .dsa-nav-ico {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .dsa-nav-ico svg {
+        width: 20px;
+        height: 20px;
+      }
+      .dsa-nav-lbl {
+        font-size: 10px;
+        font-weight: 600;
+        font-family: var(--font-mono, monospace);
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+      /* Give content bottom padding so nav doesn't cover it */
+      #content {
+        padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+      }
+    </style>
+  <style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+  <body>
+    <div id="app">
+
+      <!-- ══════════════════ HEADER ══════════════════ -->
+      <header id="header">
+        <div class="hdr-left">
+          <div class="hdr-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            RoadmapX
+          </div>
+          <div class="hdr-sub" id="hdr-sub">DSA Roadmap</div>
+        </div>
+        <div class="hdr-right">
+          <button class="hdr-btn" title="Stats" onclick="window.location.href='stats.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ══════════════════ CONTENT ══════════════════ -->
+      <div id="content">
+
+        <!-- ──────── TAB: DSA ROADMAP ──────── -->
+        <div class="tab-panel active" id="tab-dsa">
+
+          <!-- ── SUB: Roadmap ── -->
+          <div id="dsa-sub-roadmap">
+
+            <!-- SCREEN 1: Level select -->
+            <div id="dsa-screen-levels">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="window.location.href='index.html'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+                </button>
+                <span class="back-home-title">DSA Roadmap</span>
+              </div>
+              <div class="section" style="padding-top:10px">
+                <div class="section-title">Choose Your Level</div>
+                <div class="ai-level-subtitle">Select your DSA starting point</div>
+
+                <button class="ai-level-card beginner-card" onclick="APP.selectDSALevel('beginner')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Beginner</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);font-size:10px;font-weight:800;color:var(--c5);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">60 Days</div>
+                      <div class="ai-level-goal">Start from zero — arrays, strings, and core data structures. Build confidence step by step.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag">~120 HRS</span><span class="ai-ltag">C++</span><span class="ai-ltag">BEGINNER FRIENDLY</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c5)">›</div>
+                </button>
+
+                <button class="ai-level-card intermediate-card" onclick="APP.selectDSALevel('intermediate')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Intermediate</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);font-size:10px;font-weight:800;color:var(--c4);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">90 Days</div>
+                      <div class="ai-level-goal">Dive into trees, graphs, and dynamic programming. Tackle real interview problems.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag itag">~180 HRS</span><span class="ai-ltag itag">GRAPHS/DP</span><span class="ai-ltag itag">PROBLEM SOLVING</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c4)">›</div>
+                </button>
+
+                <button class="ai-level-card advanced-card" onclick="APP.selectDSALevel('advanced')">
+                  <div class="ai-level-left">
+                    <div class="ai-level-dot"></div>
+                    <div class="ai-level-info">
+                      <div class="ai-level-name">Advanced</div>
+                      <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);font-size:10px;font-weight:800;color:var(--c3);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">120 Days</div>
+                      <div class="ai-level-goal">Master competitive programming, advanced DP, and system design-level problem solving.</div>
+                      <div class="ai-level-tags" style="margin-top:7px">
+                        <span class="ai-ltag atag">~240 HRS</span><span class="ai-ltag atag">CP/COMPETITIVE</span><span class="ai-ltag atag">EXPERT</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ai-level-arrow" style="color:var(--c3)">›</div>
+                </button>
+
+              </div>
+            </div>
+            <!-- /dsa-screen-levels -->
+
+            <!-- SCREEN 2: Weeks list -->
+            <div id="dsa-screen-weeks" style="display:none">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.dsaGoBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Levels
+                </button>
+                <span class="back-home-title" id="dsa-weeks-title">Beginner</span>
+              </div>
+              <div id="dsa-inline-rev-weeks"></div>
+              <div id="dsa-level-summary"></div>
+              <div class="section" style="padding-top:6px">
+                <div class="search-wrap" style="padding:0 0 8px">
+                  <div class="search-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                  <input class="search-input" id="dsa-search" type="text" placeholder="Search topics..." oninput="APP.filterDSARoadmap()" />
+                </div>
+                <div id="dsa-weeks-list"></div>
+              </div>
+            </div>
+            <!-- /dsa-screen-weeks -->
+
+            <!-- SCREEN 3: Days list -->
+            <div id="dsa-screen-days" style="display:none">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="APP.dsaGoBack()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Weeks
+                </button>
+                <span class="back-home-title" id="dsa-days-title">Week 1</span>
+              </div>
+              <div id="dsa-inline-rev-days"></div>
+              <div id="dsa-week-summary"></div>
+              <div class="section" style="padding-top:6px">
+                <div id="dsa-structured-days-list"></div>
+              </div>
+            </div>
+            <!-- /dsa-screen-days -->
+
+          </div>
+          <!-- /dsa-sub-roadmap -->
+
+          <!-- ── SUB: Revision ── -->
+          <div id="dsa-sub-revision" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.dsaGoBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Revision Schedule</span>
+            </div>
+            <div class="filter-row" style="padding:10px 12px 0">
+              <button class="filter-chip active" onclick="APP.setDSARevFilter('all',this)">All</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('due',this)">Due Today</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('overdue',this)">Overdue</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('pending',this)">Upcoming</button>
+              <button class="filter-chip" onclick="APP.setDSARevFilter('done',this)">Done</button>
+            </div>
+            <div class="section" style="padding-top:8px"><div id="dsa-revision-list"></div></div>
+          </div>
+              </div>
+          </div>
+          </div>
+
+          <!-- ── SUB: Notes ── -->
+          <div id="dsa-sub-notes" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.dsaGoBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Study Notes</span>
+            </div>
+            <div class="section">
+              <div class="section-title">DSA Study Notes</div>
+              <div class="card" style="margin-bottom:10px">
+                <div class="card-header">
+                  <span class="card-title">Today's DSA Notes</span>
+                  <span class="card-badge badge-done" id="dsa-notes-pomo-badge">0 pomos</span>
+                </div>
+                <textarea class="notes-ta" id="dsa-notes-ta" placeholder="Write what you studied in DSA today...&#10;&#10;• Topics covered&#10;• Algorithms practiced&#10;• Problems solved&#10;• Patterns to revisit" oninput="APP.dsaAutoSaveNotes()"></textarea>
+                <div class="notes-meta">
+                  <span id="dsa-notes-wc">0 words</span>
+                  <button class="notes-save-btn" onclick="APP.dsaSaveNotes()">Save</button>
+                </div>
+              </div>
+              <div class="section-title">Saved DSA Entries</div>
+              <div id="dsa-notes-list"></div>
+            </div>
+          </div>
+
+          <!-- ── SUB: Projects ── -->
+          <div id="dsa-sub-projects" style="display:none">
+            <div class="back-home-bar">
+              <button class="back-home-btn" onclick="APP.dsaGoBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+              </button>
+              <span class="back-home-title">DSA Projects</span>
+            </div>
+            <div class="section">
+              <div class="section-title">My DSA Projects</div>
+              <button class="add-btn" onclick="APP.openProjectModal('dsa')">
+                <div class="add-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                <span>Add DSA Project</span>
+              </button>
+              <div id="dsa-projects-list"></div>
+            </div>
+          </div>
+
+        </div>
+        <!-- /tab-dsa -->
+
+      </div>
+      <!-- /content -->
+
+      <!-- ══════════════════ BOTTOM NAV ══════════════════ -->
+      <nav id="dsa-bottom-nav">
+        <button class="dsa-nav-item active" id="dsa-nav-roadmap" onclick="APP.switchDSASub('roadmap', this)">
+          <div class="dsa-nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <span class="dsa-nav-lbl">Roadmap</span>
+        </button>
+        <button class="dsa-nav-item" id="dsa-nav-revision" onclick="APP.switchDSASub('revision', this)">
+          <div class="dsa-nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <span class="dsa-nav-lbl">Revision</span>
+        </button>
+        <button class="dsa-nav-item" id="dsa-nav-notes" onclick="APP.switchDSASub('notes', this)">
+          <div class="dsa-nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <span class="dsa-nav-lbl">Notes</span>
+        </button>
+        <button class="dsa-nav-item" id="dsa-nav-projects" onclick="APP.switchDSASub('projects', this)">
+          <div class="dsa-nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <span class="dsa-nav-lbl">Projects</span>
+        </button>
+        <button class="dsa-nav-item" id="dsa-nav-visual" onclick="window.location.href='dsa-roadmap.html'">
+          <div class="dsa-nav-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+          </div>
+          <span class="dsa-nav-lbl">Visual</span>
+        </button>
+      </nav>
+
+      <!-- ══════════════════ MODALS ══════════════════ -->
+
+      <!-- Project Modal -->
+      <div class="modal-overlay" id="modal-project">
+        <div class="modal">
+          <div class="modal-title">
+            <span id="proj-modal-title">Add Project</span>
+            <button class="modal-close" onclick="APP.closeModal('modal-project')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <input type="hidden" id="proj-source" value="" />
+          <div class="field-group"><label class="field-label">Project Name</label><input class="field-input" id="proj-name" placeholder="e.g. Graph Pathfinder Visualizer" /></div>
+          <div class="field-group"><label class="field-label">GitHub Link</label><input class="field-input" id="proj-github" type="url" placeholder="https://github.com/you/project" /></div>
+          <div class="field-group"><label class="field-label">Live Demo URL</label><input class="field-input" id="proj-demo" type="url" placeholder="https://your-demo.com" /></div>
+          <div class="field-group"><label class="field-label">Files Count</label><input class="field-input" id="proj-files" type="number" placeholder="Number of files" min="0" /></div>
+          <div class="field-group"><label class="field-label">Notes / Description</label><textarea class="field-input" id="proj-notes" placeholder="Describe the project..."></textarea></div>
+          <div class="field-group"><label class="field-label">Tech Stack / Tags</label><input class="field-input" id="proj-tags" placeholder="C++, STL, Algorithms..." /></div>
+          <div class="field-group"><label class="field-label">Progress % (0–100)</label><input class="field-input" id="proj-progress" type="number" placeholder="e.g. 40" min="0" max="100" /></div>
+          <div class="modal-actions">
+            <button class="btn-primary" onclick="APP.saveProject()">Save Project</button>
+            <button class="btn-secondary" onclick="APP.closeModal('modal-project')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Modal -->
+      <div class="modal-overlay" id="modal-confirm">
+        <div class="modal">
+          <div class="modal-title">
+            <span id="confirm-title">Confirm</span>
+            <button class="modal-close" onclick="APP.closeModal('modal-confirm')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p id="confirm-text" style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:16px;"></p>
+          <div class="modal-actions">
+            <button class="btn-primary" id="confirm-ok" style="background:linear-gradient(135deg,var(--c3),#ef476f);color:#fff;">Confirm</button>
+            <button class="btn-secondary" onclick="APP.closeModal('modal-confirm')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI MENTOR MODAL -->
+      <div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)APP.closeAIModal()">
+        <div class="ai-modal">
+          <div class="ai-modal-header">
+            <div class="ai-modal-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+              AI Mentor
+            </div>
+            <button class="ai-modal-close" onclick="APP.closeAIModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="ai-modal-tabs">
+            <button class="ai-tab-btn active" onclick="APP.setAITab('explain',this)">Explain</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('notes',this)">Notes</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('practice',this)">Practice</button>
+            <button class="ai-tab-btn" onclick="APP.setAITab('project',this)">Project Idea</button>
+          </div>
+          <div class="ai-modal-body">
+            <div class="ai-response-area" id="ai-response-area">Select a mode above and tap "Ask AI" to get started.</div>
+            <button class="ai-ask-btn" id="ai-ask-btn" onclick="APP.askAI()">Ask AI</button>
+            <textarea class="ai-note-area" id="ai-note-area" placeholder="AI-generated notes will appear here. You can edit them..." style="display:none"></textarea>
+            <button class="ai-save-note-btn" id="ai-save-note-btn" onclick="APP.saveAINote()" style="display:none">Save Note</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOAST -->
+      <div id="toast"></div>
+      <!-- XP TOAST -->
+      <div class="xp-toast" id="xp-toast">+50 XP</div>
+
+    </div>
+    <!-- /app -->
+
+    <script src="dsa-steps.js"></script>
+
+    <script>
+    // Wrap switchDSASub to keep bottom nav active state in sync
+    document.addEventListener('DOMContentLoaded', function() {
+      var _orig = APP.switchDSASub ? APP.switchDSASub.bind(APP) : null;
+      APP.switchDSASub = function(sub, btn) {
+        document.querySelectorAll('#dsa-bottom-nav .dsa-nav-item').forEach(function(b) {
+          b.classList.remove('active');
+        });
+        var navBtn = document.getElementById('dsa-nav-' + sub);
+        if (navBtn) navBtn.classList.add('active');
+        if (_orig) _orig(sub, null);
+      };
+    });
+    </script>
+
+  </body>
+</html>

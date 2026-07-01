@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — My Profile</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#070711;--surface:rgba(10,10,26,.88);--border:rgba(123,47,255,.25);
+      --cyan:#00f5d4;--purple:#7b2fff;--text:#c9d1e0;--text-dim:#5a6480;--danger:#ff6b8a;
+    }
+    body{
+      min-height:100vh;background-color:var(--bg);
+      background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(123,47,255,.18),transparent 70%);
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--text);padding:32px 20px;
+    }
+    .wrap{max-width:680px;margin:0 auto}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+    .top a{color:var(--cyan);text-decoration:none;font-size:.85rem;font-family:'Courier New',monospace}
+    h1{
+      font-size:1.6rem;font-weight:700;margin-bottom:6px;
+      background:linear-gradient(90deg,var(--cyan),#a78bfa,var(--purple));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .sub{color:var(--text-dim);font-size:.85rem;margin-bottom:18px}
+
+    .card{
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:22px;backdrop-filter:blur(12px);margin-bottom:14px;
+    }
+    .card h2{font-size:1rem;color:var(--cyan);font-family:'Courier New',monospace;
+             letter-spacing:.05em;margin-bottom:14px}
+    .row{display:flex;justify-content:space-between;align-items:center;
+         padding:8px 0;border-bottom:1px solid rgba(123,47,255,.08);font-size:.9rem}
+    .row:last-child{border:none}
+    .row .k{color:var(--text-dim);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em}
+    .row .v{font-family:'Courier New',monospace}
+    .pill{
+      display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:99px;
+      letter-spacing:.08em;font-family:'Courier New',monospace;
+    }
+    .pill.ok{background:rgba(0,245,212,.14);color:var(--cyan)}
+    .pill.no{background:rgba(255,107,138,.12);color:var(--danger)}
+
+    .field{margin-bottom:12px}
+    label{display:block;font-size:.75rem;color:var(--text-dim);margin-bottom:5px;
+          font-family:'Courier New',monospace;letter-spacing:.05em}
+    input[type=text],input[type=email],input[type=password]{
+      width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);
+      color:var(--text);padding:10px 13px;border-radius:8px;font-size:.9rem;
+    }
+    input:focus{outline:none;border-color:var(--cyan)}
+    .btn{
+      padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;
+      color:#fff;font-weight:600;background:linear-gradient(90deg,var(--cyan),var(--purple));
+      margin-top:6px;
+    }
+    .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:500}
+    .btn.danger{background:transparent;border:1px solid rgba(255,107,138,.4);color:var(--danger);font-weight:500}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .msg{margin-top:8px;font-size:.82rem;min-height:1em}
+    .msg.ok{color:var(--cyan)}
+    .msg.err{color:var(--danger)}
+    .switch{display:flex;align-items:center;gap:10px;font-size:.88rem}
+    .switch input{width:18px;height:18px;accent-color:var(--cyan)}
+    .quick-links{display:flex;flex-wrap:wrap;gap:10px}
+    .quick-links a{
+      flex:1;min-width:160px;text-align:center;padding:10px;
+      border:1px solid var(--border);border-radius:8px;color:var(--text);
+      text-decoration:none;font-size:.82rem;
+    }
+    .quick-links a:hover{border-color:var(--cyan);color:var(--cyan)}
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a href="index.html">&larr; Back to app</a>
+      <a href="#" id="logout-link">Sign out</a>
+    </div>
+
+    <h1>My Profile</h1>
+    <p class="sub">Manage your account, security, and notifications.</p>
+
+    <div class="card">
+      <h2>Account</h2>
+      <div class="row"><span class="k">Username</span><span class="v" id="i-username">—</span></div>
+      <div class="row"><span class="k">Email</span><span class="v" id="i-email">—</span></div>
+      <div class="row"><span class="k">Email status</span><span id="i-verified">—</span></div>
+      <div class="row"><span class="k">Two-factor</span><span id="i-2fa">—</span></div>
+      <div class="row"><span class="k">Joined</span><span class="v" id="i-joined">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Quick links</h2>
+      <div class="quick-links">
+        <a href="sessions.html">Devices &amp; sessions</a>
+        <a href="2fa-setup.html">Two-factor auth</a>
+        <a href="forgot-password.html">Forgot password</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Change username</h2>
+      <div class="field"><label>New username</label><input type="text" id="u-new" /></div>
+      <div class="field"><label>Current password</label><input type="password" id="u-pw" autocomplete="current-password" /></div>
+      <button class="btn" id="u-btn">Update username</button>
+      <div class="msg" id="u-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Change email</h2>
+      <p class="sub" style="margin-bottom:10px">We'll send a verification link to your new address. Until you click it, the new address won't be active.</p>
+      <div class="field"><label>New email</label><input type="email" id="e-new" autocomplete="email" /></div>
+      <div class="field"><label>Current password</label><input type="password" id="e-pw" autocomplete="current-password" /></div>
+      <button class="btn" id="e-btn">Update email</button>
+      <div class="msg" id="e-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Change password</h2>
+      <div class="field"><label>Current password</label><input type="password" id="p-cur" autocomplete="current-password" /></div>
+      <div class="field"><label>New password</label><input type="password" id="p-new" autocomplete="new-password" /></div>
+      <div class="field"><label>Confirm new password</label><input type="password" id="p-conf" autocomplete="new-password" /></div>
+      <button class="btn" id="p-btn">Update password</button>
+      <div class="msg" id="p-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Notifications</h2>
+      <label class="switch">
+        <input type="checkbox" id="alerts-toggle" />
+        Email me when my account is signed in from a new device
+      </label>
+      <div class="msg" id="alerts-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="color:var(--danger)">Danger zone</h2>
+      <p class="sub">Deleting your account is permanent. All your data will be removed.</p>
+      <div class="field"><label>Type your password to confirm</label><input type="password" id="d-pw" autocomplete="current-password" /></div>
+      <button class="btn danger" id="d-btn">Delete my account</button>
+      <div class="msg" id="d-msg"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="auth_guard.js" defer></script>
+  <script src="profile_script.js" defer></script>
+</body>
+</html>

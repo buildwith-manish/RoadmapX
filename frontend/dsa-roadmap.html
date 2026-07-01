@@ -1,0 +1,3046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+<title>DSA Visual Roadmap</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg0:#05050f;--bg1:#0a0a18;--bg2:#0c0c1a;--bg3:#12122a;
+    --t1:#f0f0ff;--t2:#8080a8;
+    --c1:#6366f1;--c2:#3b82f6;--c3:#a855f7;--c4:#f97316;--c5:#8080a8;
+    --mono:'Courier New',monospace;
+  }
+  html,body{height:100%;background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;overflow:hidden;}
+
+  /* ── Layout ── */
+  #app{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+  /* ── Header ── */
+  #hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:var(--bg2);
+    border-bottom:2px solid transparent;
+    border-image:linear-gradient(90deg,transparent,#6366f1,transparent) 1;
+    flex-shrink:0;position:sticky;top:0;z-index:50;
+  }
+  #hdr-back{
+    display:flex;align-items:center;gap:5px;
+    background:none;border:none;color:var(--t2);
+    font-size:13px;cursor:pointer;padding:4px 8px;
+    border-radius:6px;font-family:var(--mono);
+  }
+  #hdr-back:hover{background:rgba(99,102,241,.1);color:var(--t1);}
+  #hdr-title{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--c1);}
+  #hdr-pill{
+    background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);
+    border-radius:999px;color:#a5b4fc;font-family:var(--mono);
+    font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap;
+  }
+
+  /* ── Legend ── */
+  #legend{
+    display:flex;align-items:center;gap:8px 12px;padding:8px 14px;
+    background:var(--bg1);border-bottom:1px solid rgba(99,102,241,.1);
+    overflow-x:auto;scrollbar-width:none;flex-shrink:0;flex-wrap:wrap;
+  }
+  #legend::-webkit-scrollbar{display:none;}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);white-space:nowrap;font-family:var(--mono);}
+  .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .leg-dot.green{background:#10b981;}
+  .leg-dot.blue{background:#3b82f6;}
+  .leg-dot.purple{background:#a855f7;}
+  .leg-dot.orange{background:#f97316;}
+  .leg-dot.dashed{border:1.5px dashed #8080a8;background:transparent;}
+
+  /* ── Hint bar ── */
+  #hint{
+    text-align:center;padding:6px;font-size:10px;color:var(--t2);
+    font-family:var(--mono);background:rgba(99,102,241,.04);
+    border-bottom:1px solid rgba(99,102,241,.08);flex-shrink:0;letter-spacing:.5px;
+  }
+
+  /* ── Graph scroll area ── */
+  #graph{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:12px 10px 80px;-webkit-overflow-scrolling:touch;
+    position:relative;box-sizing:border-box;
+  }
+
+  /* ── SVG overlay ── */
+  .svg-layer{position:absolute;top:0;left:0;pointer-events:none;z-index:1;overflow:visible;}
+
+  /* ── Section label ── */
+  .sec-label{
+    display:flex;align-items:center;gap:8px;margin:20px 0 10px;
+    position:relative;z-index:2;
+  }
+  .sec-num{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--c1);letter-spacing:1px;}
+  .sec-title{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t2);letter-spacing:1.2px;}
+  .sec-line{flex:1;height:1px;background:rgba(99,102,241,.15);}
+  .sec-prog{font-family:var(--mono);font-size:9px;color:rgba(99,102,241,.6);}
+
+  /* ── Section block ── */
+  .sec-block{display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;width:100%;box-sizing:border-box;}
+  .trunk-row{display:flex;justify-content:center;width:100%;}
+  .connector-wrap{display:flex;justify-content:center;width:100%;}
+  .v-line{width:2px;background:rgba(99,102,241,.15);}
+
+  /* ── Trunk node ── */
+  .trunk{
+    position:relative;border-radius:10px;cursor:pointer;
+    padding:12px 20px 14px;text-align:center;
+    min-width:180px;max-width:280px;width:70%;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    transition:transform .12s,box-shadow .15s;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  .trunk:active{transform:scale(.97);}
+  .trunk-label{font-family:var(--mono);font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+  .trunk-time{font-family:var(--mono);font-size:9px;color:var(--t2);margin-top:2px;}
+  /* ── Expand button (matches ai-roadmap) ── */
+  .exp-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;}
+  .expand-dot{
+    width:24px;height:24px;border-radius:50%;
+    background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .25s,background .15s;
+    font-size:12px;color:var(--c1);line-height:1;
+  }
+  .expand-dot.open{transform:rotate(180deg);background:rgba(99,102,241,.22);}
+
+  /* ── Children grid ── */
+  .children-wrap{
+    display:none;
+    flex-direction:row;gap:10px;width:100%;
+    margin-top:10px;justify-content:center;
+    position:relative;z-index:2;
+    box-sizing:border-box;
+    opacity:0;transform:translateY(-8px);
+    transition:opacity .22s ease,transform .22s ease;
+  }
+  .children-wrap.open{
+    opacity:1;transform:translateY(0);
+  }
+  .child-col{
+    display:flex;flex-direction:column;gap:8px;
+    flex:1;min-width:0;max-width:calc(50% - 5px);
+    box-sizing:border-box;
+  }
+  .child-col.left{align-items:flex-end;}
+  .child-col.right{align-items:flex-start;}
+
+  /* ── Child node ── */
+  .child{
+    position:relative;border-radius:8px;cursor:pointer;
+    padding:7px 12px;width:100%;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:transform .12s,box-shadow .15s;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+    box-sizing:border-box;min-width:0;word-break:break-word;
+  }
+  .child:active{transform:scale(.96);}
+  .child-label{font-size:11px;font-weight:600;color:var(--t1);line-height:1.3;word-break:break-word;}
+
+  /* ── Congrats node ── */
+  .node-congrats{
+    background:linear-gradient(135deg,#051a10,#0f0520)!important;
+    border:2px solid #10b981!important;
+    box-shadow:0 0 20px rgba(16,185,129,.2),0 0 40px rgba(99,102,241,.1)!important;
+    padding:14px 24px 16px!important;
+  }
+  .node-congrats .trunk-label{
+    background:linear-gradient(90deg,#10b981,#6366f1);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;font-size:15px!important;
+  }
+
+  /* ── Status badge ── */
+  .node-status-badge{position:absolute;top:4px;right:4px;z-index:3;pointer-events:none;}
+  .done-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;
+    background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.5);
+    border-radius:50%;color:#6ee7b7;font-size:9px;font-weight:800;
+    font-family:var(--mono);
+  }
+  .skip-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;
+    background:rgba(128,128,168,.12);border:1px solid rgba(128,128,168,.3);
+    border-radius:50%;color:#8080a8;font-size:9px;
+  }
+  .progress-ring{
+    display:inline-block;width:14px;height:14px;
+    border:2px solid rgba(99,102,241,.2);border-top-color:#6366f1;
+    border-radius:50%;animation:spin 1.2s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ── Node states ── */
+  .node.node-done{border-color:rgba(16,185,129,.6)!important;background:rgba(16,185,129,.05)!important;}
+  .node.node-progress{box-shadow:0 0 0 2px rgba(99,102,241,.3),0 0 12px rgba(99,102,241,.15)!important;}
+  .node.node-skip{opacity:.45;filter:saturate(.3);}
+
+  /* ── Bottom progress bar ── */
+  #prog-bar-wrap{height:3px;background:rgba(99,102,241,.1);flex-shrink:0;}
+  #prog-bar-fill{height:100%;background:linear-gradient(90deg,#6366f1,#10b981);width:0%;transition:width .4s ease;}
+
+  /* ── Overlay + Sheet ── */
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  #overlay.show{opacity:1;pointer-events:all;}
+  #sheet{
+    position:fixed;bottom:0;left:0;right:0;z-index:210;
+    background:var(--bg2);border-top:1px solid rgba(99,102,241,.25);
+    border-radius:16px 16px 0 0;max-height:85vh;
+    overflow-y:auto;transform:translateY(100%);
+    transition:transform .3s cubic-bezier(.32,.72,0,1);
+    padding-bottom:env(safe-area-inset-bottom,12px);
+  }
+  #sheet.open{transform:translateY(0);}
+  #sheet::-webkit-scrollbar{width:3px;}
+  #sheet::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+
+  .sheet-handle{width:36px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:10px auto 0;}
+  .sheet-top{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px 0;gap:12px;}
+  .sheet-meta{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .sheet-close{
+    background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;
+  }
+  .sheet-close:hover{color:var(--t1);}
+  .diff-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;}
+  .diff-badge.beginner{background:rgba(16,185,129,.15);color:#6ee7b7;}
+  .diff-badge.intermediate{background:rgba(59,130,246,.15);color:#93c5fd;}
+  .diff-badge.advanced{background:rgba(168,85,247,.15);color:#d8b4fe;}
+  .diff-badge.optional{background:rgba(128,128,168,.15);color:#8080a8;}
+  .sheet-title{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--t1);margin-top:4px;line-height:1.2;}
+  .sheet-time-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
+    border-radius:20px;padding:3px 10px;margin-top:4px;
+    font-family:var(--mono);font-size:10px;color:#a5b4fc;
+  }
+  .sheet-body{padding:14px 16px 8px;}
+  .sec-lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--c1);margin:14px 0 6px;text-transform:uppercase;}
+  .sheet-why{font-size:13px;color:#8080a8;line-height:1.65;}
+  .sheet-learn{list-style:none;display:flex;flex-direction:column;gap:5px;}
+  .sheet-learn li{font-size:12px;color:#c8c8e8;padding:5px 0 5px 12px;border-left:2px solid rgba(99,102,241,.3);line-height:1.5;}
+  .sheet-prereq{font-size:12px;color:#8080a8;line-height:1.5;}
+  .practice-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .link-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:6px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.3);
+    background:rgba(99,102,241,.08);color:#a5b4fc;
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    cursor:pointer;transition:background .15s;
+  }
+  .link-btn:hover{background:rgba(99,102,241,.18);color:var(--t1);}
+  .link-btn.lc{border-color:rgba(255,161,22,.3);background:rgba(255,161,22,.07);color:#fbbf24;}
+  .link-btn.cf{border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07);color:#93c5fd;}
+  .link-btn.yt{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#fca5a5;}
+  .link-btn.docs{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.07);color:#6ee7b7;}
+  .status-row{display:flex;gap:8px;margin-top:16px;padding-bottom:10px;}
+  .st-btn{
+    flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(99,102,241,.2);
+    background:rgba(99,102,241,.06);color:var(--t2);
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    cursor:pointer;text-align:center;transition:all .15s;
+  }
+  .st-btn:hover{border-color:rgba(99,102,241,.4);color:var(--t1);}
+  .st-btn.active-done{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);color:#6ee7b7;}
+  .st-btn.active-progress{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.5);color:#a5b4fc;}
+  .st-btn.active-skip{background:rgba(128,128,168,.12);border-color:rgba(128,128,168,.4);color:#8080a8;}
+
+  /* ── Toast ── */
+  #toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:rgba(20,20,40,.95);border:1px solid rgba(99,102,241,.3);
+    border-radius:8px;padding:8px 16px;
+    font-family:var(--mono);font-size:12px;color:#a5b4fc;
+    z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <button id="hdr-back" onclick="window.history.length>1?history.back():window.location.href='index.html'">← Back</button>
+    <div id="hdr-title">DSA ROADMAP</div>
+    <div id="hdr-pill">0 / 0 done</div>
+  </div>
+  <div id="legend">
+    <div class="leg-item"><div class="leg-dot green"></div>Foundation</div>
+    <div class="leg-item"><div class="leg-dot blue"></div>Data Structures</div>
+    <div class="leg-item"><div class="leg-dot purple"></div>Algorithms</div>
+    <div class="leg-item"><div class="leg-dot orange"></div>Advanced / CP</div>
+    <div class="leg-item"><div class="leg-dot dashed"></div>Optional</div>
+  </div>
+  <div id="hint">TAP main node → expand sub-topics &nbsp;|&nbsp; HOLD main node → view details &nbsp;|&nbsp; TAP sub-node → view details</div>
+  <div id="prog-bar-wrap"><div id="prog-bar-fill"></div></div>
+  <div id="graph"></div>
+</div>
+
+<div id="overlay"></div>
+
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top">
+    <div class="sheet-meta">
+      <div class="diff-badge" id="s-diff"></div>
+      <div class="sheet-title" id="s-title"></div>
+      <div class="sheet-time-badge">⏱ <span id="s-time">—</span></div>
+    </div>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sec-lbl">Why This Matters</div>
+    <div class="sheet-why" id="s-why"></div>
+    <div class="sec-lbl">What You'll Learn</div>
+    <ul class="sheet-learn" id="s-learn"></ul>
+    <div class="sec-lbl">Prerequisites</div>
+    <div class="sheet-prereq" id="s-prereq"></div>
+    <div class="sec-lbl">Practice Problems</div>
+    <div class="practice-row">
+      <button class="link-btn lc" id="s-lc">⚡ LeetCode</button>
+      <button class="link-btn cf" id="s-cf">🔵 Codeforces</button>
+    </div>
+    <div class="sec-lbl">Resources</div>
+    <div class="practice-row">
+      <button class="link-btn yt" id="s-yt">▶ YouTube</button>
+      <button class="link-btn docs" id="s-doc">📄 Docs</button>
+    </div>
+    <div class="sec-lbl">Mark Status</div>
+    <div class="status-row">
+      <button class="st-btn" id="sb-done"     onclick="setStatus('done')">✓ Done</button>
+      <button class="st-btn" id="sb-progress" onclick="setStatus('progress')">⚡ In Progress</button>
+      <button class="st-btn" id="sb-skip"     onclick="setStatus('skip')">→ Skip</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function() {
+'use strict';
+
+const LS_KEY = 'dsa_visual_progress';
+let progress  = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+let expanded  = {};
+let activeNode = null;
+const saveProgress = () => localStorage.setItem(LS_KEY, JSON.stringify(progress));
+
+const NODES = [
+
+  // ─────────────────────────────────────────────
+  // SECTION 1 — C++ FOUNDATIONS
+  // ─────────────────────────────────────────────
+  {
+    id: 'cpp-basics',
+    label: 'C++ Basics',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: true,
+    parent: null,
+    border: 'green',
+    difficulty: 'BEGINNER',
+    time: '2–3 weeks',
+    whyMatters: 'C++ is the dominant language in competitive programming and is widely used in systems programming and performance-critical applications. Its fine-grained control over memory and direct access to STL containers like vectors, maps, and sets make it ideal for implementing data structures from scratch. Almost every top competitive programmer uses C++, and most DSA interview resources assume familiarity with it. Building a solid C++ foundation means you spend your DSA learning energy on algorithms, not fighting syntax.',
+    learn: [
+      'Setting up a C++ development environment with g++ and VS Code',
+      'Compilation process: preprocessing, compiling, linking, and execution',
+      'Primitive data types and their memory sizes (int, long long, char, double)',
+      'Pointers, references, and the difference between stack and heap allocation',
+      'Functions, default arguments, pass-by-value vs pass-by-reference',
+      'The STL ecosystem: vectors, strings, maps, sets, queues, stacks',
+      'cin/cout I/O and fast I/O with ios::sync_with_stdio(false)'
+    ],
+    prerequisites: 'None — this is the very first stop',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=implementation',
+    youtubeQuery: 'C++ full course for competitive programming beginners',
+    docsUrl: 'https://cppreference.com'
+  },
+  {
+    id: 'cpp-setup',
+    label: 'Setup & Compilation',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '1 day',
+    whyMatters: 'A smooth environment setup eliminates friction from day one. Understanding the compilation pipeline — how g++ turns .cpp files into executables — helps you interpret compiler errors intelligently instead of blindly Googling them. Knowing compilation flags like -O2 (optimisation) and -Wall (warnings) is essential for competitive programming and real-world C++ work.',
+    learn: [
+      'Installing g++ / MinGW on Windows, or using clang++ on macOS/Linux',
+      'Compiling with g++ -o output main.cpp and running the binary',
+      'Compiler flags: -O2 for speed, -Wall for warnings, -std=c++17 for modern features',
+      'Understanding compilation errors vs linker errors vs runtime errors',
+      'Using VS Code with C/C++ extension for debugging with breakpoints',
+      'Online IDEs for quick testing: Codeforces in-browser, Godbolt Compiler Explorer'
+    ],
+    prerequisites: 'None',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/',
+    codeforcesUrl: null,
+    youtubeQuery: 'C++ setup VS Code competitive programming environment',
+    docsUrl: 'https://code.visualstudio.com/docs/languages/cpp'
+  },
+  {
+    id: 'cpp-data-types',
+    label: 'Data Types & Variables',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Integer overflow is one of the most common sources of wrong answers in competitive programming. Knowing when to use int (up to ~2 billion) vs long long (up to ~9 × 10^18) prevents hard-to-debug bugs. Understanding type sizes and casting also matters for bit manipulation and memory-efficient data structures.',
+    learn: [
+      'int (32-bit), long long (64-bit), unsigned variants and their limits',
+      'char, bool, float, double — when to use each',
+      'Type casting: implicit coercions and explicit (int), (long long)',
+      'const and constexpr for compile-time constants',
+      'Naming conventions and scope (global vs local)',
+      'The auto keyword for type inference in modern C++'
+    ],
+    prerequisites: 'Setup & Compilation',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=EASY',
+    codeforcesUrl: null,
+    youtubeQuery: 'C++ data types variables int long long overflow explained',
+    docsUrl: 'https://en.cppreference.com/w/cpp/language/types'
+  },
+  {
+    id: 'cpp-control-flow',
+    label: 'Control Flow',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Conditionals and loops are the building blocks of every algorithm you will ever write. Mastering loop patterns — iterating arrays, while loops for binary search, nested loops for 2D grids — is the prerequisite for nearly all DSA topics. Writing concise, correct loop logic is a foundational skill that every employer tests.',
+    learn: [
+      'if / else if / else chains and short-circuit evaluation with && and ||',
+      'switch statements for multi-branch dispatch',
+      'for loops: classic, range-based for (auto& x : v)',
+      'while and do-while loops and when to use each',
+      'break, continue, and nested loop control',
+      'Ternary operator (?:) for compact conditional expressions'
+    ],
+    prerequisites: 'Data Types & Variables',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=EASY',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=brute+force',
+    youtubeQuery: 'C++ control flow loops if else for while explained',
+    docsUrl: 'https://en.cppreference.com/w/cpp/language/statements'
+  },
+  {
+    id: 'cpp-functions',
+    label: 'Functions & Scope',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Functions are how you break complex algorithms into understandable, reusable pieces. Understanding pass-by-value vs pass-by-reference is critical because passing large arrays or vectors by value copies them (O(n) overhead), while passing by reference is O(1). Getting this wrong can turn an O(n log n) solution into TLE.',
+    learn: [
+      'Function declaration, definition, and calling conventions',
+      'Pass-by-value vs pass-by-reference vs pass-by-const-reference',
+      'Return types, void functions, and returning multiple values with pairs/structs',
+      'Recursive functions: base case, recursive case, call stack',
+      'Function overloading: same name, different parameters',
+      'Lambda functions (C++11): [&](){} syntax for inline functions'
+    ],
+    prerequisites: 'Control Flow',
+    leetcodeUrl: 'https://leetcode.com/tag/recursion/',
+    codeforcesUrl: null,
+    youtubeQuery: 'C++ functions pass by reference recursion explained',
+    docsUrl: 'https://en.cppreference.com/w/cpp/language/functions'
+  },
+  {
+    id: 'cpp-pointers',
+    label: 'Pointers & References',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Pointers are unavoidable when implementing linked lists, trees, and graphs from scratch. Many DSA textbooks and interview problems use raw pointer-based node structs. Understanding the difference between a pointer (address of a variable) and a reference (alias for a variable) prevents segfaults and memory leaks in your implementations.',
+    learn: [
+      'Pointer syntax: int* p = &x; dereferencing *p; pointer arithmetic p++',
+      'nullptr and why it replaces NULL in modern C++',
+      'References as aliases: int& ref = x; — same memory, different name',
+      'Dynamic memory: new/delete, and why you almost always use vector instead',
+      'Struct and class with pointers: Node* next pattern for linked list nodes',
+      'Smart pointers (unique_ptr, shared_ptr) — know they exist even if you use raw in CP'
+    ],
+    prerequisites: 'Functions & Scope',
+    leetcodeUrl: 'https://leetcode.com/tag/linked-list/',
+    codeforcesUrl: null,
+    youtubeQuery: 'C++ pointers references memory explained for beginners',
+    docsUrl: 'https://en.cppreference.com/w/cpp/language/pointer'
+  },
+  {
+    id: 'cpp-stl',
+    label: 'STL Overview',
+    section: 1,
+    sectionTitle: 'C++ Foundations',
+    isMain: false,
+    parent: 'cpp-basics',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'The C++ Standard Template Library gives you battle-tested, O(1)/O(log n) implementations of every core data structure. In competitive programming and interviews, you are expected to use vector, map, set, priority_queue, and stack fluently without implementing them from scratch. Mastering STL is the single highest-leverage skill for C++ DSA work.',
+    learn: [
+      'vector<T>: push_back, pop_back, size, [], iterators, sorting with sort()',
+      'string: substr, find, length, +=, comparison operators',
+      'pair<A,B> and tuple<A,B,C>: make_pair, .first, .second',
+      'map<K,V> and unordered_map<K,V>: insert, find, count, erase, iteration',
+      'set<T> and unordered_set<T>: insert, find, count, erase, lower_bound',
+      'stack<T>, queue<T>, deque<T>, priority_queue<T>: push, pop, top/front',
+      'Algorithm header: sort, binary_search, lower_bound, upper_bound, reverse, min, max'
+    ],
+    prerequisites: 'Pointers & References',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=EASY',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=implementation',
+    youtubeQuery: 'C++ STL complete guide competitive programming vector map set',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 2 — ARRAYS & STRINGS
+  // ─────────────────────────────────────────────
+  {
+    id: 'arrays-strings',
+    label: 'Arrays & Strings',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: true,
+    parent: null,
+    border: 'green',
+    difficulty: 'BEGINNER',
+    time: '3–4 weeks',
+    whyMatters: 'Arrays and strings are the most common data structures in coding interviews. Roughly 40% of LeetCode problems are array-based. The techniques you learn here — prefix sums, sliding window, two pointers, hashing — are not isolated tricks; they are reusable patterns that appear across hundreds of interview problems. Mastering this section gives you a template library for solving entire problem families.',
+    learn: [
+      'In-place vs out-of-place array operations and their space complexity implications',
+      'When to sort first and how sorting changes the problem (O(n log n) preprocessing)',
+      'The prefix sum trick: transforming O(n) repeated range queries into O(1)',
+      'Sliding window: shrinking and expanding windows for subarray/substring problems',
+      'Two pointer technique: converging inward from both ends',
+      'Hash map frequency counting for constant-time lookups',
+      'Kadane\'s algorithm for the maximum subarray sum problem'
+    ],
+    prerequisites: 'C++ Foundations (STL)',
+    leetcodeUrl: 'https://leetcode.com/tag/array/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=arrays',
+    youtubeQuery: 'arrays strings DSA complete guide LeetCode patterns',
+    docsUrl: 'https://cppreference.com/w/cpp/container/vector'
+  },
+  {
+    id: 'arrays-1d-2d',
+    label: '1D & 2D Arrays',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '3 days',
+    whyMatters: 'Many graph, DP, and grid problems operate on 2D arrays. Understanding row-major storage, how to traverse a matrix in spirals or diagonals, and how to rotate a matrix in-place are direct interview questions at top companies. 2D arrays are also the natural representation for DP tables.',
+    learn: [
+      '1D array declaration, initialisation, and index-out-of-bounds prevention',
+      '2D arrays: row-major storage, accessing [i][j], and iteration order',
+      'Matrix traversal patterns: row-by-row, column-by-column, diagonal, spiral',
+      'In-place matrix rotation by 90° using transpose + reverse',
+      'Flattening a 2D index to 1D: index = row * cols + col',
+      'Prefix sums extended to 2D for O(1) rectangular sum queries'
+    ],
+    prerequisites: 'C++ STL',
+    leetcodeUrl: 'https://leetcode.com/tag/matrix/',
+    codeforcesUrl: null,
+    youtubeQuery: '1D 2D arrays matrix traversal rotation LeetCode',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container/vector'
+  },
+  {
+    id: 'prefix-sums',
+    label: 'Prefix Sums',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Prefix sums convert repeated range-sum queries from O(n) each to O(1) after O(n) preprocessing. This is one of the highest-frequency interview patterns and shows up in subarray sum problems, count of subarrays with given sum, and as a building block inside larger DP solutions. Understanding prefix sums unlocks dozens of LeetCode mediums instantly.',
+    learn: [
+      'Building the prefix array: prefix[i] = prefix[i-1] + arr[i]',
+      'Range sum query in O(1): sum(l, r) = prefix[r] - prefix[l-1]',
+      'Subarray sum equals k using prefix sum + hash map (LeetCode 560)',
+      'Prefix XOR for range XOR queries',
+      '2D prefix sums for rectangular sub-matrix sum queries',
+      'Difference arrays for range update + point query in O(1)'
+    ],
+    prerequisites: '1D & 2D Arrays',
+    leetcodeUrl: 'https://leetcode.com/tag/prefix-sum/',
+    codeforcesUrl: null,
+    youtubeQuery: 'prefix sum technique explained LeetCode subarray sum',
+    docsUrl: 'https://cp-algorithms.com/algebra/prefix-sums.html'
+  },
+  {
+    id: 'sliding-window',
+    label: 'Sliding Window',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Sliding window turns brute-force O(n²) subarray problems into O(n) by maintaining a moving window. It is one of the most frequently tested patterns in interviews at FAANG companies. Problems like "longest substring without repeating characters" (LeetCode 3) or "minimum window substring" (LeetCode 76) are staples that every serious candidate must be able to solve.',
+    learn: [
+      'Fixed-size window: compute first window, then slide by one position each step',
+      'Variable-size window (shrink/expand): two pointers l and r with a condition',
+      'Maintaining window state with hash map or frequency count',
+      'Maximum sum subarray of size k (fixed window)',
+      'Longest substring with at most k distinct characters (variable window)',
+      'Minimum window substring using character frequency maps'
+    ],
+    prerequisites: 'Prefix Sums',
+    leetcodeUrl: 'https://leetcode.com/tag/sliding-window/',
+    codeforcesUrl: null,
+    youtubeQuery: 'sliding window technique LeetCode explained variable fixed',
+    docsUrl: 'https://leetcode.com/explore/learn/card/array-and-string/'
+  },
+  {
+    id: 'two-pointers',
+    label: 'Two Pointers',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Two pointers is a fundamental technique for problems involving pairs, triplets, or sorted arrays. It reduces O(n²) brute-force approaches to O(n) by eliminating impossible pairs intelligently. The pattern appears in 3Sum, container with most water, and palindrome checking — all top-30 LeetCode interview questions.',
+    learn: [
+      'Opposite direction: left and right pointers converging inward (palindrome, 2Sum sorted)',
+      'Same direction: fast and slow pointers (cycle detection, middle of linked list)',
+      '3Sum using sort + two pointers to achieve O(n²) from O(n³)',
+      'Removing duplicates from sorted array in-place with two pointers',
+      'Container with most water using greedy two-pointer approach',
+      'Merging two sorted arrays using two pointers'
+    ],
+    prerequisites: 'Sliding Window',
+    leetcodeUrl: 'https://leetcode.com/tag/two-pointers/',
+    codeforcesUrl: null,
+    youtubeQuery: 'two pointer technique LeetCode explained all patterns',
+    docsUrl: 'https://leetcode.com/explore/learn/card/array-and-string/'
+  },
+  {
+    id: 'string-manipulation',
+    label: 'String Manipulation',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'String problems appear in over 20% of technical interviews. Operations like reversal, anagram detection, and palindrome checking are warm-up problems, but string compression and parsing exercises test your understanding of character arrays and ASCII. In C++, strings are mutable arrays of char, giving you low-level control other languages lack.',
+    learn: [
+      'String as char array: indexing, length(), substr(), find(), append()',
+      'Converting between string and integer: stoi(), to_string()',
+      'Reversing a string in-place with two pointers',
+      'Checking anagrams with frequency count (sort or hash map)',
+      'Palindrome check: compare s[i] with s[n-1-i]',
+      'String splitting in C++ using stringstream or find+substr loop'
+    ],
+    prerequisites: 'Two Pointers',
+    leetcodeUrl: 'https://leetcode.com/tag/string/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=strings',
+    youtubeQuery: 'string manipulation C++ LeetCode anagram palindrome',
+    docsUrl: 'https://en.cppreference.com/w/cpp/string/basic_string'
+  },
+  {
+    id: 'hashing',
+    label: 'Hashing',
+    section: 2,
+    sectionTitle: 'Arrays & Strings',
+    isMain: false,
+    parent: 'arrays-strings',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Hash maps give O(1) average-case lookup, insert, and delete, making them the go-to data structure for frequency counting, grouping, and duplicate detection. The classic "two sum" problem cannot be solved in O(n) without a hash map. Understanding hash collisions and when unordered_map can degrade to O(n) prevents TLE on adversarial test cases.',
+    learn: [
+      'Hash map internals: hash function, buckets, collision resolution (chaining vs open addressing)',
+      'unordered_map<K,V> vs map<K,V>: O(1) avg vs O(log n) guaranteed',
+      'Two Sum using hash map: store seen numbers and check complement',
+      'Frequency counting: map<char,int> for anagram / character frequency problems',
+      'Grouping anagrams by sorted key using unordered_map<string, vector<string>>',
+      'Custom hash for pairs/tuples to use them as unordered_map keys'
+    ],
+    prerequisites: 'String Manipulation',
+    leetcodeUrl: 'https://leetcode.com/tag/hash-table/',
+    codeforcesUrl: null,
+    youtubeQuery: 'hash map hash table LeetCode C++ two sum frequency counting',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container/unordered_map'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 3 — LINEAR DATA STRUCTURES
+  // ─────────────────────────────────────────────
+  {
+    id: 'linear-ds',
+    label: 'Linear DS',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: true,
+    parent: null,
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3–4 weeks',
+    whyMatters: 'Linked lists, stacks, queues, and heaps are the data structures that underlie systems you use every day — browsers use stacks for history, printers use queues for jobs, and OS schedulers use heaps for priority ordering. These structures also dominate technical interviews; LeetCode has over 300 linked list, stack, and queue problems alone. Building them from scratch builds intuition that no amount of STL usage can replace.',
+    learn: [
+      'Singly and doubly linked list construction, insertion, and deletion',
+      'Stack: LIFO semantics and real-world applications (undo/redo, expression parsing)',
+      'Queue: FIFO semantics and BFS graph traversal',
+      'Deque: double-ended queue for sliding window maximum problems',
+      'Monotonic stack: maintaining increasing/decreasing order for efficient range queries',
+      'Heap (priority queue): complete binary tree with heap property, heapify, extract-min/max'
+    ],
+    prerequisites: 'Arrays & Strings, C++ Foundations',
+    leetcodeUrl: 'https://leetcode.com/tag/linked-list/',
+    codeforcesUrl: null,
+    youtubeQuery: 'linear data structures linked list stack queue heap explained',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container'
+  },
+  {
+    id: 'linked-lists',
+    label: 'Linked Lists',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: false,
+    parent: 'linear-ds',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '5 days',
+    whyMatters: 'Linked list questions are a staple at FAANG interviews. Reversing a list, detecting a cycle, merging sorted lists, and finding the middle element are the four highest-frequency linked list patterns. Understanding pointer manipulation builds mental models that directly transfer to tree and graph traversal.',
+    learn: [
+      'Node struct: struct ListNode { int val; ListNode* next; };',
+      'Insertion at head, tail, and arbitrary position in O(1) and O(n)',
+      'Deletion by value and by position: previous pointer bookkeeping',
+      'Reversal using iterative three-pointer technique and recursive approach',
+      'Cycle detection with Floyd\'s slow/fast pointer algorithm',
+      'Finding middle with slow/fast pointers',
+      'Merging two sorted linked lists iteratively and recursively'
+    ],
+    prerequisites: 'C++ Pointers & References',
+    leetcodeUrl: 'https://leetcode.com/tag/linked-list/',
+    codeforcesUrl: null,
+    youtubeQuery: 'linked list problems LeetCode reversal cycle detection merge',
+    docsUrl: 'https://leetcode.com/explore/learn/card/linked-list/'
+  },
+  {
+    id: 'stacks',
+    label: 'Stacks',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: false,
+    parent: 'linear-ds',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Stacks are the fundamental data structure for anything involving nested or sequential order: validating parentheses, evaluating expressions, implementing undo operations, and managing function call frames. Many interview problems that look unrelated to stacks are best solved with a stack — recognising this pattern is a key skill.',
+    learn: [
+      'Stack implementation using vector or std::stack<T>',
+      'Valid parentheses using a stack to match opening and closing brackets',
+      'Evaluating postfix (Reverse Polish Notation) expressions with a stack',
+      'Converting infix to postfix using operator precedence and a stack',
+      'Next greater element using a stack (preview of monotonic stack)',
+      'Implementing min-stack that returns minimum in O(1) using auxiliary stack'
+    ],
+    prerequisites: 'Linked Lists',
+    leetcodeUrl: 'https://leetcode.com/tag/stack/',
+    codeforcesUrl: null,
+    youtubeQuery: 'stack data structure LeetCode valid parentheses expression evaluation',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container/stack'
+  },
+  {
+    id: 'queues-deques',
+    label: 'Queues & Deques',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: false,
+    parent: 'linear-ds',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Queues are the backbone of BFS graph traversal, level-order tree traversal, and multi-source BFS (used in shortest path problems). Deques unlock the sliding window maximum problem in O(n) instead of O(n*k). Understanding when each variant is appropriate is a recurring interview theme.',
+    learn: [
+      'Queue using std::queue<T>: push, pop, front, back, empty',
+      'Circular queue implementation for fixed-size buffers',
+      'Level-order binary tree traversal using a BFS queue',
+      'Deque using std::deque<T>: push_front, push_back, pop_front, pop_back',
+      'Sliding window maximum using a monotonic deque in O(n)',
+      'Priority queue (max-heap): push, pop, top — O(log n) insert, O(1) peek'
+    ],
+    prerequisites: 'Stacks',
+    leetcodeUrl: 'https://leetcode.com/tag/queue/',
+    codeforcesUrl: null,
+    youtubeQuery: 'queue deque BFS level order traversal sliding window maximum',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container/queue'
+  },
+  {
+    id: 'monotonic-stack',
+    label: 'Monotonic Stack',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: false,
+    parent: 'linear-ds',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Monotonic stacks solve a class of "nearest smaller/larger element" problems in O(n) that would take O(n²) naively. Problems like "largest rectangle in histogram", "daily temperatures", and "trapping rain water" are top-frequency hard problems at FAANG interviews that are elegantly solved with a monotonic stack once you recognise the pattern.',
+    learn: [
+      'Monotonic increasing stack: maintain elements in increasing order left-to-right',
+      'Monotonic decreasing stack: maintain elements in decreasing order',
+      'Next greater element to the right: iterate right-to-left with a decreasing stack',
+      'Previous smaller element to the left: iterate left-to-right with an increasing stack',
+      'Largest rectangle in histogram using previous and next smaller element arrays',
+      'Trapping rain water using monotonic stack (alternative to two-pointer approach)'
+    ],
+    prerequisites: 'Stacks',
+    leetcodeUrl: 'https://leetcode.com/tag/monotonic-stack/',
+    codeforcesUrl: null,
+    youtubeQuery: 'monotonic stack LeetCode next greater element histogram rain water',
+    docsUrl: 'https://leetcode.com/discuss/study-guide/2347639/monotonic-stack-a-complete-guide'
+  },
+  {
+    id: 'heaps',
+    label: 'Priority Queue & Heaps',
+    section: 3,
+    sectionTitle: 'Linear Data Structures',
+    isMain: false,
+    parent: 'linear-ds',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Heaps are essential for any problem involving "k-th largest/smallest" elements, merging k sorted lists, or greedy scheduling algorithms. Dijkstra\'s shortest path algorithm uses a min-heap as its core data structure. The priority_queue in STL is among the most-used containers in competitive programming.',
+    learn: [
+      'Heap property: parent ≤ children (min-heap) or parent ≥ children (max-heap)',
+      'Heapify up (insert) and heapify down (extract) operations — both O(log n)',
+      'Building a heap in O(n) using bottom-up heapify',
+      'std::priority_queue<T>: max-heap by default, min-heap with greater<T> comparator',
+      'K-th largest element in an array using a min-heap of size k',
+      'Merge k sorted lists using a min-heap of (value, list_index, element_index)',
+      'Heap sort: build max-heap, repeatedly extract max — O(n log n) in-place'
+    ],
+    prerequisites: 'Queues & Deques',
+    leetcodeUrl: 'https://leetcode.com/tag/heap-priority-queue/',
+    codeforcesUrl: null,
+    youtubeQuery: 'heap priority queue LeetCode k-th largest merge sorted lists',
+    docsUrl: 'https://en.cppreference.com/w/cpp/container/priority_queue'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 4 — RECURSION & BACKTRACKING
+  // ─────────────────────────────────────────────
+  {
+    id: 'recursion',
+    label: 'Recursion',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: true,
+    parent: null,
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3–4 weeks',
+    whyMatters: 'Recursion is the mental model behind trees, graphs, divide-and-conquer, dynamic programming, and backtracking. Every recursive solution has a direct DP equivalent, and every DP problem started as a recursive insight. Companies explicitly ask candidates to think recursively, then optimise. You cannot advance to hard-level DSA without fluency in recursive thinking.',
+    learn: [
+      'Recursive vs iterative: trade-offs in readability, stack depth, and performance',
+      'Identifying the recursive structure: what\'s the simplest sub-problem?',
+      'Divide and conquer: split the problem, solve independently, combine results',
+      'Backtracking: try a choice, recurse, undo the choice (explore the decision tree)',
+      'Memoisation: caching recursive results to avoid recomputation',
+      'Tail recursion and why most C++ compilers don\'t guarantee tail-call optimisation'
+    ],
+    prerequisites: 'Arrays & Strings, C++ Functions',
+    leetcodeUrl: 'https://leetcode.com/tag/recursion/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=divide+and+conquer',
+    youtubeQuery: 'recursion backtracking complete guide LeetCode DSA',
+    docsUrl: 'https://leetcode.com/explore/learn/card/recursion-i/'
+  },
+  {
+    id: 'recursion-basics',
+    label: 'Recursion Basics',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: false,
+    parent: 'recursion',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Before you can apply recursion to hard problems, you need to deeply internalise the call stack model. Many beginners get stuck because they try to trace through every recursive call mentally — the real skill is trusting the inductive hypothesis: assume the recursive call works, and only define the base case and one recursive step.',
+    learn: [
+      'Base case: the condition that stops recursion and returns directly',
+      'Recursive case: breaking the problem into a smaller version of itself',
+      'The call stack: each function call creates a new stack frame',
+      'Stack overflow: unbounded recursion and how to debug it',
+      'Printing numbers 1–n, factorial, Fibonacci — classic warm-ups',
+      'Visualising recursion trees: branches represent choices, leaves represent base cases'
+    ],
+    prerequisites: 'C++ Functions & Scope',
+    leetcodeUrl: 'https://leetcode.com/tag/recursion/',
+    codeforcesUrl: null,
+    youtubeQuery: 'recursion basics call stack tree visualisation explained',
+    docsUrl: 'https://leetcode.com/explore/learn/card/recursion-i/'
+  },
+  {
+    id: 'divide-conquer',
+    label: 'Divide & Conquer',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: false,
+    parent: 'recursion',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Divide and conquer is the algorithmic paradigm behind merge sort, quick sort, binary search, and the fast Fourier transform. Understanding it gives you a framework for decomposing complex problems into manageable subproblems. The Master Theorem lets you calculate the time complexity of divide-and-conquer algorithms analytically.',
+    learn: [
+      'The three steps: divide, conquer (recurse), combine',
+      'Merge sort: split in half, recursively sort, merge sorted halves — O(n log n)',
+      'Binary search as divide and conquer: eliminate half the search space each step',
+      'Maximum subarray (Kadane\'s alternative): split, find in left, right, and crossing',
+      'Count inversions in an array using modified merge sort',
+      'Master Theorem: T(n) = aT(n/b) + f(n) → determine overall time complexity'
+    ],
+    prerequisites: 'Recursion Basics',
+    leetcodeUrl: 'https://leetcode.com/tag/divide-and-conquer/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=divide+and+conquer',
+    youtubeQuery: 'divide and conquer merge sort count inversions LeetCode',
+    docsUrl: 'https://cp-algorithms.com/algebra/fft.html'
+  },
+  {
+    id: 'backtracking',
+    label: 'Backtracking',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: false,
+    parent: 'recursion',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '5 days',
+    whyMatters: 'Backtracking is the systematic method for generating all possible solutions — subsets, permutations, combinations — and pruning invalid branches. It underpins N-Queens, Sudoku, word search, and graph colouring. Most "find all valid combinations" interview problems are backtracking problems in disguise. Recognising this pattern is a significant interview differentiator.',
+    learn: [
+      'The backtracking template: choose, explore, unchoose (undo)',
+      'Decision trees: each node is a partial solution, each edge is a choice',
+      'Subsets: include or exclude each element — 2^n leaves in the tree',
+      'Permutations: choose from remaining elements at each level — n! leaves',
+      'Combinations: choose r from n without repetition — nCr leaves',
+      'Pruning: early termination when a branch cannot lead to a valid solution',
+      'Target sum: find all subsets that sum to a given target with pruning'
+    ],
+    prerequisites: 'Divide & Conquer',
+    leetcodeUrl: 'https://leetcode.com/tag/backtracking/',
+    codeforcesUrl: null,
+    youtubeQuery: 'backtracking LeetCode subsets permutations combinations explained',
+    docsUrl: 'https://leetcode.com/explore/learn/card/recursion-ii/'
+  },
+  {
+    id: 'n-queens-sudoku',
+    label: 'N-Queens & Sudoku',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: false,
+    parent: 'recursion',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'N-Queens and Sudoku solver are the canonical "hard" backtracking problems asked at top companies including Google and Amazon. They test your ability to maintain constraint state efficiently (which rows, columns, and diagonals are occupied) while pruning aggressively. Successfully implementing these signals strong algorithmic thinking to interviewers.',
+    learn: [
+      'N-Queens: place n queens on n×n board so no two queens attack each other',
+      'Constraint propagation: track occupied columns, main diagonals, anti-diagonals',
+      'State representation: sets for O(1) constraint checking vs O(n) scanning',
+      'Sudoku solver: fill empty cells one by one with valid digits [1-9]',
+      'Row, column, and 3×3 box constraint tracking with bitsets',
+      'Comparing N-Queens solutions count vs finding all configurations'
+    ],
+    prerequisites: 'Backtracking',
+    leetcodeUrl: 'https://leetcode.com/problems/n-queens/',
+    codeforcesUrl: null,
+    youtubeQuery: 'N-Queens Sudoku solver backtracking LeetCode explained',
+    docsUrl: 'https://leetcode.com/problems/sudoku-solver/'
+  },
+  {
+    id: 'subsets-permutations',
+    label: 'Subsets & Permutations',
+    section: 4,
+    sectionTitle: 'Recursion & Backtracking',
+    isMain: false,
+    parent: 'recursion',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Generating subsets and permutations are foundational backtracking problems that appear directly in interviews and as building blocks for harder problems (like generating all valid IP addresses, letter case permutations, or word break). The bit manipulation approach to subset generation also introduces bitmask DP thinking.',
+    learn: [
+      'Subsets (power set): backtracking approach and bit manipulation approach',
+      'Subsets II: handling duplicate elements with sorting and skip logic',
+      'Permutations: swap-based in-place approach and frequency-count approach',
+      'Permutations II: handling duplicates by sorting and using a used[] boolean array',
+      'Combinations: choose exactly r elements from n with early termination',
+      'Combination sum: unlimited use of elements with target sum and pruning'
+    ],
+    prerequisites: 'Backtracking',
+    leetcodeUrl: 'https://leetcode.com/tag/backtracking/',
+    codeforcesUrl: null,
+    youtubeQuery: 'subsets permutations combinations LeetCode backtracking patterns',
+    docsUrl: 'https://leetcode.com/problems/subsets/'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 5 — SORTING & SEARCHING
+  // ─────────────────────────────────────────────
+  {
+    id: 'sorting-searching',
+    label: 'Sorting & Searching',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: true,
+    parent: null,
+    border: 'green',
+    difficulty: 'INTERMEDIATE',
+    time: '2–3 weeks',
+    whyMatters: 'Sorting and binary search are two of the most broadly applicable algorithmic techniques. Nearly every interview problem involving ordering, searching, or range queries uses one or both. Binary search in particular extends far beyond sorted arrays — it solves entire families of optimization problems using "search on answer" technique. Knowing when and how to apply binary search is a hallmark of a strong algorithmic thinker.',
+    learn: [
+      'Time complexity of major sorting algorithms and their real-world use cases',
+      'Why comparison-based sorts cannot beat O(n log n) in the worst case',
+      'Binary search invariants: maintaining correct [lo, hi] bounds and loop termination',
+      'The "search on answer" paradigm: binary search on the answer space, not the array',
+      'Stable vs unstable sorts: why stable sorting matters in multi-key sort problems',
+      'When to use counting sort or radix sort for near-linear performance'
+    ],
+    prerequisites: 'Arrays & Strings, Recursion',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-search/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=binary+search,sortings',
+    youtubeQuery: 'sorting algorithms binary search complete guide DSA',
+    docsUrl: 'https://cp-algorithms.com/sorting/quicksort.html'
+  },
+  {
+    id: 'simple-sorts',
+    label: 'Bubble/Selection/Insertion',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Quadratic sorting algorithms are rarely used in production but are critical for building intuition. Insertion sort runs in O(n) on nearly-sorted data, making it the choice for small arrays in practical hybrid sorts (Timsort uses it). These algorithms are frequently asked to implement in interviews to test basic algorithmic reasoning and loop mastery.',
+    learn: [
+      'Bubble sort: repeatedly swap adjacent elements if out of order — O(n²)',
+      'Selection sort: find minimum in unsorted portion, place at front — O(n²)',
+      'Insertion sort: build sorted prefix by inserting each element — O(n²) worst, O(n) best',
+      'Stability: bubble and insertion are stable; selection is not',
+      'When insertion sort beats merge sort: for very small arrays (< 16 elements)',
+      'Shell sort: generalisation of insertion sort with diminishing gap sequence'
+    ],
+    prerequisites: 'C++ Arrays',
+    leetcodeUrl: 'https://leetcode.com/problems/sort-an-array/',
+    codeforcesUrl: null,
+    youtubeQuery: 'bubble selection insertion sort explained with visualization',
+    docsUrl: 'https://visualgo.net/en/sorting'
+  },
+  {
+    id: 'merge-sort',
+    label: 'Merge Sort',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Merge sort is the canonical divide-and-conquer sorting algorithm. It guarantees O(n log n) in all cases (unlike quick sort which degrades to O(n²)), making it the choice for linked lists and external sorting of datasets too large for memory. Its merge step is the key subroutine used in counting inversions and k-way merge problems.',
+    learn: [
+      'Split array in half recursively until single elements remain',
+      'Merge two sorted halves into a sorted whole using two pointers — O(n)',
+      'Recursion tree analysis: log n levels, n work per level → O(n log n)',
+      'Space complexity: O(n) auxiliary space for the merge step',
+      'Implementing merge sort on linked lists (in-place, no auxiliary array needed)',
+      'Counting inversions: count pairs (i<j, arr[i]>arr[j]) during the merge step'
+    ],
+    prerequisites: 'Divide & Conquer, Bubble/Selection/Insertion',
+    leetcodeUrl: 'https://leetcode.com/problems/sort-list/',
+    codeforcesUrl: null,
+    youtubeQuery: 'merge sort implementation count inversions LeetCode explained',
+    docsUrl: 'https://cp-algorithms.com/sorting/merge_sort.html'
+  },
+  {
+    id: 'quick-sort',
+    label: 'Quick Sort',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Quick sort is the fastest sorting algorithm in practice for random data, running in O(n log n) average with O(1) auxiliary space. std::sort in C++ uses introsort, which is quick sort with heap sort fallback. Understanding the partition step and pivot selection directly leads to the "kth largest element" problem solved in expected O(n) using quickselect.',
+    learn: [
+      'Lomuto partition scheme: pivot at end, scan from left, swap smaller elements',
+      'Hoare partition scheme: two pointers converging inward — fewer swaps in practice',
+      'Pivot selection strategies: last element, random pivot, median-of-three',
+      'Worst case O(n²) with sorted input and fixed pivot — why random pivot is critical',
+      'Three-way partitioning (Dutch National Flag) for arrays with many duplicates',
+      'Quickselect: partition but only recurse into the side containing kth element — O(n) avg'
+    ],
+    prerequisites: 'Merge Sort',
+    leetcodeUrl: 'https://leetcode.com/problems/kth-largest-element-in-an-array/',
+    codeforcesUrl: null,
+    youtubeQuery: 'quick sort quickselect kth largest partition explained',
+    docsUrl: 'https://cp-algorithms.com/sorting/quicksort.html'
+  },
+  {
+    id: 'binary-search',
+    label: 'Binary Search',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Binary search is one of the most important algorithms in computer science. It eliminates half the search space each step, achieving O(log n) for problems that would take O(n) with linear search. But its real power is in problems where "is it possible to achieve X?" can be checked quickly — enabling O(n log n) solutions via "search on answer".',
+    learn: [
+      'Classic binary search: find target in sorted array — O(log n)',
+      'Left insertion point (lower_bound): first index where arr[i] >= target',
+      'Right insertion point (upper_bound): first index where arr[i] > target',
+      'Off-by-one errors: [lo, hi] inclusive vs [lo, hi) half-open — pick one and be consistent',
+      'Binary search on answer: "can we achieve mid?" check, then search in [lo, mid] or [mid, hi]',
+      'Search in rotated sorted array: determine which half is sorted, then binary search',
+      'Find peak element, mountain array — binary search on unsorted variants'
+    ],
+    prerequisites: 'Simple Sorts',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-search/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=binary+search',
+    youtubeQuery: 'binary search complete guide lower bound upper bound LeetCode',
+    docsUrl: 'https://cp-algorithms.com/num_methods/binary_search.html'
+  },
+  {
+    id: 'search-on-answer',
+    label: 'Search on Answer',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: '"Search on answer" (also called binary search on the answer space) is a major technique for optimization problems in competitive programming. Problems like "minimize the maximum load" or "find the minimum time to complete tasks" become elegantly solvable by binary searching on the answer and writing a feasibility checker. This technique appears in Codeforces Div 2 C/D problems regularly.',
+    learn: [
+      'Identify monotone property: "if X is achievable, then X+1 is also achievable"',
+      'Binary search on the answer space instead of the array',
+      'Koko eating bananas: minimum speed such that all bananas eaten in H hours',
+      'Minimize maximum value: split array into k subarrays with minimized max sum',
+      'Capacity to ship packages in D days: binary search on capacity',
+      'Aggressive cows / book allocation: classic binary search on answer problems'
+    ],
+    prerequisites: 'Binary Search',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-search/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=binary+search',
+    youtubeQuery: 'binary search on answer minimize maximize LeetCode Koko bananas',
+    docsUrl: 'https://cp-algorithms.com/num_methods/binary_search.html'
+  },
+  {
+    id: 'counting-radix-sort',
+    label: 'Counting & Radix Sort',
+    section: 5,
+    sectionTitle: 'Sorting & Searching',
+    isMain: false,
+    parent: 'sorting-searching',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '2 days',
+    whyMatters: 'Counting sort and radix sort break the O(n log n) lower bound by exploiting the structure of integer keys. For problems where values are bounded (e.g., 0-1000), counting sort achieves O(n). Radix sort sorts integers digit-by-digit in O(nk) where k is number of digits. These are niche but appear in problems where O(n log n) TLEs.',
+    learn: [
+      'Counting sort: count frequency of each value, then reconstruct sorted array — O(n+k)',
+      'When to use counting sort: values in range [0, k] with k not too large',
+      'Radix sort: sort by least significant digit first (LSD radix sort) using stable sub-sort',
+      'Most significant digit (MSD) radix sort for variable-length strings',
+      'Bucket sort: distribute elements into buckets, sort each bucket — good for uniform distributions',
+      'Time and space trade-offs vs comparison-based sorts'
+    ],
+    prerequisites: 'Binary Search',
+    leetcodeUrl: 'https://leetcode.com/problems/maximum-gap/',
+    codeforcesUrl: null,
+    youtubeQuery: 'counting sort radix sort bucket sort explained linear time',
+    docsUrl: 'https://cp-algorithms.com/sorting/counting_sort.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 6 — TREES
+  // ─────────────────────────────────────────────
+  {
+    id: 'trees',
+    label: 'Trees',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: true,
+    parent: null,
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4–5 weeks',
+    whyMatters: 'Trees are arguably the most important data structure for technical interviews. Binary trees, BSTs, and their traversals appear in nearly 25% of all LeetCode problems. Segment trees and Fenwick trees are staple competitive programming structures for range query problems. Tries power autocomplete systems at every tech company. Mastering trees gives you the foundation for graphs, which are trees with cycles.',
+    learn: [
+      'Tree terminology: root, leaf, parent, child, height, depth, balanced vs skewed',
+      'All four tree traversal orders and their applications',
+      'Recursive vs iterative traversal using an explicit stack',
+      'BST invariant and how it enables O(log n) search, insert, delete',
+      'Segment tree for range sum/min/max queries with point updates in O(log n)',
+      'Fenwick tree (BIT) for prefix sum queries with point updates in O(log n)',
+      'Trie for string prefix search and autocomplete in O(L) per operation'
+    ],
+    prerequisites: 'Linear Data Structures, Recursion',
+    leetcodeUrl: 'https://leetcode.com/tag/tree/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=trees',
+    youtubeQuery: 'tree data structure complete guide binary tree BST LeetCode',
+    docsUrl: 'https://leetcode.com/explore/learn/card/data-structure-tree/'
+  },
+  {
+    id: 'binary-trees',
+    label: 'Binary Trees',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '5 days',
+    whyMatters: 'Binary tree problems test recursive thinking at its most pure. Almost every binary tree problem is solved by asking "what should this function return for a leaf node? for a null node?" and building up from there. The maximum depth, path sum, and lowest common ancestor problems are asked at nearly every FAANG-level interview.',
+    learn: [
+      'Node definition: struct TreeNode { int val; TreeNode *left, *right; };',
+      'Maximum depth (height) using post-order recursion',
+      'Path sum: root-to-leaf path with target sum using DFS',
+      'Symmetric tree: mirror check using simultaneous left/right traversal',
+      'Lowest Common Ancestor (LCA) using recursive case analysis',
+      'Diameter of binary tree: longest path through any node using DFS',
+      'Flatten binary tree to linked list using right-skewed pre-order'
+    ],
+    prerequisites: 'Recursion Basics, Linked Lists',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-tree/',
+    codeforcesUrl: null,
+    youtubeQuery: 'binary tree problems LeetCode recursion height LCA diameter',
+    docsUrl: 'https://leetcode.com/explore/learn/card/data-structure-tree/'
+  },
+  {
+    id: 'bst',
+    label: 'Binary Search Trees',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'BSTs give O(log n) search, insert, and delete when balanced — making them the foundation of ordered maps and sets in the STL. Understanding the BST invariant lets you validate BSTs, find the kth smallest element, and convert sorted arrays to balanced BSTs — all direct interview questions. AVL and Red-Black trees explain why std::map is always O(log n).',
+    learn: [
+      'BST property: all left descendants < node < all right descendants',
+      'Search, insert, and delete in a BST — iterative implementations',
+      'Validate BST: range checking [min_val, max_val] propagated down the tree',
+      'Inorder traversal of BST produces a sorted sequence',
+      'Kth smallest element in BST using inorder traversal',
+      'Lowest Common Ancestor in BST using the BST property for O(log n) solution',
+      'Convert sorted array to height-balanced BST using divide and conquer'
+    ],
+    prerequisites: 'Binary Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-search-tree/',
+    codeforcesUrl: null,
+    youtubeQuery: 'binary search tree insert delete validate LCA LeetCode',
+    docsUrl: 'https://leetcode.com/explore/learn/card/introduction-to-data-structure-binary-search-tree/'
+  },
+  {
+    id: 'tree-traversals',
+    label: 'Tree Traversals',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Knowing which traversal to apply to which problem is a key algorithmic intuition. Pre-order is used for serialisation and copying. In-order extracts BST elements sorted. Post-order processes children before parents (bottom-up, used for height computation). Level-order is BFS and is used for finding the shortest path in an unweighted tree.',
+    learn: [
+      'Pre-order (node → left → right): tree copying, serialisation, expression tree prefix form',
+      'In-order (left → node → right): BST sorted output, expression tree infix form',
+      'Post-order (left → right → node): deletion, height computation, expression tree postfix',
+      'Level-order (BFS with queue): level-by-level processing, right-side view, zigzag traversal',
+      'Iterative in-order using an explicit stack: simulate the call stack manually',
+      'Morris traversal: in-order traversal in O(1) space using threading'
+    ],
+    prerequisites: 'Binary Trees, Queues & Deques',
+    leetcodeUrl: 'https://leetcode.com/tag/tree/',
+    codeforcesUrl: null,
+    youtubeQuery: 'tree traversal inorder preorder postorder level order iterative',
+    docsUrl: 'https://leetcode.com/explore/learn/card/data-structure-tree/'
+  },
+  {
+    id: 'avl-rbt',
+    label: 'AVL & Red-Black Trees',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '3 days',
+    whyMatters: 'Self-balancing BSTs are the implementation behind std::map and std::set. While you rarely implement them from scratch in interviews (the STL does it for you), understanding why they stay balanced — AVL via height invariant, RBT via colour invariant — gives you a deeper understanding of O(log n) guarantees and why sorted containers behave predictably.',
+    learn: [
+      'AVL tree: balance factor = height(left) - height(right) must be in {-1, 0, 1}',
+      'AVL rotations: left rotation, right rotation, left-right, right-left cases',
+      'Red-Black tree properties: root is black, no two consecutive reds, equal black height',
+      'RBT insertion fixup: recolouring and rotations — why it stays balanced',
+      'Comparison: AVL is more strictly balanced (better read performance), RBT has fewer rotations (better write performance)',
+      'std::map uses RBT in libstdc++ — guarantees O(log n) for all operations'
+    ],
+    prerequisites: 'Binary Search Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-search-tree/',
+    codeforcesUrl: null,
+    youtubeQuery: 'AVL tree red black tree self balancing BST explained rotations',
+    docsUrl: 'https://cp-algorithms.com/data_structures/treap.html'
+  },
+  {
+    id: 'segment-trees',
+    label: 'Segment Trees',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '5 days',
+    whyMatters: 'Segment trees answer range queries (sum, min, max, GCD) with point updates in O(log n) — 10× faster than naive O(n) recomputation. They are the most versatile range data structure in competitive programming, handling lazy propagation for range updates. Any problem asking for "range query + point/range update" is a segment tree problem until proven otherwise.',
+    learn: [
+      'Segment tree structure: each node covers an interval [l, r] = [l, mid] ∪ [mid+1, r]',
+      'Building a segment tree bottom-up in O(n)',
+      'Point update: walk from leaf to root updating O(log n) ancestors',
+      'Range query: decompose [l, r] into O(log n) nodes and combine their values',
+      'Lazy propagation: defer range updates to children — enables range update in O(log n)',
+      'Segment tree with lazy: range add / range sum, range assign / range min queries',
+      'Persistent segment tree: maintain past versions for historical queries'
+    ],
+    prerequisites: 'Binary Trees, Recursion',
+    leetcodeUrl: 'https://leetcode.com/tag/segment-tree/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=data+structures',
+    youtubeQuery: 'segment tree explained lazy propagation range query update competitive programming',
+    docsUrl: 'https://cp-algorithms.com/data_structures/segment_tree.html'
+  },
+  {
+    id: 'fenwick-tree',
+    label: 'Fenwick Tree / BIT',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'The Binary Indexed Tree (BIT / Fenwick Tree) achieves O(log n) prefix sum queries and point updates with extremely simple code and excellent cache performance. It uses bit manipulation (i & (-i)) to traverse the tree implicitly without storing child/parent pointers. BITs are easier to implement than segment trees and sufficient for most prefix-sum-with-update problems.',
+    learn: [
+      'BIT concept: each index stores sum of a range determined by its lowest set bit',
+      'Point update: add value to index i and propagate upward using i += i & (-i)',
+      'Prefix sum query: accumulate values from i down to root using i -= i & (-i)',
+      'Range sum [l, r] = query(r) - query(l-1)',
+      '2D Fenwick tree for 2D range sum queries',
+      'BIT for counting inversions in an array using coordinate compression',
+      'Order statistics with BIT: kth smallest element queries'
+    ],
+    prerequisites: 'Segment Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/binary-indexed-tree/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=data+structures',
+    youtubeQuery: 'Fenwick tree BIT binary indexed tree explained prefix sum update',
+    docsUrl: 'https://cp-algorithms.com/data_structures/fenwick.html'
+  },
+  {
+    id: 'trie',
+    label: 'Trie',
+    section: 6,
+    sectionTitle: 'Trees',
+    isMain: false,
+    parent: 'trees',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'Tries are the data structure behind autocomplete, spell checkers, and IP routing tables. They store strings in a tree where each edge is a character, enabling O(L) insert and search where L is string length — independent of how many strings are stored. "Implement autocomplete", "longest common prefix", and "maximum XOR" are classic trie interview problems.',
+    learn: [
+      'Trie node: struct TrieNode { TrieNode* children[26]; bool isEnd; };',
+      'Insert: create nodes character by character, mark isEnd at last character',
+      'Search: traverse character by character, return false if path missing',
+      'StartsWith (prefix search): traverse prefix and return whether path exists',
+      'Longest common prefix of an array of strings using a trie',
+      'Maximum XOR of two numbers using a binary trie (bits as children)',
+      'Auto-complete: find all words with a given prefix using DFS from prefix node'
+    ],
+    prerequisites: 'Binary Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/trie/',
+    codeforcesUrl: null,
+    youtubeQuery: 'trie data structure implement search prefix LeetCode',
+    docsUrl: 'https://leetcode.com/explore/learn/card/trie/'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 7 — GRAPHS
+  // ─────────────────────────────────────────────
+  {
+    id: 'graphs',
+    label: 'Graphs',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: true,
+    parent: null,
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4–5 weeks',
+    whyMatters: 'Graphs model almost every real-world system: social networks, maps, dependencies, scheduling, and the internet itself. Graph algorithms — BFS, DFS, Dijkstra, and MST — are among the most powerful and widely applicable in computer science. They account for a significant share of hard-level LeetCode problems and are almost always asked in system design discussions. If trees are the backbone of DSA, graphs are the full skeleton.',
+    learn: [
+      'Representing graphs with adjacency lists vs adjacency matrices and their trade-offs',
+      'BFS for shortest paths in unweighted graphs and level-order exploration',
+      'DFS for connected components, cycle detection, and topological ordering',
+      'Dijkstra\'s algorithm for shortest paths in weighted graphs with non-negative weights',
+      'Bellman-Ford for shortest paths with negative weight edges',
+      'Floyd-Warshall for all-pairs shortest paths in dense graphs',
+      'MST using Kruskal\'s (DSU + greedy edge selection) and Prim\'s (min-heap + greedy)'
+    ],
+    prerequisites: 'Trees, Linear Data Structures',
+    leetcodeUrl: 'https://leetcode.com/tag/graph/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs',
+    youtubeQuery: 'graph algorithms complete guide BFS DFS Dijkstra MST LeetCode',
+    docsUrl: 'https://cp-algorithms.com/graph/bfs.html'
+  },
+  {
+    id: 'graph-representation',
+    label: 'Graph Representation',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '2 days',
+    whyMatters: 'Choosing the right graph representation significantly affects the time and space complexity of your solution. Adjacency lists are standard for sparse graphs (most real-world and interview graphs). Adjacency matrices are needed for dense graphs or O(1) edge existence queries. Getting this choice wrong can cause TLE or MLE in competitive programming.',
+    learn: [
+      'Adjacency list: vector<vector<int>> adj(n); for each edge (u,v), push v to adj[u]',
+      'Weighted adjacency list: vector<vector<pair<int,int>>> adj for (neighbor, weight)',
+      'Adjacency matrix: int mat[n][n]; mat[u][v] = 1 or weight — O(n²) space',
+      'Edge list: vector<pair<int,int>> edges — compact for Kruskal\'s algorithm',
+      'Directed vs undirected: undirected adds edges in both directions',
+      'Graph input parsing from competitive programming problem format (n nodes, m edges)'
+    ],
+    prerequisites: 'C++ STL, Linked Lists',
+    leetcodeUrl: 'https://leetcode.com/tag/graph/',
+    codeforcesUrl: null,
+    youtubeQuery: 'graph representation adjacency list matrix C++ explained',
+    docsUrl: 'https://cp-algorithms.com/graph/breadth-first-search.html'
+  },
+  {
+    id: 'bfs-dfs',
+    label: 'BFS & DFS',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '6 days',
+    whyMatters: 'BFS and DFS are the two fundamental graph traversal algorithms from which almost every other graph algorithm is derived. BFS finds the shortest path in unweighted graphs and is used for multi-source problems like "shortest distance from any 0 in a grid". DFS powers cycle detection, connected components, and topological sorting. Mastering both is non-negotiable.',
+    learn: [
+      'BFS using a queue: visit all neighbours at distance d before those at d+1',
+      'BFS on grids: 4-directional and 8-directional movement with bounds checking',
+      'Multi-source BFS: add all sources to queue simultaneously for problems like "rotting oranges"',
+      'DFS recursive: visit all reachable nodes marking visited as you go',
+      'DFS iterative using an explicit stack (same result but avoids recursion depth limits)',
+      'Connected components: run DFS/BFS from each unvisited node, increment count',
+      'Bipartite graph check using BFS with 2-colouring'
+    ],
+    prerequisites: 'Graph Representation, Stacks, Queues',
+    leetcodeUrl: 'https://leetcode.com/tag/breadth-first-search/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,dfs+and+similar',
+    youtubeQuery: 'BFS DFS graph traversal grid problems LeetCode connected components',
+    docsUrl: 'https://cp-algorithms.com/graph/depth-first-search.html'
+  },
+  {
+    id: 'topological-sort',
+    label: 'Topological Sort',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Topological ordering linearises a DAG so that every dependency appears before its dependent. It is used in build systems (Makefiles), package managers (npm), course scheduling, and spreadsheet computation engines. "Course schedule" problems are among the top-50 most asked LeetCode questions at tech interviews.',
+    learn: [
+      'Topological sort only exists for Directed Acyclic Graphs (DAGs)',
+      'Kahn\'s algorithm (BFS-based): use in-degree array, start from all nodes with in-degree 0',
+      'DFS-based topological sort: push to stack after visiting all descendants',
+      'Cycle detection in directed graphs using Kahn\'s (if result size < n, cycle exists)',
+      'Course schedule I and II: detect cycle and produce valid ordering',
+      'Alien dictionary: derive character ordering from sorted word list using topological sort'
+    ],
+    prerequisites: 'BFS & DFS',
+    leetcodeUrl: 'https://leetcode.com/tag/topological-sort/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,dfs+and+similar',
+    youtubeQuery: 'topological sort Kahn algorithm course schedule LeetCode',
+    docsUrl: 'https://cp-algorithms.com/graph/topological-sort.html'
+  },
+  {
+    id: 'dijkstra',
+    label: 'Shortest Path — Dijkstra',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Dijkstra\'s algorithm is the standard shortest path algorithm for graphs with non-negative edge weights. It runs in O((V+E) log V) using a priority queue and is the foundation of GPS navigation, network routing, and game pathfinding. "Network delay time", "cheapest flights within k stops", and "path with minimum effort" are direct Dijkstra applications in interviews.',
+    learn: [
+      'Greedy approach: always expand the unvisited node with minimum known distance',
+      'Priority queue implementation: min-heap of (distance, node) pairs',
+      'Relaxation step: if dist[u] + w < dist[v], update dist[v] and push to heap',
+      'Handling stale entries in the heap: skip if dist[u] > stored distance',
+      'O((V+E) log V) time complexity analysis with adjacency list + binary heap',
+      'Multi-source Dijkstra: add all sources with distance 0 for simultaneous BFS-like expansion',
+      'Dijkstra fails with negative weights — use Bellman-Ford instead'
+    ],
+    prerequisites: 'Topological Sort, Priority Queue & Heaps',
+    leetcodeUrl: 'https://leetcode.com/tag/shortest-path/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=shortest+paths',
+    youtubeQuery: 'Dijkstra algorithm shortest path C++ priority queue LeetCode',
+    docsUrl: 'https://cp-algorithms.com/graph/dijkstra.html'
+  },
+  {
+    id: 'bellman-ford',
+    label: 'Bellman-Ford',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '2 days',
+    whyMatters: 'Bellman-Ford handles negative weight edges, which Dijkstra cannot. It also detects negative weight cycles — critical for currency arbitrage detection and financial modelling. The algorithm is simpler to implement than Dijkstra and is the basis of SPFA, an optimised version used in competitive programming for general shortest paths.',
+    learn: [
+      'Relax all edges V-1 times: ensures shortest paths of at most V-1 edges are found',
+      'After V-1 iterations, run one more pass: if any distance reduces, a negative cycle exists',
+      'Time complexity: O(V × E) — slower than Dijkstra, but handles negative weights',
+      'Negative cycle detection: report existence or find the cycle members',
+      'SPFA (Shortest Path Faster Algorithm): queue-based BFS optimisation of Bellman-Ford',
+      'Cheapest flights within k stops (LeetCode 787): Bellman-Ford with at-most-k relaxations'
+    ],
+    prerequisites: 'Dijkstra',
+    leetcodeUrl: 'https://leetcode.com/problems/cheapest-flights-within-k-stops/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=shortest+paths',
+    youtubeQuery: 'Bellman-Ford algorithm negative weights cycle detection explained',
+    docsUrl: 'https://cp-algorithms.com/graph/bellman_ford.html'
+  },
+  {
+    id: 'floyd-warshall',
+    label: 'Floyd-Warshall',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '2 days',
+    whyMatters: 'Floyd-Warshall computes all-pairs shortest paths in O(V³) using dynamic programming. While slower than running Dijkstra from every vertex for sparse graphs, it is simpler to implement and handles negative weights. It is used when you need shortest paths between all pairs of nodes in a dense graph, and is the foundation for problems involving reachability and transitive closure.',
+    learn: [
+      'DP formulation: dist[i][j][k] = shortest path from i to j using only nodes 1..k as intermediates',
+      'Space optimisation: reduce to 2D dist[i][j] by updating in-place',
+      'Detecting negative cycles: if dist[i][i] < 0 after running, negative cycle exists',
+      'Transitive closure: reachability matrix — can we go from i to j at all?',
+      'Reconstructing the path: parent[][] matrix to trace back the actual route',
+      'When to use vs Dijkstra×V: dense graphs or when all-pairs is needed regardless'
+    ],
+    prerequisites: 'Bellman-Ford',
+    leetcodeUrl: 'https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=shortest+paths',
+    youtubeQuery: 'Floyd-Warshall all pairs shortest path DP explained',
+    docsUrl: 'https://cp-algorithms.com/graph/all-pair-shortest-path-floyd-warshall.html'
+  },
+  {
+    id: 'mst',
+    label: 'Minimum Spanning Tree',
+    section: 7,
+    sectionTitle: 'Graphs',
+    isMain: false,
+    parent: 'graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'A Minimum Spanning Tree connects all nodes in a graph with minimum total edge weight using exactly V-1 edges. MST algorithms (Kruskal\'s and Prim\'s) are used in network design, cluster analysis, and circuit layout. Kruskal\'s algorithm is directly built on Disjoint Set Union (DSU), making it a gateway to advanced graph structures.',
+    learn: [
+      'MST properties: V nodes, V-1 edges, no cycles, minimum total weight, not unique',
+      'Kruskal\'s algorithm: sort edges by weight, add if it doesn\'t form a cycle (use DSU)',
+      'Prim\'s algorithm: greedy BFS from any node, always pick minimum weight edge to unvisited node',
+      'Kruskal\'s O(E log E) vs Prim\'s O(E log V) — Prim\'s better for dense graphs',
+      'Checking if MST is unique (substitute any MST edge with next cheapest)',
+      'Maximum spanning tree: negate all weights and run Kruskal\'s'
+    ],
+    prerequisites: 'Dijkstra',
+    leetcodeUrl: 'https://leetcode.com/problems/min-cost-to-connect-all-points/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,trees',
+    youtubeQuery: 'minimum spanning tree Kruskal Prim DSU explained LeetCode',
+    docsUrl: 'https://cp-algorithms.com/graph/mst_kruskal.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 8 — DYNAMIC PROGRAMMING
+  // ─────────────────────────────────────────────
+  {
+    id: 'dp',
+    label: 'Dynamic Programming',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: true,
+    parent: null,
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '6–8 weeks',
+    whyMatters: 'Dynamic programming is the most powerful algorithmic paradigm and the one that most distinguishes strong candidates from average ones. DP converts exponential-time recursive solutions into polynomial-time solutions by caching overlapping subproblem results. Almost every hard LeetCode problem and every Codeforces Div 1 C/D problem involves some form of DP. This is the section that will define your competitive programming and interview ceiling.',
+    learn: [
+      'Overlapping subproblems: recognising when the same sub-problem is solved multiple times',
+      'Optimal substructure: the optimal solution contains optimal solutions to subproblems',
+      'Top-down (memoisation): recursive + cache using unordered_map or memo array',
+      'Bottom-up (tabulation): fill a DP table iteratively, no recursion overhead',
+      'State definition: what parameters fully describe a subproblem?',
+      'State transition: how does dp[i] relate to dp[i-1], dp[i-2], or dp[j] for j < i?',
+      'Identifying the DP pattern: 1D, 2D, interval, bitmask, tree, digit'
+    ],
+    prerequisites: 'Recursion & Backtracking, Graphs (for DP on DAGs)',
+    leetcodeUrl: 'https://leetcode.com/tag/dynamic-programming/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=dp',
+    youtubeQuery: 'dynamic programming complete guide top-down bottom-up LeetCode',
+    docsUrl: 'https://cp-algorithms.com/dynamic_programming/intro-to-dp.html'
+  },
+  {
+    id: 'dp-fundamentals',
+    label: 'DP Fundamentals',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'The transition from recursive thinking to DP is the conceptual leap that separates junior developers from senior algorithmists. Building the habit of defining dp[i] precisely, writing the recurrence cleanly, and initialising the base cases correctly prevents 80% of DP bugs. Getting these habits right on simple problems makes hard DP problems approachable.',
+    learn: [
+      'Recognising DP: "optimal", "count the number of ways", "is it possible" — DP keywords',
+      'From recursion to memoisation: wrap recursive function with a cache',
+      'From memoisation to tabulation: reverse the dependency order and fill iteratively',
+      'State space analysis: how many unique states? What is the cost per state? Total complexity?',
+      'Space optimisation: rolling array technique to reduce 2D DP to 1D',
+      'Identifying the correct DP dimension: 1D (linear), 2D (grid/two-sequence), bitmask (subsets)'
+    ],
+    prerequisites: 'Recursion Basics',
+    leetcodeUrl: 'https://leetcode.com/tag/dynamic-programming/',
+    codeforcesUrl: null,
+    youtubeQuery: 'dynamic programming fundamentals memoization tabulation beginners',
+    docsUrl: 'https://leetcode.com/explore/learn/card/dynamic-programming/'
+  },
+  {
+    id: 'dp-1d',
+    label: '1D DP — Fibonacci/Climbing Stairs',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: '1D DP problems are the entry point for the entire DP paradigm. Fibonacci, climbing stairs, and coin change establish the core pattern: dp[i] depends on previous states dp[i-1], dp[i-2], etc. Once you fully understand this dependency pattern with space optimisation, you are ready for 2D DP and knapsack problems.',
+    learn: [
+      'Fibonacci: dp[n] = dp[n-1] + dp[n-2] — naive O(2^n) → memoised O(n)',
+      'Climbing stairs: 1 or 2 steps — dp[n] = dp[n-1] + dp[n-2]',
+      'Min cost climbing stairs: add cost of step — dp[i] = cost[i] + min(dp[i-1], dp[i-2])',
+      'House robber: cannot rob adjacent houses — dp[i] = max(dp[i-1], dp[i-2] + nums[i])',
+      'House robber II (circular): run house robber on [0..n-2] and [1..n-1], take max',
+      'Decode ways: count ways to decode a digit string — handle 0, single, double digit cases',
+      'Space optimisation: rolling two variables instead of O(n) array'
+    ],
+    prerequisites: 'DP Fundamentals',
+    leetcodeUrl: 'https://leetcode.com/tag/dynamic-programming/',
+    codeforcesUrl: null,
+    youtubeQuery: 'climbing stairs house robber 1D DP LeetCode explained',
+    docsUrl: 'https://leetcode.com/explore/learn/card/dynamic-programming/'
+  },
+  {
+    id: 'dp-knapsack',
+    label: 'Knapsack 0/1',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'The 0/1 knapsack problem is the canonical 2D DP problem and the foundation of an entire family of subset selection problems. Recognising the knapsack pattern — "can we select items to achieve exactly target?" — unlocks partition equal subset sum, target sum (using +/- signs), and count of subsets with given difference. These patterns appear in nearly every interview test at the hard level.',
+    learn: [
+      '0/1 Knapsack: dp[i][w] = max value using first i items with capacity w',
+      'Recurrence: include item i → dp[i-1][w - wt[i]] + val[i]; exclude → dp[i-1][w]',
+      'Space optimisation: 1D array dp[w], iterate weights right-to-left for correctness',
+      'Subset sum: can we pick items that sum exactly to target?',
+      'Partition equal subset sum: can array be split into two equal-sum halves?',
+      'Count of subsets with given sum: dp[i][sum] counts ways, not just feasibility',
+      'Target sum (LeetCode 494): assign + or - to each element to reach target'
+    ],
+    prerequisites: '1D DP — Fibonacci/Climbing Stairs',
+    leetcodeUrl: 'https://leetcode.com/problems/partition-equal-subset-sum/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=dp,knapsack',
+    youtubeQuery: '0/1 knapsack DP explained LeetCode subset sum partition',
+    docsUrl: 'https://cp-algorithms.com/dynamic_programming/knapsack.html'
+  },
+  {
+    id: 'dp-unbounded-knapsack',
+    label: 'Unbounded Knapsack',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'The unbounded knapsack variant allows using each item multiple times. This models coin change (infinite coin supply), cutting rods for maximum profit, and minimum number of coins for a target. The key difference from 0/1 knapsack is iterating weights left-to-right (allowing re-use) instead of right-to-left. This subtle change is a common interview trap.',
+    learn: [
+      'Unbounded knapsack: each item can be used unlimited times',
+      'Key insight: iterate capacity left-to-right (same item can contribute multiple times)',
+      'Coin change I: minimum coins to make amount — dp[i] = min(dp[i - coin] + 1) for each coin',
+      'Coin change II: number of ways to make amount using unlimited coins — count ways',
+      'Rod cutting: maximize revenue by cutting rod into pieces of given lengths',
+      'Perfect squares: minimum number of perfect squares summing to n (BFS or DP)'
+    ],
+    prerequisites: 'Knapsack 0/1',
+    leetcodeUrl: 'https://leetcode.com/problems/coin-change/',
+    codeforcesUrl: null,
+    youtubeQuery: 'unbounded knapsack coin change DP LeetCode explained',
+    docsUrl: 'https://cp-algorithms.com/dynamic_programming/knapsack.html'
+  },
+  {
+    id: 'dp-lcs',
+    label: 'Longest Common Subsequence',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'LCS is the foundational string DP problem that powers git diff, DNA sequence alignment, and plagiarism detection tools. Understanding the 2D DP table for LCS directly generalises to Edit Distance (Levenshtein distance), longest common substring, and shortest common supersequence — a family of problems that appears regularly in technical interviews and bioinformatics.',
+    learn: [
+      'LCS recurrence: dp[i][j] = dp[i-1][j-1]+1 if s1[i]==s2[j] else max(dp[i-1][j], dp[i][j-1])',
+      'Building the DP table bottom-up and reading the answer from dp[m][n]',
+      'Reconstructing the actual LCS string by backtracking through the table',
+      'Longest Common Substring (contiguous): dp[i][j] = dp[i-1][j-1]+1 only if characters match',
+      'Edit Distance (Levenshtein): dp[i][j] = min(insert, delete, replace) at each position',
+      'Shortest Common Supersequence: LCS + unmatched characters from both strings',
+      'Longest Palindromic Subsequence: LCS of string with its reverse'
+    ],
+    prerequisites: 'Knapsack 0/1',
+    leetcodeUrl: 'https://leetcode.com/problems/longest-common-subsequence/',
+    codeforcesUrl: null,
+    youtubeQuery: 'LCS longest common subsequence edit distance DP LeetCode',
+    docsUrl: 'https://cp-algorithms.com/string/lcs.html'
+  },
+  {
+    id: 'dp-grids',
+    label: 'DP on Grids',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Grid DP problems are among the most frequently asked interview questions at Google, Meta, and Amazon. Unique paths, minimum path sum, and dungeon game appear directly on interview rounds. Grid DP is also the gateway to more complex 2D DP problems including maximal square, cherry pickup, and the gold mine problem.',
+    learn: [
+      'Unique paths: dp[i][j] = dp[i-1][j] + dp[i][j-1] — count paths from top-left to bottom-right',
+      'Unique paths with obstacles: set dp[i][j] = 0 where obstacle exists',
+      'Minimum path sum: dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1])',
+      'Triangle: dp on a triangle grid, minimum path from top to bottom',
+      'Maximal square of 1s: dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1',
+      'Dungeon game: work backwards from bottom-right, maintain minimum health needed',
+      'Interleaving string: dp[i][j] = can s1[0..i] and s2[0..j] form s3[0..i+j]?'
+    ],
+    prerequisites: 'Knapsack 0/1',
+    leetcodeUrl: 'https://leetcode.com/tag/dynamic-programming/',
+    codeforcesUrl: null,
+    youtubeQuery: 'grid DP unique paths minimum path sum dungeon game LeetCode',
+    docsUrl: 'https://leetcode.com/explore/learn/card/dynamic-programming/'
+  },
+  {
+    id: 'dp-bitmask',
+    label: 'Bitmask DP',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '4 days',
+    whyMatters: 'Bitmask DP uses an integer to represent a subset of elements and enables DP over all 2^n subsets in O(2^n × n) time. It is essential for the Travelling Salesman Problem, optimal task assignment, and minimum cost to connect all nodes. Problems with small n (≤ 20) and subset constraints are the primary signal to use bitmask DP.',
+    learn: [
+      'Bit manipulation review: check bit (mask>>i & 1), set bit (mask | 1<<i), unset bit (mask & ~(1<<i))',
+      'Iterating all subsets of n elements: for (int mask = 0; mask < (1<<n); mask++)',
+      'Iterating all subsets of a given mask: for (int sub = mask; sub > 0; sub = (sub-1) & mask)',
+      'TSP bitmask DP: dp[mask][i] = shortest path visiting all nodes in mask, ending at i',
+      'Minimum cost to hire k workers: dp over subsets of workers',
+      'Covering all positions: dp[mask] = can we cover all tasks in mask with given workers'
+    ],
+    prerequisites: 'DP on Grids, Bit Manipulation (Section 10)',
+    leetcodeUrl: 'https://leetcode.com/tag/bitmask/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=dp,bitmasks',
+    youtubeQuery: 'bitmask DP travelling salesman problem subset DP competitive programming',
+    docsUrl: 'https://cp-algorithms.com/algebra/all-submasks.html'
+  },
+  {
+    id: 'dp-trees',
+    label: 'DP on Trees',
+    section: 8,
+    sectionTitle: 'Dynamic Programming',
+    isMain: false,
+    parent: 'dp',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '4 days',
+    whyMatters: 'Tree DP combines two of the hardest DSA topics into one. Problems like "maximum sum of non-adjacent nodes in a tree", "diameter of tree with custom weights", and "binary tree cameras" are classic hard-level problems. Tree DP is a staple of ICPC and Google Code Jam problems, and separates truly strong candidates in interviews.',
+    learn: [
+      'Tree DP template: for each node, collect results from children, combine for current node',
+      'House robber on trees: rob node or rob children — dp[node][0/1]',
+      'Maximum path sum in binary tree: best path passing through each node as root',
+      'Binary tree cameras: greedy DP — camera at node, covered, or needs coverage',
+      'Counting nodes in a tree with given properties using subtree DP',
+      'Centroid decomposition: split tree at centroid for divide-and-conquer on paths'
+    ],
+    prerequisites: 'Bitmask DP, Binary Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/tree/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=dp,trees',
+    youtubeQuery: 'tree DP dynamic programming on trees house robber binary camera',
+    docsUrl: 'https://cp-algorithms.com/graph/tree_dp.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 9 — ADVANCED GRAPHS
+  // ─────────────────────────────────────────────
+  {
+    id: 'advanced-graphs',
+    label: 'Advanced Graphs',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: true,
+    parent: null,
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '4–5 weeks',
+    whyMatters: 'Advanced graph algorithms separate Codeforces Division 1 competitors from Division 2. DSU enables near-O(1) connectivity queries and is the backbone of Kruskal\'s MST. Bridges and articulation points are essential for network reliability analysis. SCC decomposition of a graph reveals the condensation DAG — a powerful structural property. These topics appear in competitive programming and are increasingly asked in senior engineer interviews at top companies.',
+    learn: [
+      'Disjoint Set Union (DSU): union by rank + path compression → nearly O(1) per operation',
+      'Bridge finding using Tarjan\'s DFS discovery/low time algorithm',
+      'Articulation point detection: node whose removal disconnects the graph',
+      'Strongly Connected Components using Kosaraju\'s two-pass DFS algorithm',
+      'SCC condensation: compress SCCs into single nodes to form a DAG for further analysis',
+      'Euler path and circuit: conditions (vertex degree parity) and Hierholzer\'s algorithm'
+    ],
+    prerequisites: 'Graphs (Section 7), Trees',
+    leetcodeUrl: 'https://leetcode.com/tag/graph/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,dsu',
+    youtubeQuery: 'advanced graph algorithms DSU bridges articulation SCC competitive programming',
+    docsUrl: 'https://cp-algorithms.com/graph/bridge-searching.html'
+  },
+  {
+    id: 'dsu',
+    label: 'Union-Find / DSU',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: false,
+    parent: 'advanced-graphs',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '4 days',
+    whyMatters: 'Disjoint Set Union is one of the most elegant data structures in computer science. With path compression and union by rank, it achieves near-O(1) amortised per operation (inverse Ackermann function). DSU is used for Kruskal\'s MST, detecting cycles in undirected graphs, network connectivity, and online dynamic connectivity problems — a toolbox staple.',
+    learn: [
+      'DSU structure: parent[] and rank[] (or size[]) arrays',
+      'Find with path compression: recursively set parent[i] = root, flattening the tree',
+      'Union by rank: attach shorter tree under taller to maintain O(log n) height',
+      'Checking connectivity: isSameSet(u, v) = (find(u) == find(v))',
+      'Counting components: start with n components, decrement by 1 on each successful union',
+      'Cycle detection in undirected graph: if find(u) == find(v) before union, cycle exists',
+      'Weighted DSU: store relative weights for problems like "accounts merge" with equality chains'
+    ],
+    prerequisites: 'BFS & DFS',
+    leetcodeUrl: 'https://leetcode.com/tag/union-find/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=dsu',
+    youtubeQuery: 'Union Find DSU path compression rank explained LeetCode',
+    docsUrl: 'https://cp-algorithms.com/data_structures/disjoint_set_union.html'
+  },
+  {
+    id: 'bridges-articulation',
+    label: 'Bridges & Articulation Points',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: false,
+    parent: 'advanced-graphs',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '4 days',
+    whyMatters: 'Bridges and articulation points identify critical infrastructure in networks — the connections or nodes whose removal would disconnect the graph. They are used in designing fault-tolerant networks, finding single points of failure in distributed systems, and have direct interview applications at companies building network infrastructure.',
+    learn: [
+      'Bridge: edge (u,v) whose removal increases the number of connected components',
+      'Articulation point: vertex whose removal increases the number of connected components',
+      'Tarjan\'s algorithm: assign disc[] (discovery time) and low[] (lowest disc reachable via DFS)',
+      'Bridge condition: edge (u,v) is bridge if low[v] > disc[u]',
+      'Articulation point condition: u is AP if it\'s root with 2+ children OR low[v] >= disc[u] for non-root',
+      '2-edge-connected components: maximal subgraph with no bridges',
+      '2-vertex-connected components (biconnected components): maximal subgraph with no AP'
+    ],
+    prerequisites: 'BFS & DFS, DSU',
+    leetcodeUrl: 'https://leetcode.com/problems/critical-connections-in-a-network/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,dfs+and+similar',
+    youtubeQuery: 'bridges articulation points Tarjan algorithm disc low DFS explained',
+    docsUrl: 'https://cp-algorithms.com/graph/bridge-searching.html'
+  },
+  {
+    id: 'scc',
+    label: 'Strongly Connected Components',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: false,
+    parent: 'advanced-graphs',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '4 days',
+    whyMatters: 'A Strongly Connected Component is a maximal set of vertices where every vertex is reachable from every other. SCC decomposition (via Kosaraju\'s or Tarjan\'s algorithm) condenses a directed graph into a DAG of SCCs, enabling topological analysis of general directed graphs. Applications include 2-SAT problems, compiler analysis, and web graph analysis.',
+    learn: [
+      'SCC definition: u and v are in the same SCC if there is a path from u to v AND from v to u',
+      'Kosaraju\'s algorithm: two DFS passes — first on original graph, second on transposed graph in finish order',
+      'Tarjan\'s SCC algorithm: single DFS pass using stack and low[] values',
+      'Condensation DAG: each SCC becomes a node — the resulting graph is always a DAG',
+      '2-SAT problem: boolean satisfiability with 2 variables per clause — solved using SCC',
+      'Counting SCCs in a digraph: standard competitive programming problem'
+    ],
+    prerequisites: 'Bridges & Articulation Points',
+    leetcodeUrl: 'https://leetcode.com/tag/graph/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs,dfs+and+similar',
+    youtubeQuery: 'strongly connected components Kosaraju Tarjan SCC explained',
+    docsUrl: 'https://cp-algorithms.com/graph/strongly-connected-components.html'
+  },
+  {
+    id: 'euler-path',
+    label: 'Euler Path & Circuit',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: false,
+    parent: 'advanced-graphs',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'An Euler path visits every edge exactly once; an Euler circuit returns to the start. The conditions for their existence (vertex degree parity) and Hierholzer\'s algorithm for finding them are classic graph theory results. The "reconstruct itinerary" and "Chinese postman problem" interview questions are Euler circuit problems in disguise.',
+    learn: [
+      'Eulerian circuit exists in undirected graph iff all vertices have even degree and graph is connected',
+      'Eulerian path exists iff exactly 0 or 2 vertices have odd degree',
+      'Directed graph: Eulerian circuit requires in-degree == out-degree for all nodes',
+      'Hierholzer\'s algorithm: start circuit, extend with new circuits at stuck points',
+      'Reconstruct itinerary (LeetCode 332): find Euler path in directed multigraph using DFS',
+      'Comparison with Hamiltonian paths (visits every vertex exactly once) — NP-complete'
+    ],
+    prerequisites: 'SCC',
+    leetcodeUrl: 'https://leetcode.com/problems/reconstruct-itinerary/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=graphs',
+    youtubeQuery: 'Euler path circuit Hierholzer algorithm reconstruct itinerary LeetCode',
+    docsUrl: 'https://cp-algorithms.com/graph/euler_path.html'
+  },
+  {
+    id: 'max-flow',
+    label: 'Network Flow — Max Flow',
+    section: 9,
+    sectionTitle: 'Advanced Graphs',
+    isMain: false,
+    parent: 'advanced-graphs',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '5 days',
+    whyMatters: 'Max flow algorithms compute the maximum amount of flow that can be pushed through a network from source to sink, respecting edge capacities. By the max-flow min-cut theorem, this equals the minimum cut capacity. Applications include network throughput, matching (bipartite matching is a max-flow problem), and scheduling. This is advanced material required for ICPC-level competition.',
+    learn: [
+      'Flow network: directed graph with edge capacities, source s, sink t',
+      'Augmenting path: path from s to t with residual capacity > 0',
+      'Residual graph: for each edge (u,v,cap), add reverse edge (v,u,0) for flow cancellation',
+      'Ford-Fulkerson method: find augmenting paths and push flow until none remain',
+      'Edmonds-Karp: BFS-based Ford-Fulkerson — O(VE²)',
+      'Dinic\'s algorithm: BFS to build level graph, DFS blocking flow — O(V²E)',
+      'Max-flow min-cut theorem and bipartite matching as max flow'
+    ],
+    prerequisites: 'Euler Path & Circuit, BFS & DFS',
+    leetcodeUrl: 'https://leetcode.com/tag/graph/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=flows',
+    youtubeQuery: 'max flow min cut Dinic algorithm network flow competitive programming',
+    docsUrl: 'https://cp-algorithms.com/graph/dinic.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 10 — MATHEMATICAL ALGORITHMS
+  // ─────────────────────────────────────────────
+  {
+    id: 'math-algorithms',
+    label: 'Math Algorithms',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: true,
+    parent: null,
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '3–4 weeks',
+    whyMatters: 'Mathematics is the language of algorithms. Number theory, modular arithmetic, and combinatorics appear in competitive programming constantly and increasingly in technical interviews at companies working on cryptography, fintech, and game development. Bit manipulation is used for efficiency in almost every language and appears in embedded systems, cryptography, and low-level systems programming.',
+    learn: [
+      'GCD and LCM using Euclidean algorithm — O(log min(a,b))',
+      'Prime sieve: Sieve of Eratosthenes generates all primes up to n in O(n log log n)',
+      'Modular arithmetic: (a+b) % m, (a*b) % m — avoiding overflow in large number problems',
+      'Fermat\'s little theorem: a^(p-1) ≡ 1 (mod p) for prime p — enables modular inverse',
+      'Fast exponentiation (binary exponentiation): compute a^b in O(log b)',
+      'Bit manipulation: AND, OR, XOR, shifts — common tricks for DSA and system programming',
+      'Combinatorics: nCr with modular inverse for counting problems'
+    ],
+    prerequisites: 'C++ Foundations, Arrays & Strings',
+    leetcodeUrl: 'https://leetcode.com/tag/math/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=math,number+theory',
+    youtubeQuery: 'number theory modular arithmetic bit manipulation competitive programming',
+    docsUrl: 'https://cp-algorithms.com/algebra/'
+  },
+  {
+    id: 'gcd-lcm',
+    label: 'Number Theory — GCD/LCM',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'GCD is used in fraction simplification, finding common periods, and solving linear Diophantine equations. LCM is used for scheduling problems involving cycles. The Euclidean algorithm is one of the oldest algorithms in existence and remains among the most efficient. Extended Euclidean algorithm is needed for modular inverse computation.',
+    learn: [
+      'Euclidean algorithm: gcd(a, b) = gcd(b, a % b), base case gcd(a, 0) = a — O(log min(a,b))',
+      'LCM from GCD: lcm(a, b) = (a / gcd(a, b)) * b — divide first to prevent overflow',
+      '__gcd(a, b) in C++ STL (or std::gcd in C++17)',
+      'Extended Euclidean algorithm: find x, y such that ax + by = gcd(a, b)',
+      'Modular inverse via extended GCD: x such that a*x ≡ 1 (mod m)',
+      'GCD of array: iteratively apply gcd(result, arr[i])',
+      'Bezout\'s identity and linear Diophantine equations: when does ax + by = c have integer solutions?'
+    ],
+    prerequisites: 'C++ Basics',
+    leetcodeUrl: 'https://leetcode.com/tag/math/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=math,number+theory',
+    youtubeQuery: 'GCD LCM Euclidean algorithm extended Euclidean explained',
+    docsUrl: 'https://cp-algorithms.com/algebra/euclid-algorithm.html'
+  },
+  {
+    id: 'prime-sieve',
+    label: 'Prime Sieve',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '2 days',
+    whyMatters: 'Prime numbers underlie cryptography, hashing, and number theory. The Sieve of Eratosthenes generates all primes up to n in O(n log log n) — far faster than checking each number individually. Problems involving prime factorisation, counting primes, and sum of prime factors appear regularly in competitive programming and appear in interview coding rounds.',
+    learn: [
+      'Trial division: check divisibility up to sqrt(n) for primality — O(sqrt(n)) per number',
+      'Sieve of Eratosthenes: mark multiples of each prime as composite — O(n log log n)',
+      'Sieve of linear complexity: every composite has exactly one smallest prime factor — O(n)',
+      'Smallest prime factor (SPF) sieve for fast factorisation in O(log n) per number',
+      'Euler\'s totient function φ(n): count of integers in [1,n] coprime with n — sieve-based',
+      'Counting primes up to n (LeetCode 204) using basic sieve'
+    ],
+    prerequisites: 'C++ Basics',
+    leetcodeUrl: 'https://leetcode.com/problems/count-primes/',
+    codeforcesUrl: null,
+    youtubeQuery: 'sieve of Eratosthenes prime factorisation smallest prime factor explained',
+    docsUrl: 'https://cp-algorithms.com/algebra/sieve-of-eratosthenes.html'
+  },
+  {
+    id: 'modular-arithmetic',
+    label: 'Modular Arithmetic',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Most competitive programming problems involving large numbers require answers "modulo 10^9+7" to prevent overflow. Modular arithmetic properties let you apply +, -, * under modulo, but division requires modular inverse. Without this, you cannot solve counting problems involving factorials, Catalan numbers, or combinations over large inputs.',
+    learn: [
+      'Modular properties: (a+b)%m, (a-b+m)%m, (a*b)%m — always add m before subtracting',
+      'Modular inverse: a^(-1) ≡ a^(p-2) (mod p) for prime p via Fermat\'s little theorem',
+      'Precomputing factorials and inverse factorials for O(1) nCr queries',
+      'Lucas\' theorem: nCr (mod p) for prime p when n, r can be large',
+      'Chinese Remainder Theorem: reconstruct x from remainders modulo coprime moduli',
+      '10^9+7 vs 998244353: when to use each in competitive programming problems'
+    ],
+    prerequisites: 'Fast Exponentiation',
+    leetcodeUrl: 'https://leetcode.com/tag/math/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=math,number+theory',
+    youtubeQuery: 'modular arithmetic modular inverse Fermat competitive programming',
+    docsUrl: 'https://cp-algorithms.com/algebra/module-inverse.html'
+  },
+  {
+    id: 'fast-expo',
+    label: 'Fast Exponentiation',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '1 day',
+    whyMatters: 'Computing a^b naively takes O(b) multiplications — unusable when b is 10^18. Binary exponentiation reduces this to O(log b) by squaring repeatedly. This technique is used constantly in modular arithmetic, matrix exponentiation (for nth Fibonacci in O(log n)), and cryptographic algorithms like RSA.',
+    learn: [
+      'Binary exponentiation: if b is even, a^b = (a^(b/2))^2; if odd, a^b = a * a^(b-1)',
+      'Iterative implementation using bit manipulation: check each bit of the exponent',
+      'Modular exponentiation: power(a, b, mod) — multiply and mod at each step to prevent overflow',
+      'Matrix exponentiation: raise a matrix to the power n in O(k³ log n) for k×k matrix',
+      'Fibonacci in O(log n) using matrix exponentiation of [[1,1],[1,0]]',
+      '__int128 for intermediate multiplication when mod² overflows 64-bit'
+    ],
+    prerequisites: 'Number Theory GCD/LCM',
+    leetcodeUrl: 'https://leetcode.com/problems/powx-n/',
+    codeforcesUrl: null,
+    youtubeQuery: 'binary exponentiation fast power modular exponentiation explained',
+    docsUrl: 'https://cp-algorithms.com/algebra/binary-exp.html'
+  },
+  {
+    id: 'combinatorics',
+    label: 'Combinatorics',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Combinatorics is the mathematics of counting: how many ways can something happen? Problems asking "count valid arrangements", "number of paths", or "number of sequences" are almost always combinatorics problems. Binomial coefficients (nCr) appear everywhere, and computing them efficiently with modular arithmetic is a critical skill for competitive programming.',
+    learn: [
+      'Permutations: n! / (n-k)! ordered arrangements of k items from n',
+      'Combinations: nCr = n! / (k! × (n-k)!) unordered selections',
+      'Pascal\'s triangle: nCr = (n-1)Cr + (n-1)C(r-1) for tabulation approach',
+      'Precompute factorials and inverse factorials mod p for O(1) nCr',
+      'Stars and bars: distributing n identical items into k distinct bins',
+      'Catalan numbers: count valid parenthesisations, BST shapes — C(n) = nC2n / (n+1)',
+      'Inclusion-exclusion principle: |A ∪ B| = |A| + |B| - |A ∩ B|'
+    ],
+    prerequisites: 'Modular Arithmetic',
+    leetcodeUrl: 'https://leetcode.com/tag/combinatorics/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=combinatorics',
+    youtubeQuery: 'combinatorics nCr Catalan inclusion exclusion competitive programming',
+    docsUrl: 'https://cp-algorithms.com/combinatorics/'
+  },
+  {
+    id: 'bit-manipulation',
+    label: 'Bit Manipulation',
+    section: 10,
+    sectionTitle: 'Mathematical Algorithms',
+    isMain: false,
+    parent: 'math-algorithms',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '3 days',
+    whyMatters: 'Bit manipulation enables constant-time operations that would otherwise require loops. Checking if a number is a power of two (n & (n-1) == 0), finding the single non-repeated number (XOR of all elements), and counting set bits are classic interview questions. Bit manipulation also underpins bitmask DP and competitive programming tricks like subset enumeration.',
+    learn: [
+      'Bitwise operators: AND (&), OR (|), XOR (^), NOT (~), left shift (<<), right shift (>>)',
+      'Check k-th bit: (n >> k) & 1',
+      'Set k-th bit: n | (1 << k)',
+      'Clear k-th bit: n & ~(1 << k)',
+      'Toggle k-th bit: n ^ (1 << k)',
+      'n & (n-1): clears the lowest set bit — use to check power of 2 or count set bits',
+      'XOR trick: a ^ a = 0, a ^ 0 = a — single non-repeated element in O(n) O(1) space',
+      'Brian Kernighan\'s algorithm: count set bits by repeatedly doing n = n & (n-1)'
+    ],
+    prerequisites: 'C++ Data Types',
+    leetcodeUrl: 'https://leetcode.com/tag/bit-manipulation/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=bitmasks',
+    youtubeQuery: 'bit manipulation tricks LeetCode XOR power of two count bits',
+    docsUrl: 'https://cp-algorithms.com/algebra/bit-manipulation.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 11 — STRING ALGORITHMS
+  // ─────────────────────────────────────────────
+  {
+    id: 'string-algorithms',
+    label: 'String Algorithms',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: true,
+    parent: null,
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3–4 weeks',
+    whyMatters: 'Advanced string algorithms solve pattern matching, text search, and string comparison problems that naive O(n*m) approaches cannot handle at scale. KMP, Z-algorithm, and Rabin-Karp are the industry standard tools for substring search. Suffix arrays enable O(n log n) preprocessing for O(m) pattern queries — powering DNA databases, full-text search engines, and bioinformatics tools.',
+    learn: [
+      'Failure function in KMP: preprocessing pattern to avoid redundant character comparisons',
+      'Z-array: for each position i, the length of the longest substring starting at i matching a prefix of s',
+      'Rolling hash in Rabin-Karp: detect pattern matches using polynomial hashing — O(n+m) average',
+      'Suffix array: lexicographically sorted array of all suffixes — enables powerful string queries',
+      'Longest common prefix (LCP) array: built from suffix array for string comparison in O(1)',
+      'Aho-Corasick automaton: simultaneous multi-pattern search in O(n+m+occurrences)'
+    ],
+    prerequisites: 'String Manipulation (Section 2), Dynamic Programming',
+    leetcodeUrl: 'https://leetcode.com/tag/string-matching/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=strings',
+    youtubeQuery: 'string algorithms KMP Z-function suffix array competitive programming',
+    docsUrl: 'https://cp-algorithms.com/string/prefix-function.html'
+  },
+  {
+    id: 'kmp',
+    label: 'KMP Algorithm',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: false,
+    parent: 'string-algorithms',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '4 days',
+    whyMatters: 'Knuth-Morris-Pratt achieves O(n+m) pattern matching by precomputing a failure function that determines how far to shift the pattern on mismatch. This avoids the O(n*m) worst case of naive search. KMP is the foundational string algorithm and is asked directly in Google and Amazon interviews. Understanding it deeply is necessary before studying Z-algorithm and Aho-Corasick.',
+    learn: [
+      'Naive pattern matching: O(n*m) worst case — why it fails on adversarial inputs',
+      'Failure function (prefix function): lps[i] = length of longest proper prefix of s[0..i] that is also a suffix',
+      'Computing lps[] in O(m): two-pointer approach that avoids redundant recomputation',
+      'KMP search: on mismatch, shift pattern using lps instead of resetting to 0',
+      'Time complexity: O(n+m) — preprocessing O(m), search O(n)',
+      'Applications: find all occurrences of pattern, check if s is a rotation of t, repeating substring'
+    ],
+    prerequisites: 'String Manipulation',
+    leetcodeUrl: 'https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=strings',
+    youtubeQuery: 'KMP algorithm failure function prefix function pattern matching explained',
+    docsUrl: 'https://cp-algorithms.com/string/prefix-function.html'
+  },
+  {
+    id: 'z-algorithm',
+    label: 'Z-Algorithm',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: false,
+    parent: 'string-algorithms',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'The Z-algorithm computes for each position i the length of the longest substring starting at i that matches a prefix of the full string. It is often simpler to implement than KMP for pattern matching (concatenate pattern + $ + text, then check Z-values). It is also the foundation for solving problems like "count palindromes using Z on reversed string" and string period finding.',
+    learn: [
+      'Z-array definition: Z[i] = length of longest common prefix of s and s[i..]',
+      'Z[0] is defined as the string length or 0 by convention',
+      'Computing Z-array in O(n) using the Z-box [l, r] window maintenance',
+      'Pattern matching using Z: search s = pattern + "$" + text, find positions where Z[i] == |pattern|',
+      'String period: shortest period p such that s[i] = s[i % p] for all i',
+      'Finding the smallest cyclic rotation of a string using Z-algorithm'
+    ],
+    prerequisites: 'KMP Algorithm',
+    leetcodeUrl: 'https://leetcode.com/tag/string-matching/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=strings',
+    youtubeQuery: 'Z algorithm string matching Z array explained competitive programming',
+    docsUrl: 'https://cp-algorithms.com/string/z-function.html'
+  },
+  {
+    id: 'rabin-karp',
+    label: 'Rabin-Karp',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: false,
+    parent: 'string-algorithms',
+    border: 'purple',
+    difficulty: 'ADVANCED',
+    time: '3 days',
+    whyMatters: 'Rabin-Karp uses polynomial rolling hashing to achieve O(n+m) expected time pattern matching. Its key advantage is that it naturally extends to multi-pattern search and 2D pattern matching. The rolling hash technique from Rabin-Karp also appears in "Longest Duplicate Substring" (binary search + rolling hash) and other advanced string problems requiring O(1) substring comparison.',
+    learn: [
+      'Polynomial hash: hash(s) = s[0]*p^0 + s[1]*p^1 + ... + s[n-1]*p^(n-1) mod m',
+      'Rolling hash update: remove leftmost character, add rightmost — O(1) per window slide',
+      'Collision probability: choosing p = 31 or 31/37 and large prime m reduces collision chance',
+      'Double hashing: use two independent hash functions to reduce collision probability to ~1/m²',
+      'Rabin-Karp for multi-pattern search: store all pattern hashes in a set, check each window',
+      'Longest duplicate substring (LeetCode 1044): binary search on length + Rabin-Karp check'
+    ],
+    prerequisites: 'Z-Algorithm',
+    leetcodeUrl: 'https://leetcode.com/problems/longest-duplicate-substring/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=hashing,strings',
+    youtubeQuery: 'Rabin-Karp rolling hash string matching polynomial hashing explained',
+    docsUrl: 'https://cp-algorithms.com/string/rabin-karp.html'
+  },
+  {
+    id: 'suffix-arrays',
+    label: 'Suffix Arrays',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: false,
+    parent: 'string-algorithms',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '5 days',
+    whyMatters: 'Suffix arrays are the most powerful string data structure for competitive programming. They support arbitrary pattern queries, longest common substring between two strings, and number of distinct substrings — all in O(n log n) preprocessing and O(m log n) queries. DNA databases, full-text search engines (like grep internals), and plagiarism detection tools use suffix arrays or suffix trees.',
+    learn: [
+      'Suffix array SA: sorted order of all suffixes — built naively in O(n² log n)',
+      'O(n log n) construction using prefix doubling (suffix array DC3 or simple doubling)',
+      'LCP array (Longest Common Prefix): LCP[i] = length of common prefix of SA[i] and SA[i-1]',
+      'Kasai\'s algorithm: build LCP array from suffix array in O(n)',
+      'Number of distinct substrings: total substrings - sum of LCP values',
+      'Longest common substring of two strings: concatenate with separator, build SA, find max LCP between cross-string suffixes'
+    ],
+    prerequisites: 'Rabin-Karp',
+    leetcodeUrl: 'https://leetcode.com/tag/suffix-array/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=suffix+array',
+    youtubeQuery: 'suffix array construction LCP array Kasai algorithm competitive programming',
+    docsUrl: 'https://cp-algorithms.com/string/suffix-array.html'
+  },
+  {
+    id: 'aho-corasick',
+    label: 'Aho-Corasick',
+    section: 11,
+    sectionTitle: 'String Algorithms',
+    isMain: false,
+    parent: 'string-algorithms',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '4 days',
+    whyMatters: 'Aho-Corasick constructs an automaton over all patterns simultaneously and searches for all of them in a text in O(n + total pattern length + number of occurrences). It is used in network intrusion detection (Snort), spam filtering, and antivirus string matching. This is ICPC-level material and is increasingly tested in senior competitive programming rounds.',
+    learn: [
+      'Build a trie over all patterns: insert all patterns character by character',
+      'Failure links (fall-back links): when pattern match fails, jump to longest proper suffix that is a prefix of another pattern',
+      'BFS to compute failure links for all nodes',
+      'Output links: chains of patterns that are suffixes of the current matched string',
+      'Searching text: process text character by character, follow failure links on mismatch',
+      'Applications: count occurrences of all patterns, find if any pattern appears in text'
+    ],
+    prerequisites: 'Suffix Arrays, Trie (Section 6)',
+    leetcodeUrl: 'https://leetcode.com/tag/string-matching/',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=strings',
+    youtubeQuery: 'Aho-Corasick automaton multi-pattern search explained competitive programming',
+    docsUrl: 'https://cp-algorithms.com/string/aho_corasick.html'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 12 — COMPETITIVE PROGRAMMING
+  // ─────────────────────────────────────────────
+  {
+    id: 'competitive-programming',
+    label: 'Competitive Programming',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: true,
+    parent: null,
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '3–6 months',
+    whyMatters: 'Competitive programming is the proving ground for everything you have learned. It builds speed, pattern recognition, and the ability to think algorithmically under time pressure — exactly the skills tested in technical interviews. Codeforces rating of 1600+ (Specialist) signals strong DSA proficiency to employers. Regular contest participation is the most efficient way to develop the problem-solving instinct that cannot be learned from tutorials alone.',
+    learn: [
+      'Time complexity analysis: estimating if a solution fits within the time limit before coding',
+      'Reading problem statements carefully: constraints determine the required algorithm',
+      'Testing strategy: generate edge cases, test on examples, stress test with brute force',
+      'Common competitive programming idioms: fast I/O, global arrays, precomputation',
+      'Upsolving: solving problems you couldn\'t finish in contest — the primary learning method',
+      'Virtual contests: simulate real contest conditions for deliberate practice'
+    ],
+    prerequisites: 'All previous sections',
+    leetcodeUrl: 'https://leetcode.com/contest/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'competitive programming guide how to get better Codeforces rating',
+    docsUrl: 'https://usaco.guide/'
+  },
+  {
+    id: 'problem-patterns',
+    label: 'Problem-Solving Patterns',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '1 week',
+    whyMatters: 'Recognising which algorithm to apply to a problem in under 5 minutes is a trainable skill. By cataloguing the signals that indicate each pattern (sorted → binary search, "k-th element" → heap or quickselect, "how many ways" → DP, "shortest path" → BFS/Dijkstra), you develop pattern-matching intuition that makes contest problem reading much faster.',
+    learn: [
+      'Constraint analysis: n ≤ 10 → O(n!), n ≤ 20 → O(2^n), n ≤ 1000 → O(n²), n ≤ 10^6 → O(n log n)',
+      '"Find the minimum/maximum value such that X" → binary search on answer',
+      '"Number of ways" or "can we achieve X?" → DP or combinatorics',
+      '"Shortest path" in unweighted graph → BFS; weighted → Dijkstra',
+      '"All subarrays/substrings" → two pointers or sliding window',
+      '"Connected components" or "cycle detection" → Union-Find or DFS',
+      '"Frequency count" or "find duplicates" → hash map'
+    ],
+    prerequisites: 'DP, Graphs, Sorting & Searching',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'competitive programming problem pattern recognition algorithm selection',
+    docsUrl: 'https://usaco.guide/general/solving-problems'
+  },
+  {
+    id: 'cf-div2-ab',
+    label: 'Codeforces — Div 2 A/B',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '4–6 weeks',
+    whyMatters: 'Codeforces Div 2 A and B problems are designed to be solved within 30 minutes and test implementation fluency, basic math, greedy reasoning, and simple string/array manipulation. Consistently solving A and B in under 20 minutes indicates readiness for the next level and translates directly to being able to solve easy-medium LeetCode in interviews without hesitation.',
+    learn: [
+      'A problems: mathematical observations, greedy deductions, simple simulation',
+      'B problems: slightly more complex greedy, number theory, string processing',
+      'Fast implementation: write correct code in C++ quickly without long debugging',
+      'Edge cases: n=1, empty input, all same values, very large values near overflow',
+      'Reading sample input/output to understand the problem precisely',
+      'Upsolving: after each contest, solve every A/B you couldn\'t finish in time'
+    ],
+    prerequisites: 'Arrays & Strings, C++ Foundations',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=EASY',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=800-1400',
+    youtubeQuery: 'Codeforces Div 2 A B problems beginners guide competitive programming',
+    docsUrl: 'https://codeforces.com/'
+  },
+  {
+    id: 'cf-div2-cd',
+    label: 'Codeforces — Div 2 C/D',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'orange',
+    difficulty: 'ADVANCED',
+    time: '3–4 months',
+    whyMatters: 'Div 2 C/D problems require combining multiple algorithms and non-trivial observations. C problems typically involve DP, binary search, or graph algorithms. D problems often require advanced data structures or creative mathematical insight. Reaching a Codeforces rating of 1600-1900 by consistently solving C/D problems is the single strongest signal of algorithmic competence to employers at FAANG companies.',
+    learn: [
+      'C problems: graph problems (BFS/DFS/DSU), 1D or 2D DP, binary search on answer',
+      'D problems: advanced DP (bitmask, tree), segment trees, complex greedy with proof',
+      'Observation-making: spend the first 10 minutes just thinking, not coding',
+      'Proving your solution: can you argue correctness before implementing?',
+      'Time limit stress: practice solving C/D in under 45 minutes',
+      'Reading editorial after attempting: extract the key insight even if you couldn\'t solve it'
+    ],
+    prerequisites: 'Dynamic Programming, Advanced Graphs, String Algorithms',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=HARD',
+    codeforcesUrl: 'https://codeforces.com/problemset?tags=1600-2100',
+    youtubeQuery: 'Codeforces Div 2 C D problems editorial walkthrough competitive programming',
+    docsUrl: 'https://codeforces.com/'
+  },
+  {
+    id: 'lc-medium-hard',
+    label: 'LeetCode — Medium/Hard',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'purple',
+    difficulty: 'INTERMEDIATE',
+    time: '2–3 months',
+    whyMatters: 'LeetCode Mediums and Hards are the direct preparation material for FAANG technical interviews. The top-100 most-liked problems cover exactly the algorithms tested at Google, Meta, Amazon, and Microsoft. Solving 150-200 problems across all major patterns with genuine understanding (not memorisation) is the benchmark for readiness for senior software engineer interviews.',
+    learn: [
+      'Focus on understanding patterns, not memorising solutions: can you solve a similar variant?',
+      'Time yourself: solve mediums in under 20 minutes, hards in under 40 minutes',
+      'Track which topics are weak and do targeted problem sets on those topics',
+      'LeetCode company tags: filter by your target company\'s asked questions',
+      'Mock interviews: use the LeetCode mock interview feature or Pramp for realistic simulation',
+      'The "NeetCode 150": a curated list of the 150 most important problems organised by pattern'
+    ],
+    prerequisites: 'All DSA sections',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/?difficulty=MEDIUM',
+    codeforcesUrl: null,
+    youtubeQuery: 'LeetCode medium hard problems patterns NeetCode 150 interview prep',
+    docsUrl: 'https://neetcode.io/'
+  },
+  {
+    id: 'contest-strategy',
+    label: 'Contest Strategy',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '1 week',
+    whyMatters: 'Technical skill alone does not win contests. Knowing how to allocate 2 hours across 5 problems, when to cut losses on a stuck problem, how to test efficiently, and how to manage the mental pressure of a timed competition are learnable skills. Many competitive programmers with equivalent knowledge differ in rating purely due to contest strategy.',
+    learn: [
+      'Read all problems first (2-3 minutes): identify easy wins and sort by expected difficulty',
+      'Attempt in order: A, B, C — skip D/E until A/B/C are solved',
+      'Hack mode (Codeforces): in Division 2, challenging wrong submissions earns points',
+      'Prewritten templates: snippets for DSU, segment tree, fast I/O ready to paste',
+      'Stress testing: brute force checker vs optimised solution on small random inputs',
+      'Mental reset: if stuck for 20 minutes, move to next problem and come back later'
+    ],
+    prerequisites: 'Competitive Programming basics',
+    leetcodeUrl: 'https://leetcode.com/contest/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'competitive programming contest strategy tips rating improvement',
+    docsUrl: 'https://usaco.guide/general/contest-strategy'
+  },
+  {
+    id: 'icpc-prep',
+    label: 'ICPC Preparation',
+    section: 12,
+    sectionTitle: 'Competitive Programming',
+    isMain: false,
+    parent: 'competitive-programming',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '6+ months',
+    whyMatters: 'The International Collegiate Programming Contest (ICPC) is the oldest and most prestigious programming competition. Participation demonstrates exceptional algorithmic capability and is a significant differentiator on a resume. ICPC World Finalist level is one of the strongest possible signals of top-tier engineering ability to employers at all major technology companies.',
+    learn: [
+      'Team formation: complementary strengths in algorithms, implementation, and debugging',
+      'ICPC syllabus: everything in this roadmap plus advanced geometry, FFT, and persistent data structures',
+      'Teamwork: one computer per team — coordination and communication under pressure',
+      'Practice on past ICPC regional and World Final problems (kattis.com)',
+      'USACO (for high schoolers) as precursor: Bronze → Silver → Gold → Platinum',
+      'Math olympiad background helps significantly: combinatorics, number theory, geometry'
+    ],
+    prerequisites: 'All sections including optional',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'ICPC preparation guide competitive programming team strategy',
+    docsUrl: 'https://icpc.global/'
+  },
+
+  // ─────────────────────────────────────────────
+  // SECTION 13 — SDE PREPARATION
+  // ─────────────────────────────────────────────
+  {
+    id: 'sde-prep',
+    label: 'SDE Prep',
+    section: 13,
+    sectionTitle: 'SDE Preparation',
+    isMain: true,
+    parent: null,
+    border: 'green',
+    difficulty: 'INTERMEDIATE',
+    time: '4–6 weeks',
+    whyMatters: 'Landing a software engineer role at a top company requires more than algorithmic knowledge. The technical interview process tests your ability to communicate complexity analysis clearly, apply patterns under time pressure, recognise the right algorithm from problem constraints, and perform well in mock conditions. This final preparation section bridges the gap between knowing DSA and demonstrating it effectively in a real interview.',
+    learn: [
+      'Big-O analysis: derive time and space complexity for any algorithm you implement',
+      'Pattern-to-problem mapping: instantly recognise which algorithm a problem calls for',
+      'Communication: explain your thought process clearly before and while coding',
+      'Mock interview practice: get comfortable with being observed while problem-solving',
+      'Resume DSA sections: present your CP rating, LeetCode stats, and notable solutions',
+      'Behavioural round prep: STAR format for discussing DSA projects and competitive programming experience'
+    ],
+    prerequisites: 'All previous sections',
+    leetcodeUrl: 'https://leetcode.com/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'software engineer interview preparation DSA roadmap guide',
+    docsUrl: 'https://neetcode.io/'
+  },
+  {
+    id: 'time-space-complexity',
+    label: 'Time & Space Complexity',
+    section: 13,
+    sectionTitle: 'SDE Preparation',
+    isMain: false,
+    parent: 'sde-prep',
+    border: 'blue',
+    difficulty: 'BEGINNER',
+    time: '4 days',
+    whyMatters: 'Time and space complexity analysis is tested in virtually every technical interview. Interviewers always ask "what is the time complexity of your solution?" Giving an instant, correct answer — and explaining why — is the mark of a prepared candidate. Getting it wrong signals a gap in fundamentals that immediately concerns interviewers.',
+    learn: [
+      'Big-O notation: O(1), O(log n), O(n), O(n log n), O(n²), O(2^n), O(n!) and their growth rates',
+      'Analysing loops: single loop → O(n), nested loops → O(n²), binary search → O(log n)',
+      'Analysing recursive algorithms: recurrence relations and the Master Theorem',
+      'Amortised analysis: dynamic array push_back is O(1) amortised even though some are O(n)',
+      'Space complexity: input space vs auxiliary space — O(1) space DP optimisations',
+      'Best, average, worst case: quick sort is O(n log n) average but O(n²) worst — why it matters'
+    ],
+    prerequisites: 'Basic algorithms (sorting, searching)',
+    leetcodeUrl: 'https://leetcode.com/explore/learn/card/the-leetcode-beginners-guide/',
+    codeforcesUrl: null,
+    youtubeQuery: 'time complexity space complexity Big-O analysis explained for interviews',
+    docsUrl: 'https://www.bigocheatsheet.com/'
+  },
+  {
+    id: 'interview-patterns',
+    label: 'Interview Problem Patterns',
+    section: 13,
+    sectionTitle: 'SDE Preparation',
+    isMain: false,
+    parent: 'sde-prep',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '1 week',
+    whyMatters: 'Top interviewers at FAANG companies confirm that the best candidates quickly categorise problems into known patterns and adapt their templates. Having a mental library of "prefix sum pattern", "merge intervals pattern", "topological sort pattern", and others reduces problem-solving time from 30 minutes to 10 minutes — critical in a 45-minute interview round.',
+    learn: [
+      '14 core patterns: sliding window, two pointers, fast/slow pointers, merge intervals, cyclic sort, in-place reversal, tree BFS/DFS, two heaps, subsets, modified binary search, bitwise XOR, top-k elements, k-way merge, DP',
+      'Pattern identification signals: what constraint or phrasing suggests each pattern?',
+      'Grokking the Coding Interview style: multiple problems per pattern for reinforcement',
+      'Mixed practice: randomly sample from all patterns to build recall speed',
+      'Timing yourself: 45 minutes per problem in mock interview conditions',
+      'Common interview question lists: Blind 75, NeetCode 150, company-specific lists'
+    ],
+    prerequisites: 'All DSA sections',
+    leetcodeUrl: 'https://leetcode.com/problemset/all/',
+    codeforcesUrl: null,
+    youtubeQuery: 'coding interview patterns 14 patterns LeetCode NeetCode Blind 75',
+    docsUrl: 'https://neetcode.io/'
+  },
+  {
+    id: 'mock-interviews',
+    label: 'Mock Interviews',
+    section: 13,
+    sectionTitle: 'SDE Preparation',
+    isMain: false,
+    parent: 'sde-prep',
+    border: 'blue',
+    difficulty: 'INTERMEDIATE',
+    time: '2–3 weeks',
+    whyMatters: 'Knowledge of DSA does not automatically translate to interview performance. The pressure of being watched while coding causes many strong programmers to underperform. Mock interviews in realistic conditions — timed, with a human evaluator or a recording — build the comfort and communication habits that separate candidates who ace interviews from those who know the material but stumble under pressure.',
+    learn: [
+      'Think out loud: narrate your thought process at every step — interviewers evaluate reasoning, not just the final answer',
+      'Clarify before coding: ask about constraints, edge cases, and expected output format',
+      'Write clean code: use meaningful variable names even under time pressure',
+      'Test your solution on the examples first, then edge cases',
+      'Optimise iteratively: brute force first, then improve — show you can think beyond your first idea',
+      'Pramp, Interviewing.io, and LeetCode mock interview for free practice with real people'
+    ],
+    prerequisites: 'Interview Problem Patterns',
+    leetcodeUrl: 'https://leetcode.com/assessment/',
+    codeforcesUrl: null,
+    youtubeQuery: 'mock coding interview tips communication strategy FAANG preparation',
+    docsUrl: 'https://interviewing.io/'
+  },
+  {
+    id: 'resume-portfolio',
+    label: 'Resume & Portfolio',
+    section: 13,
+    sectionTitle: 'SDE Preparation',
+    isMain: false,
+    parent: 'sde-prep',
+    border: 'dashed',
+    difficulty: 'OPTIONAL',
+    time: '1 week',
+    whyMatters: 'A strong DSA profile needs to be visible to employers. Your Codeforces rating, LeetCode streak, competitive programming achievements, and projects implementing algorithms are compelling resume items that get you past initial screening. Many top companies — particularly those in India including Google, Goldman Sachs, and Jane Street — explicitly value competitive programming credentials.',
+    learn: [
+      'Highlight your highest Codeforces/CodeChef rating prominently on your resume',
+      'List your LeetCode problem count: 200+ problems solved is a strong credential',
+      'ICPC regional participation or USACO gold/platinum is worth a dedicated resume line',
+      'DSA-relevant projects: build a pathfinding visualiser, a trie-based autocomplete, or a scheduler',
+      'GitHub: clean repositories with good READMEs for any algorithm implementations',
+      'LinkedIn: connect with other competitive programmers and signal your profile to recruiters via the "Open to Work" feature with your ratings visible'
+    ],
+    prerequisites: 'Competitive Programming (Section 12)',
+    leetcodeUrl: 'https://leetcode.com/',
+    codeforcesUrl: 'https://codeforces.com/',
+    youtubeQuery: 'software engineer resume competitive programming how to list DSA credentials',
+    docsUrl: 'https://www.techinterviewhandbook.org/resume/'
+  },
+
+  // ─────────────────────────────────────────────
+  // FINAL NODE — DSA MASTER
+  // ─────────────────────────────────────────────
+  {
+    id: 'dsa-congrats',
+    label: '🏆 DSA Master',
+    section: 14,
+    sectionTitle: 'Finish Line',
+    isMain: true,
+    parent: null,
+    border: 'green',
+    difficulty: 'BEGINNER',
+    time: 'You made it',
+    special: true,
+    whyMatters: 'Congratulations — you have completed the full DSA roadmap. You have built the foundation that the world\'s best software engineers stand on: from basic arrays and strings all the way through dynamic programming, advanced graph algorithms, and string matching. The patterns you have internalised here will serve you in every technical interview, every competitive programming contest, and every complex algorithmic problem you encounter throughout your career. This is not the end — the best competitive programmers and engineers are lifetime learners. But today you have earned the right to call yourself genuinely job-ready in Data Structures and Algorithms.',
+    learn: [
+      'Solve at least 200 LeetCode problems spanning all major pattern categories',
+      'Reach Codeforces rating 1400+ (Pupil) — or 1600+ (Specialist) for top-tier positions',
+      'Implement from scratch: segment tree, DSU, trie, KMP, and Dijkstra without reference',
+      'Solve every classic interview problem set: Blind 75, NeetCode 150, or Striver\'s SDE sheet',
+      'Complete at least 10 Codeforces rounds and upsolve every problem you couldn\'t finish in time',
+      'Conduct at least 5 full mock interviews in realistic conditions with time pressure',
+      'Apply to your target companies — you have the skills, now go get the role'
+    ],
+    prerequisites: 'Everything on this roadmap',
+    leetcodeUrl: 'https://leetcode.com',
+    codeforcesUrl: 'https://codeforces.com',
+    youtubeQuery: 'DSA interview ready complete preparation final review',
+    docsUrl: 'https://neetcode.io/'
+  }
+
+];
+
+const BORDER_STYLES = {
+  green:  { border: '2px solid #10b981', bg: '#051a10', color: '#10b981' },
+  blue:   { border: '2px solid #3b82f6', bg: '#05101a', color: '#3b82f6' },
+  purple: { border: '2px solid #a855f7', bg: '#0f0520', color: '#a855f7' },
+  orange: { border: '2px solid #f97316', bg: '#1a0f05', color: '#f97316' },
+  dashed: { border: '2px dashed #8080a8', bg: '#0c0c20', color: '#8080a8' }
+};
+
+// ── Render ──────────────────────────────────────────────────────
+function render() {
+  const container = document.getElementById('graph');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const sections = {};
+  NODES.forEach(n => { if (!sections[n.section]) sections[n.section] = []; sections[n.section].push(n); });
+  const sNums = Object.keys(sections).map(Number).sort((a,b) => a-b);
+  sNums.forEach(s => { if (expanded[s] === undefined) expanded[s] = true; });
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('class', 'svg-layer'); svgEl.id = 'svg-layer';
+  container.appendChild(svgEl);
+
+  sNums.forEach((sNum, idx) => {
+    const sNodes = sections[sNum];
+    const main   = sNodes.find(n => n.isMain);
+    const kids   = sNodes.filter(n => !n.isMain);
+
+    if (sNum !== 14) {
+      const labelEl = document.createElement('div');
+      labelEl.className = 'sec-label';
+      const sDone = sNodes.filter(n => progress[n.id]?.status === 'done').length;
+      labelEl.innerHTML = `
+        <span class="sec-num">§${String(sNum).padStart(2,'0')}</span>
+        <span class="sec-title">${(main?.sectionTitle||'Section '+sNum).toUpperCase()}</span>
+        <span class="sec-line"></span>
+        <span class="sec-prog">${sDone}/${sNodes.length}</span>
+      `;
+      container.appendChild(labelEl);
+    }
+
+    const block = document.createElement('div');
+    block.className = 'sec-block';
+    block.dataset.section = sNum;
+
+    const trunkRow = document.createElement('div');
+    trunkRow.className = 'trunk-row';
+    if (main) trunkRow.appendChild(buildNode(main, true, kids.length > 0, sNum));
+    block.appendChild(trunkRow);
+
+    if (kids.length > 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'children-wrap'; wrap.id = `children-${sNum}`;
+      if (!expanded[sNum]) wrap.style.display = 'none';
+      const leftCol = document.createElement('div'); leftCol.className = 'child-col left';
+      const rightCol = document.createElement('div'); rightCol.className = 'child-col right';
+      kids.forEach((k, i) => {
+        const el = buildNode(k, false, false, sNum);
+        (i % 2 === 0 ? leftCol : rightCol).appendChild(el);
+      });
+      wrap.appendChild(leftCol); wrap.appendChild(rightCol);
+      block.appendChild(wrap);
+    }
+    container.appendChild(block);
+
+    if (idx < sNums.length - 1) {
+      const conn = document.createElement('div');
+      conn.className = 'connector-wrap';
+      const vl = document.createElement('div');
+      vl.className = 'v-line'; vl.style.height = '28px';
+      conn.appendChild(vl); container.appendChild(conn);
+    }
+  });
+
+  applyProgress();
+  requestAnimationFrame(drawLines);
+}
+
+function buildNode(node, isTrunk, hasKids, sNum) {
+  const style = BORDER_STYLES[node.border] || BORDER_STYLES.dashed;
+  const el = document.createElement('div');
+  el.className = `node ${isTrunk ? 'trunk' : 'child'}`; 
+  el.id = `node-${node.id}`;
+  if (node.special) el.classList.add('node-congrats');
+  el.style.cssText = `background:${style.bg};border:${style.border};`;
+  let inner = `<div class="node-status-badge" id="badge-${node.id}"></div>`;
+  inner += `<span class="${isTrunk ? 'trunk-label' : 'child-label'}" style="color:${isTrunk ? style.color : 'var(--t1)'}">${node.label}</span>`;
+  if (isTrunk && node.time && node.time !== 'You made it') inner += `<span class="trunk-time">${node.time}</span>`;
+  if (isTrunk && hasKids) inner += `<div class="exp-btn"><div class="expand-dot" id="exp-${sNum}">▾</div></div>`;
+  el.innerHTML = inner;
+
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (isTrunk && hasKids) toggleSection(sNum);
+    else openSheet(node.id);
+  });
+  if (isTrunk) {
+    let lpt = null;
+    el.addEventListener('touchstart', () => { lpt = setTimeout(() => openSheet(node.id), 500); }, {passive:true});
+    el.addEventListener('touchend',   () => clearTimeout(lpt), {passive:true});
+    el.addEventListener('touchmove',  () => clearTimeout(lpt), {passive:true});
+  }
+  return el;
+}
+
+// ── Toggle ───────────────────────────────────────────────────────
+function toggleSection(sNum) {
+  expanded[sNum] = !expanded[sNum];
+  const wrap = document.getElementById(`children-${sNum}`);
+  const dot  = document.getElementById(`exp-${sNum}`);
+  if (!wrap) return;
+  if (expanded[sNum]) {
+    wrap.style.display = 'flex';
+    requestAnimationFrame(() => wrap.classList.add('open'));
+    if (dot) dot.classList.add('open');
+  } else {
+    wrap.classList.remove('open');
+    if (dot) dot.classList.remove('open');
+    setTimeout(() => { if (!expanded[sNum]) wrap.style.display = 'none'; }, 220);
+  }
+  requestAnimationFrame(drawLines);
+}
+
+// ── SVG Lines ────────────────────────────────────────────────────
+function drawLines() {
+  const container = document.getElementById('graph');
+  const svgEl     = document.getElementById('svg-layer');
+  if (!svgEl || !container) return;
+  const gRect = container.getBoundingClientRect();
+  const totalH = container.scrollHeight;
+  svgEl.setAttribute('width', gRect.width);
+  svgEl.setAttribute('height', totalH);
+  svgEl.setAttribute('viewBox', `0 0 ${gRect.width} ${totalH}`);
+  svgEl.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#2a2a4a"/></marker>`;
+  svgEl.appendChild(defs);
+
+  const pts = el => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const st = container.scrollTop;
+    const t = r.top - gRect.top + st;
+    return { top:t, bottom:t+r.height, left:r.left-gRect.left, right:r.left-gRect.left+r.width,
+      centerX:r.left-gRect.left+r.width/2, centerY:t+r.height/2,
+      topC:{x:r.left-gRect.left+r.width/2,y:t},
+      botC:{x:r.left-gRect.left+r.width/2,y:t+r.height},
+      midL:{x:r.left-gRect.left,y:t+r.height/2},
+      midR:{x:r.left-gRect.left+r.width,y:t+r.height/2}
+    };
+  };
+
+  const mkPath = (d, col='#2a2a4a', dash='') => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d',d); p.setAttribute('stroke',col); p.setAttribute('stroke-width','1.5');
+    p.setAttribute('fill','none'); p.setAttribute('marker-end','url(#arr)');
+    if (dash) p.setAttribute('stroke-dasharray',dash);
+    return p;
+  };
+
+  const sections = {};
+  NODES.forEach(n => { if (!sections[n.section]) sections[n.section]=[]; sections[n.section].push(n); });
+  const sNums = Object.keys(sections).map(Number).sort((a,b)=>a-b);
+  const trunkEls = sNums.map(s => { const m = sections[s].find(n=>n.isMain); return m ? document.getElementById(`node-${m.id}`) : null; }).filter(Boolean);
+
+  for (let i=0; i<trunkEls.length-1; i++) {
+    const f = pts(trunkEls[i]), t2 = pts(trunkEls[i+1]);
+    if (!f||!t2||t2.top<=f.bottom) continue;
+    const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',f.botC.x); ln.setAttribute('y1',f.botC.y);
+    ln.setAttribute('x2',t2.topC.x); ln.setAttribute('y2',t2.topC.y);
+    ln.setAttribute('stroke','rgba(99,102,241,0.2)'); ln.setAttribute('stroke-width','2');
+    ln.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(ln);
+  }
+
+  sNums.forEach(sNum => {
+    if (!expanded[sNum]) return;
+    const sNodes = sections[sNum];
+    const main = sNodes.find(n=>n.isMain);
+    const kids = sNodes.filter(n=>!n.isMain);
+    if (!main||!kids.length) return;
+    const tp = pts(document.getElementById(`node-${main.id}`));
+    if (!tp) return;
+    kids.forEach((k,i) => {
+      const kp = pts(document.getElementById(`node-${k.id}`));
+      if (!kp) return;
+      const isLeft = (i%2===0);
+      const fx = isLeft ? tp.midL.x : tp.midR.x;
+      const tx = isLeft ? kp.midR.x : kp.midL.x;
+      const midX = (fx+tx)/2;
+      const dash = k.border==='dashed' ? '5 3' : '';
+      const d = Math.abs(tp.centerY-kp.centerY)>5
+        ? `M ${fx} ${tp.centerY} H ${midX} V ${kp.centerY} H ${tx}`
+        : `M ${fx} ${tp.centerY} H ${tx}`;
+      svgEl.appendChild(mkPath(d,'#2a2a4a',dash));
+    });
+  });
+}
+
+// ── Open Sheet ───────────────────────────────────────────────────
+function openSheet(nodeId) {
+  const node = NODES.find(n => n.id === nodeId);
+  if (!node) return;
+  activeNode = nodeId;
+
+  const DIFF_MAP = {
+    BEGINNER:     {cls:'beginner'},
+    INTERMEDIATE: {cls:'intermediate'},
+    ADVANCED:     {cls:'advanced'},
+    OPTIONAL:     {cls:'optional'}
+  };
+  const dc = DIFF_MAP[(node.difficulty||'BEGINNER').toUpperCase()] || DIFF_MAP.BEGINNER;
+
+  const diffEl = document.getElementById('s-diff');
+  diffEl.textContent = (node.difficulty||'BEGINNER').toUpperCase();
+  diffEl.className = `diff-badge ${dc.cls}`;
+
+  document.getElementById('s-title').textContent = node.special ? '🎉 DSA Master!' : node.label;
+  document.getElementById('s-time').textContent   = node.time || '—';
+  document.getElementById('s-why').textContent    = node.whyMatters || '';
+  document.getElementById('s-prereq').textContent = node.prerequisites || 'None';
+
+  const learnEl = document.getElementById('s-learn');
+  learnEl.innerHTML = (node.learn||[]).map(x=>`<li>${x}</li>`).join('');
+
+  const lcBtn = document.getElementById('s-lc');
+  lcBtn.onclick = () => node.leetcodeUrl && window.open(node.leetcodeUrl, '_blank', 'noopener');
+  lcBtn.style.display = node.leetcodeUrl ? '' : 'none';
+
+  const cfBtn = document.getElementById('s-cf');
+  cfBtn.style.display = node.codeforcesUrl ? '' : 'none';
+  if (node.codeforcesUrl) cfBtn.onclick = () => window.open(node.codeforcesUrl, '_blank', 'noopener');
+
+  document.getElementById('s-yt').onclick  = () => window.open(`https://youtube.com/results?search_query=${encodeURIComponent(node.youtubeQuery||node.label+' tutorial')}`,'_blank','noopener');
+  const docBtn = document.getElementById('s-doc');
+  docBtn.onclick = () => node.docsUrl && window.open(node.docsUrl, '_blank', 'noopener');
+  docBtn.style.opacity = node.docsUrl ? '1' : '0.4';
+
+  refreshStatusBtns(nodeId);
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheet').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  activeNode = null;
+}
+
+// ── Status ───────────────────────────────────────────────────────
+window.setStatus = function(status) {
+  if (!activeNode) return;
+  const cur = progress[activeNode]?.status;
+  if (cur === status) delete progress[activeNode];
+  else progress[activeNode] = { status, doneAt: new Date().toISOString() };
+  saveProgress(); applyProgress(); refreshStatusBtns(activeNode);
+  if (cur !== status) showToast(status==='done'?'✓ Marked complete!':status==='progress'?'⚡ In Progress':'→ Skipped');
+  else showToast('↩ Unmarked');
+};
+
+function refreshStatusBtns(nodeId) {
+  const s = progress[nodeId]?.status;
+  document.getElementById('sb-done').className     = 'st-btn'+(s==='done'?     ' active-done':'');
+  document.getElementById('sb-progress').className = 'st-btn'+(s==='progress'?' active-progress':'');
+  document.getElementById('sb-skip').className     = 'st-btn'+(s==='skip'?     ' active-skip':'');
+}
+
+// ── Apply Progress ───────────────────────────────────────────────
+function applyProgress() {
+  let done = 0;
+  NODES.forEach(node => {
+    const el  = document.getElementById(`node-${node.id}`);
+    const bdg = document.getElementById(`badge-${node.id}`);
+    if (!el) return;
+    el.classList.remove('node-done','node-progress','node-skip');
+    if (bdg) bdg.innerHTML = '';
+    const p = progress[node.id];
+    if (!p) return;
+    if (p.status === 'done') {
+      done++;
+      el.classList.add('node-done');
+      if (bdg) bdg.innerHTML = '<span class="done-badge">✓</span>';
+    } else if (p.status === 'progress') {
+      el.classList.add('node-progress');
+      if (bdg) bdg.innerHTML = '<span class="progress-ring"></span>';
+    } else if (p.status === 'skip') {
+      el.classList.add('node-skip');
+      if (bdg) bdg.innerHTML = '<span class="skip-badge">→</span>';
+    }
+  });
+  const pill = document.getElementById('hdr-pill');
+  if (pill) pill.textContent = `${done} / ${NODES.length} done`;
+  const bar = document.getElementById('prog-bar-fill');
+  if (bar) bar.style.width = `${NODES.length?(done/NODES.length*100):0}%`;
+  document.querySelectorAll('.sec-prog').forEach(el => {
+    const sNum = parseInt(el.closest('.sec-label')?.querySelector('.sec-num')?.textContent?.replace('§','').trim());
+    if (!sNum) return;
+    const secNodes = NODES.filter(n=>n.section===sNum);
+    const secDone  = secNodes.filter(n=>progress[n.id]?.status==='done').length;
+    el.textContent = `${secDone}/${secNodes.length}`;
+  });
+}
+
+// ── Toast ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ── Swipe to dismiss ─────────────────────────────────────────────
+(function() {
+  const sheet = document.getElementById('sheet');
+  let sy=0, cy=0, dragging=false, scrollTop=0;
+  sheet.addEventListener('touchstart', e=>{scrollTop=sheet.scrollTop;sy=cy=e.touches[0].clientY;dragging=true;},{passive:true});
+  sheet.addEventListener('touchmove', e=>{
+    if(!dragging)return; cy=e.touches[0].clientY;
+    const d=cy-sy;
+    if(d>0&&scrollTop<=0){sheet.style.transition='none';sheet.style.transform=`translateY(${Math.min(d*.6,200)}px)`;}
+  },{passive:true});
+  sheet.addEventListener('touchend', ()=>{
+    dragging=false; sheet.style.transition='';
+    if((cy-sy)>80&&scrollTop<=0){sheet.style.transform='';closeSheet();}
+    else sheet.style.transform='';
+  },{passive:true});
+  sheet.addEventListener('touchcancel',()=>{dragging=false;sheet.style.transform='';sheet.style.transition='';},{passive:true});
+})();
+
+// ── Wire overlay + escape ────────────────────────────────────────
+document.getElementById('overlay').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeSheet(); });
+
+// ── Resize / scroll redraw ───────────────────────────────────────
+window.addEventListener('resize', () => { clearTimeout(window._rst); window._rst = setTimeout(drawLines,150); });
+document.getElementById('graph').addEventListener('scroll', () => { clearTimeout(window._gst); window._gst = setTimeout(drawLines,80); }, {passive:true});
+
+// ── Boot ─────────────────────────────────────────────────────────
+render();
+
+})();
+</script>
+</body>
+</html>

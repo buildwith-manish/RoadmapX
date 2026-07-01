@@ -1,0 +1,36 @@
+workflows:
+  android-debug-build:
+    name: RoadmapX Android Debug
+    max_build_duration: 30
+    environment:
+      node: 20.0.0
+      java: 17
+
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm install
+
+      - name: Capacitor sync
+        script: |
+          npx cap sync android
+
+      - name: Set gradlew permissions
+        script: |
+          chmod +x android/gradlew
+
+      - name: Build Debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/apk/debug/app-debug.apk
+
+    publishing:
+      email:
+        recipients:
+          - buildwithmanish@gmail.com
+        notify:
+          success: true
+          failure: true

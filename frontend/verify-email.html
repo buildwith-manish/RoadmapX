@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Verify Email</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#070711;--surface:rgba(10,10,26,0.88);--border:rgba(123,47,255,0.25);
+      --cyan:#00f5d4;--purple:#7b2fff;--text:#c9d1e0;--text-dim:#5a6480;
+    }
+    html,body{height:100%}
+    body{
+      background-color:var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%,rgba(123,47,255,0.18) 0%,transparent 70%),
+        radial-gradient(ellipse 60% 40% at 90% 110%,rgba(0,245,212,0.10) 0%,transparent 60%);
+      display:flex;align-items:center;justify-content:center;min-height:100vh;
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--text);padding:24px;
+    }
+    .card{
+      width:100%;max-width:440px;text-align:center;background:var(--surface);
+      border:1px solid var(--border);border-radius:14px;padding:40px;
+      backdrop-filter:blur(20px);
+      box-shadow:0 4px 24px rgba(0,0,0,.6),0 0 80px rgba(123,47,255,.08);
+    }
+    h1{
+      font-size:1.5rem;font-weight:700;margin-bottom:10px;
+      background:linear-gradient(90deg,var(--cyan),#a78bfa,var(--purple));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    p{color:var(--text-dim);font-size:.9rem;line-height:1.55;margin-bottom:20px}
+    .icon{font-size:2.4rem;margin-bottom:14px;display:block}
+    .btn{
+      display:inline-block;padding:11px 22px;border:none;border-radius:9px;
+      color:#fff;font-weight:600;cursor:pointer;text-decoration:none;
+      background:linear-gradient(90deg,var(--cyan),var(--purple));
+    }
+    .resend{
+      margin-top:18px;font-size:.85rem;color:var(--text-dim);
+    }
+    .resend a{color:var(--cyan);cursor:pointer;text-decoration:none}
+    .resend a:hover{text-decoration:underline}
+    .spinner{
+      width:34px;height:34px;border:3px solid rgba(255,255,255,.15);
+      border-top-color:var(--cyan);border-radius:50%;
+      animation:spin .8s linear infinite;margin:0 auto 16px;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .hide{display:none}
+    .ok    .icon{color:var(--cyan)}
+    .err   .icon{color:#ff6b8a}
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Verifying your email…</h1>
+    <p id="msg">Please wait a moment.</p>
+    <a href="login.html" id="cta" class="btn hide">Go to login</a>
+    <div class="resend hide" id="resend-block">
+      Need a new link?
+      <a id="resend-link">Resend verification email</a>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="verify_email_script.js" defer></script>
+</body>
+</html>

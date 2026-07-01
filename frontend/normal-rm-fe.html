@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <meta name="theme-color" content="#05050f"/>
+  <title>Frontend Roadmap — RoadmapX</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    /* ── Frontend Bottom Nav (mirrors AI nav pattern exactly) ── */
+    #fe-bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--bg2, #0d0d1a);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: stretch;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .fe-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--t3, #555);
+      padding: 6px 4px;
+      transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fe-nav-item.active {
+      color: var(--cf, #f97316);
+    }
+    .fe-nav-item.active svg {
+      filter: drop-shadow(0 0 4px rgba(249,115,22,0.4));
+    }
+    .fe-nav-ico {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fe-nav-ico svg {
+      width: 20px;
+      height: 20px;
+    }
+    .fe-nav-lbl {
+      font-size: 10px;
+      font-weight: 600;
+      font-family: var(--font-mono, monospace);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    /* Give content bottom padding so nav doesn't cover it */
+    #content {
+      padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    }
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ HEADER ══ -->
+  <header id="header">
+    <div class="hdr-left">
+      <div class="hdr-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        RoadmapX
+      </div>
+      <div class="hdr-sub" id="hdr-sub">Frontend Roadmap</div>
+    </div>
+    <div class="hdr-right">
+      <button class="hdr-btn" title="Stats" onclick="window.location.href='stats.html'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ CONTENT ══ -->
+  <div id="content">
+
+    <div class="tab-panel active" id="tab-fe-normal">
+
+      <!-- ── ROADMAP TAB ── -->
+      <div id="fe-sub-roadmap">
+
+        <!-- SCREEN 1: Level select -->
+        <div id="fe-screen-levels">
+              <div class="back-home-bar">
+                <button class="back-home-btn" onclick="window.location.href='index.html'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+                </button>
+                <span class="back-home-title">Frontend Roadmap</span>
+              </div>
+          <div class="section" style="padding-top:10px">
+            <div class="section-title">Choose Your Level</div>
+            <div class="ai-level-subtitle">Select your Frontend starting point</div>
+
+            <button class="ai-level-card beginner-card" onclick="FE.selectLevel('beginner')">
+              <div class="ai-level-left">
+                <div class="ai-level-dot"></div>
+                <div class="ai-level-info">
+                  <div class="ai-level-name">Beginner</div>
+                  <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);font-size:10px;font-weight:800;color:var(--c5);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">65 Days</div>
+                  <div class="ai-level-goal">Start from zero — HTML, CSS, and core JavaScript. Build confidence step by step.</div>
+                  <div class="ai-level-tags" style="margin-top:7px">
+                    <span class="ai-ltag">~130 HRS</span><span class="ai-ltag">HTML/CSS</span><span class="ai-ltag">BEGINNER FRIENDLY</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ai-level-arrow" style="color:var(--c5)">›</div>
+            </button>
+
+            <button class="ai-level-card intermediate-card" onclick="FE.selectLevel('intermediate')">
+              <div class="ai-level-left">
+                <div class="ai-level-dot"></div>
+                <div class="ai-level-info">
+                  <div class="ai-level-name">Intermediate</div>
+                  <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);font-size:10px;font-weight:800;color:var(--c4);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">75 Days</div>
+                  <div class="ai-level-goal">React, state management, and real-world project patterns. Build apps that ship.</div>
+                  <div class="ai-level-tags" style="margin-top:7px">
+                    <span class="ai-ltag itag">~150 HRS</span><span class="ai-ltag itag">REACT/JS</span><span class="ai-ltag itag">COMPONENTS</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ai-level-arrow" style="color:var(--c4)">›</div>
+            </button>
+
+            <button class="ai-level-card advanced-card" onclick="FE.selectLevel('advanced')">
+              <div class="ai-level-left">
+                <div class="ai-level-dot"></div>
+                <div class="ai-level-info">
+                  <div class="ai-level-name">Advanced</div>
+                  <div class="ai-level-duration-badge" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);font-size:10px;font-weight:800;color:var(--c3);font-family:var(--font-mono);margin:3px 0 6px;letter-spacing:0.5px;">55 Days</div>
+                  <div class="ai-level-goal">Next.js, performance, testing, and production-grade frontend engineering.</div>
+                  <div class="ai-level-tags" style="margin-top:7px">
+                    <span class="ai-ltag atag">~110 HRS</span><span class="ai-ltag atag">NEXT.JS</span><span class="ai-ltag atag">PRODUCTION</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ai-level-arrow" style="color:var(--c3)">›</div>
+            </button>
+
+          </div>
+        </div>
+        <!-- /fe-screen-levels -->
+
+        <!-- SCREEN 2: Weeks list -->
+        <div id="fe-screen-weeks" style="display:none">
+          <div class="back-home-bar">
+            <button class="back-home-btn" onclick="FE.goBack()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Levels
+            </button>
+            <span class="back-home-title" id="fe-weeks-title">Beginner</span>
+          </div>
+          <div id="fe-inline-rev-weeks"></div>
+          <div id="fe-level-summary"></div>
+          <div class="section" style="padding-top:6px">
+            <div class="search-wrap" style="padding:0 0 8px">
+              <div class="search-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+              <input class="search-input" id="fe-search" type="text" placeholder="Search topics..." oninput="FE.filterRoadmap()" />
+            </div>
+            <div id="fe-weeks-list"></div>
+          </div>
+        </div>
+        <!-- /fe-screen-weeks -->
+
+        <!-- SCREEN 3: Days list -->
+        <div id="fe-screen-days" style="display:none">
+          <div class="back-home-bar">
+            <button class="back-home-btn" onclick="FE.goBack()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Weeks
+            </button>
+            <span class="back-home-title" id="fe-days-title">Week 1</span>
+          </div>
+          <div id="fe-inline-rev-days"></div>
+          <div id="fe-week-summary"></div>
+          <div class="section" style="padding-top:6px">
+            <div id="fe-structured-days-list"></div>
+          </div>
+        </div>
+        <!-- /fe-screen-days -->
+
+      </div>
+      <!-- /fe-sub-roadmap -->
+
+      <!-- ── REVISION TAB ── -->
+      <div id="fe-sub-revision" style="display:none">
+        <div class="back-home-bar">
+          <button class="back-home-btn" onclick="FE.goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+          </button>
+          <span class="back-home-title">Frontend Revision</span>
+        </div>
+        <div class="filter-row" style="padding:10px 12px 0">
+          <button class="filter-chip active" onclick="FE.setRevFilter('all',this)">All</button>
+          <button class="filter-chip" onclick="FE.setRevFilter('due',this)">Due Today</button>
+          <button class="filter-chip" onclick="FE.setRevFilter('overdue',this)">Overdue</button>
+          <button class="filter-chip" onclick="FE.setRevFilter('pending',this)">Upcoming</button>
+          <button class="filter-chip" onclick="FE.setRevFilter('done',this)">Done</button>
+        </div>
+        <div class="section" style="padding-top:8px"><div id="fe-revision-list"></div></div>
+      </div>
+
+      <!-- ── POMO TAB ── -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NOTES TAB ── -->
+      <div id="fe-sub-notes" style="display:none">
+        <div class="back-home-bar">
+          <button class="back-home-btn" onclick="FE.goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+          </button>
+          <span class="back-home-title">Frontend Study Notes</span>
+        </div>
+        <div class="section">
+          <div class="section-title">Frontend Study Notes</div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-header">
+              <span class="card-title">Today's Frontend Notes</span>
+              <span class="card-badge badge-done" id="fe-notes-pomo-badge">0 pomos</span>
+            </div>
+            <textarea class="notes-ta" id="fe-notes-ta" placeholder="Write what you studied in Frontend today...&#10;&#10;• Concepts learned&#10;• Components built&#10;• Bugs fixed&#10;• Topics to revisit" oninput="FE.autoSaveNotes()"></textarea>
+            <div class="notes-meta">
+              <span id="fe-notes-wc">0 words</span>
+              <button class="notes-save-btn" onclick="FE.saveNotes()">Save</button>
+            </div>
+          </div>
+          <div class="section-title">Saved Frontend Entries</div>
+          <div id="fe-notes-list"></div>
+        </div>
+      </div>
+
+      <!-- ── PROJECTS TAB ── -->
+      <div id="fe-sub-projects" style="display:none">
+        <div class="back-home-bar">
+          <button class="back-home-btn" onclick="FE.goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Home
+          </button>
+          <span class="back-home-title">Frontend Projects</span>
+        </div>
+        <div class="section">
+          <div class="section-title">My Frontend Projects</div>
+          <button class="add-btn" onclick="FE.openProjectModal('fe')">
+            <div class="add-btn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+            <span>Add Frontend Project</span>
+          </button>
+          <div id="fe-projects-list"></div>
+        </div>
+      </div>
+
+    </div>
+    <!-- /tab-fe-normal -->
+
+  </div>
+  <!-- /content -->
+
+  <!-- ══ BOTTOM NAV ══ -->
+  <nav id="fe-bottom-nav">
+    <button class="fe-nav-item active" id="fe-nav-roadmap" onclick="FE.switchSub('roadmap', this)">
+      <div class="fe-nav-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <span class="fe-nav-lbl">Roadmap</span>
+    </button>
+    <button class="fe-nav-item" id="fe-nav-revision" onclick="FE.switchSub('revision', this)">
+      <div class="fe-nav-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <span class="fe-nav-lbl">Revision</span>
+    </button>
+    <button class="fe-nav-item" id="fe-nav-notes" onclick="FE.switchSub('notes', this)">
+      <div class="fe-nav-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <span class="fe-nav-lbl">Notes</span>
+    </button>
+    <button class="fe-nav-item" id="fe-nav-projects" onclick="FE.switchSub('projects', this)">
+      <div class="fe-nav-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <span class="fe-nav-lbl">Projects</span>
+    </button>
+    <button class="fe-nav-item" id="fe-nav-visual" onclick="window.location.href='fe-roadmap.html'">
+      <div class="fe-nav-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="21"/><circle cx="6" cy="14" r="3"/><circle cx="18" cy="14" r="3"/><line x1="12" y1="13" x2="6" y2="14"/><line x1="12" y1="13" x2="18" y2="14"/></svg>
+      </div>
+      <span class="fe-nav-lbl">Visual</span>
+    </button>
+  </nav>
+
+  <!-- ══ MODALS ══ -->
+
+  <!-- Project Modal -->
+  <div class="modal-overlay" id="modal-project">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="proj-modal-title">Add Project</span>
+        <button class="modal-close" onclick="FE.closeModal('modal-project')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input type="hidden" id="proj-source" value="" />
+      <div class="field-group"><label class="field-label">Project Name</label><input class="field-input" id="proj-name" placeholder="e.g. Portfolio with React" /></div>
+      <div class="field-group"><label class="field-label">GitHub Link</label><input class="field-input" id="proj-github" type="url" placeholder="https://github.com/you/project" /></div>
+      <div class="field-group"><label class="field-label">Live Demo URL</label><input class="field-input" id="proj-demo" type="url" placeholder="https://your-demo.com" /></div>
+      <div class="field-group"><label class="field-label">Files Count</label><input class="field-input" id="proj-files" type="number" placeholder="Number of files" min="0" /></div>
+      <div class="field-group"><label class="field-label">Notes / Description</label><textarea class="field-input" id="proj-notes" placeholder="Describe the project..."></textarea></div>
+      <div class="field-group"><label class="field-label">Tech Stack / Tags</label><input class="field-input" id="proj-tags" placeholder="React, Tailwind, Next.js..." /></div>
+      <div class="field-group"><label class="field-label">Progress % (0–100)</label><input class="field-input" id="proj-progress" type="number" placeholder="e.g. 40" min="0" max="100" /></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="FE.saveProject()">Save Project</button>
+        <button class="btn-secondary" onclick="FE.closeModal('modal-project')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-overlay" id="modal-confirm">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="confirm-title">Confirm</span>
+        <button class="modal-close" onclick="FE.closeModal('modal-confirm')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p id="confirm-text" style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:16px;"></p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="confirm-ok" style="background:linear-gradient(135deg,var(--c3),#ef476f);color:#fff;">Confirm</button>
+        <button class="btn-secondary" onclick="FE.closeModal('modal-confirm')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI MENTOR MODAL -->
+  <div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)FE.closeAIModal()">
+    <div class="ai-modal">
+      <div class="ai-modal-header">
+        <div class="ai-modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          AI Mentor
+        </div>
+        <button class="ai-modal-close" onclick="FE.closeAIModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="ai-modal-tabs">
+        <button class="ai-tab-btn active" onclick="FE.setAITab('explain',this)">Explain</button>
+        <button class="ai-tab-btn" onclick="FE.setAITab('notes',this)">Notes</button>
+        <button class="ai-tab-btn" onclick="FE.setAITab('practice',this)">Practice</button>
+        <button class="ai-tab-btn" onclick="FE.setAITab('project',this)">Project Idea</button>
+      </div>
+      <div class="ai-modal-body">
+        <div class="ai-response-area" id="ai-response-area">Select a mode above and tap "Ask AI" to get started.</div>
+        <button class="ai-ask-btn" id="ai-ask-btn" onclick="FE.askAI()">Ask AI</button>
+        <textarea class="ai-note-area" id="ai-note-area" placeholder="AI-generated notes will appear here. You can edit them..." style="display:none"></textarea>
+        <button class="ai-save-note-btn" id="ai-save-note-btn" onclick="FE.saveAINote()" style="display:none">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+  <!-- XP TOAST -->
+  <div class="xp-toast" id="xp-toast">+50 XP</div>
+
+</div>
+<!-- /app -->
+
+<script src="normal-rm-fe.js"></script>
+
+<script>
+// Wrap FE.switchSub to keep bottom nav active state in sync
+document.addEventListener('DOMContentLoaded', function() {
+  var _orig = (typeof FE !== 'undefined' && FE.switchSub) ? FE.switchSub.bind(FE) : null;
+  if (typeof FE !== 'undefined') {
+    FE.switchSub = function(sub, btn) {
+      document.querySelectorAll('#fe-bottom-nav .fe-nav-item').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      var navBtn = document.getElementById('fe-nav-' + sub);
+      if (navBtn) navBtn.classList.add('active');
+      if (_orig) _orig(sub, null);
+    };
+  }
+});
+</script>
+
+</body>
+</html>

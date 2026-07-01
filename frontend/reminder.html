@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Reminder Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg0:#05050f;--bg2:#0c0c20;--bg3:#101028;--bg4:#141432;
+      --c1:#00e5c8;--c2:#7c3aed;--c4:#f59e0b;--c5:#10b981;--c3:#f43f5e;
+      --t1:#f0f0ff;--t2:#8080a8;--t3:#404060;
+      --r8:8px;--r10:10px;--r12:12px;--r16:16px;
+      --font-ui:'DM Sans',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg0);color:var(--t1);font-family:var(--font-ui);
+      min-height:100vh;padding:24px 16px 80px;
+      -webkit-font-smoothing:antialiased;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;
+      background-image:linear-gradient(rgba(0,229,200,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,200,0.015) 1px,transparent 1px);
+      background-size:48px 48px;
+    }
+    .page-header{
+      display:flex;align-items:center;gap:10px;
+      margin-bottom:24px;max-width:480px;
+    }
+    .back-btn{
+      display:flex;align-items:center;gap:6px;
+      background:var(--bg3);border:1px solid rgba(255,255,255,0.08);
+      color:var(--t2);padding:7px 14px;border-radius:var(--r12);
+      font-family:var(--font-mono);font-size:11px;cursor:pointer;
+      text-decoration:none;transition:all 0.2s;
+    }
+    .back-btn:hover{border-color:rgba(0,229,200,0.25);color:var(--c1);}
+    .page-title{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--c4);letter-spacing:1.5px;}
+
+    .container{max-width:480px;}
+
+    /* ── SECTION CARD ── */
+    .card{
+      background:var(--bg2);border:1px solid rgba(255,255,255,0.06);
+      border-radius:var(--r16);overflow:hidden;margin-bottom:14px;
+      position:relative;
+    }
+    .card-header{
+      padding:16px 18px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+      display:flex;align-items:center;gap:10px;
+    }
+    .card-icon{
+      width:32px;height:32px;border-radius:var(--r8);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .card-title{font-size:14px;font-weight:700;color:var(--t1);}
+    .card-sub{font-size:11px;color:var(--t2);margin-top:2px;font-family:var(--font-mono);}
+    .card-body{padding:16px 18px;}
+
+    /* ── TOGGLE SWITCH ── */
+    .toggle-row{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .toggle-label{font-size:13px;font-weight:600;color:var(--t1);}
+    .toggle-sub{font-size:10px;color:var(--t3);font-family:var(--font-mono);margin-top:2px;}
+    .toggle{
+      position:relative;width:44px;height:24px;
+      background:var(--bg4);border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;cursor:pointer;transition:all 0.25s;flex-shrink:0;
+    }
+    .toggle.on{background:rgba(0,229,200,0.15);border-color:rgba(0,229,200,0.35);}
+    .toggle::after{
+      content:'';position:absolute;top:3px;left:3px;
+      width:16px;height:16px;border-radius:50%;
+      background:var(--t3);transition:all 0.25s;
+    }
+    .toggle.on::after{left:23px;background:var(--c1);}
+
+    /* ── TIME PICKER ── */
+    .time-row{
+      display:flex;gap:10px;align-items:flex-end;
+      margin-bottom:14px;
+    }
+    .input-group{flex:1;}
+    .input-label{
+      font-family:var(--font-mono);font-size:9px;color:var(--t3);
+      letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;
+    }
+    .time-input, .tz-select{
+      width:100%;
+      background:var(--bg3);border:1px solid rgba(255,255,255,0.08);
+      color:var(--t1);padding:10px 12px;border-radius:var(--r10);
+      font-family:var(--font-mono);font-size:13px;
+      outline:none;transition:border-color 0.2s;
+      -webkit-appearance:none;
+    }
+    .time-input:focus, .tz-select:focus{border-color:rgba(0,229,200,0.35);}
+    .tz-select{color:var(--t1);background:var(--bg3);}
+    .tz-select option{background:var(--bg3);}
+
+    /* ── PREVIEW ── */
+    .preview-box{
+      background:var(--bg3);border:1px solid rgba(255,255,255,0.05);
+      border-radius:var(--r10);padding:12px 14px;
+      font-family:var(--font-mono);font-size:11px;color:var(--t2);
+      margin-bottom:14px;line-height:1.6;
+    }
+    .preview-box .hi{color:var(--c1);}
+
+    /* ── SAVE BUTTON ── */
+    .save-btn{
+      width:100%;padding:13px;
+      background:linear-gradient(135deg,rgba(0,229,200,0.15),rgba(124,58,237,0.15));
+      border:1px solid rgba(0,229,200,0.25);
+      color:var(--c1);border-radius:var(--r12);
+      font-family:var(--font-ui);font-size:14px;font-weight:700;
+      cursor:pointer;transition:all 0.2s;
+    }
+    .save-btn:hover{background:linear-gradient(135deg,rgba(0,229,200,0.2),rgba(124,58,237,0.2));}
+    .save-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+    /* ── TOAST ── */
+    .toast{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+      background:var(--bg3);border:1px solid rgba(0,229,200,0.3);
+      color:var(--c1);padding:10px 20px;border-radius:var(--r10);
+      font-family:var(--font-mono);font-size:12px;
+      opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;
+      white-space:nowrap;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.error{border-color:rgba(244,63,94,0.3);color:var(--c3);}
+
+    /* ── EMAIL BANNER ── */
+    .email-banner{
+      background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);
+      border-radius:var(--r12);padding:12px 16px;
+      font-size:12px;color:var(--c4);
+      font-family:var(--font-mono);margin-bottom:14px;
+      display:none;
+    }
+    .email-banner a{color:var(--c4);text-decoration:underline;}
+
+    /* ── NEXT REMINDER PILL ── */
+    .next-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);
+      border-radius:999px;padding:4px 12px;
+      font-family:var(--font-mono);font-size:10px;color:var(--c5);
+      margin-bottom:14px;
+    }
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <a href="index.html" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back
+  </a>
+  <div class="page-title">// REMINDERS</div>
+</div>
+
+<div class="container">
+
+  <!-- No email warning -->
+  <div class="email-banner" id="email-banner">
+    ⚠ No email on your account. <a href="settings.html">Add one in Settings</a> to enable reminders.
+  </div>
+
+  <!-- Reminder card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:rgba(245,158,11,0.12)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Daily Study Reminder</div>
+        <div class="card-sub">// get nudged at your chosen time every day</div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Enable Reminder</div>
+          <div class="toggle-sub">Sends a daily email at your chosen time</div>
+        </div>
+        <div class="toggle" id="reminder-toggle" onclick="RD.toggleEnabled()"></div>
+      </div>
+
+      <!-- Settings (shown when enabled) -->
+      <div id="reminder-settings">
+        <div class="time-row">
+          <div class="input-group">
+            <div class="input-label">Time</div>
+            <input type="time" class="time-input" id="reminder-time" value="08:00" oninput="RD.updatePreview()" />
+          </div>
+          <div class="input-group" style="flex:2">
+            <div class="input-label">Timezone</div>
+            <select class="tz-select" id="reminder-tz" onchange="RD.updatePreview()">
+              <option value="Asia/Kolkata">India (IST)</option>
+              <option value="America/New_York">US Eastern (EST/EDT)</option>
+              <option value="America/Chicago">US Central (CST/CDT)</option>
+              <option value="America/Denver">US Mountain (MST/MDT)</option>
+              <option value="America/Los_Angeles">US Pacific (PST/PDT)</option>
+              <option value="Europe/London">London (GMT/BST)</option>
+              <option value="Europe/Paris">Europe Central (CET/CEST)</option>
+              <option value="Asia/Dubai">Dubai (GST)</option>
+              <option value="Asia/Singapore">Singapore (SGT)</option>
+              <option value="Asia/Tokyo">Japan (JST)</option>
+              <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="preview-box" id="preview-box">
+          📬 You'll receive an email at <span class="hi" id="preview-time">08:00</span>
+          (<span id="preview-tz">India IST</span>) every day with your streak,
+          stats, and a motivational nudge.
+        </div>
+
+        <div class="next-pill" id="next-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="next-pill-text">Next: calculating...</span>
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-btn" onclick="RD.save()">Save Reminder</button>
+
+    </div>
+  </div>
+
+  <!-- Share card promo -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:rgba(124,58,237,0.12)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Share Your Progress</div>
+        <div class="card-sub">// shareable card with your streak + stats</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--t2);margin-bottom:14px;line-height:1.6">
+        Generate a beautiful progress card you can share on LinkedIn, Twitter, or WhatsApp.
+      </p>
+      <button class="save-btn" style="background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(0,229,200,0.1));border-color:rgba(124,58,237,0.3);color:#a78bfa"
+        onclick="window.location.href='share.html'">
+        View My Share Card →
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="auth_guard.js"></script>
+<script>
+const RD = (() => {
+  const API = window.RX_API;
+  let _enabled = false;
+  let _hasEmail = true; // default true — only false if API confirms no email
+
+  const TZ_NAMES = {
+    'Asia/Kolkata': 'India IST',
+    'America/New_York': 'US Eastern',
+    'America/Chicago': 'US Central',
+    'America/Denver': 'US Mountain',
+    'America/Los_Angeles': 'US Pacific',
+    'Europe/London': 'London GMT/BST',
+    'Europe/Paris': 'Central Europe',
+    'Asia/Dubai': 'Dubai GST',
+    'Asia/Singapore': 'Singapore SGT',
+    'Asia/Tokyo': 'Japan JST',
+    'Australia/Sydney': 'Sydney AEST',
+    'UTC': 'UTC',
+  };
+
+  function toast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  function setToggleUI(on) {
+    _enabled = on;
+    document.getElementById('reminder-toggle').classList.toggle('on', on);
+    document.getElementById('reminder-settings').style.display = on ? 'block' : 'none';
+  }
+
+  function updatePreview() {
+    const time = document.getElementById('reminder-time').value || '08:00';
+    const tz   = document.getElementById('reminder-tz').value;
+    document.getElementById('preview-time').textContent = time;
+    document.getElementById('preview-tz').textContent   = TZ_NAMES[tz] || tz;
+
+    // Compute "next reminder" relative to now
+    try {
+      const [h, m] = time.split(':').map(Number);
+      const now = new Date();
+      const localNow = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+      let next = new Date(localNow);
+      next.setHours(h, m, 0, 0);
+      if (next <= localNow) next.setDate(next.getDate() + 1);
+      const diffMs  = next - localNow;
+      const diffH   = Math.floor(diffMs / 3600000);
+      const diffMin = Math.floor((diffMs % 3600000) / 60000);
+      const label   = diffH > 0 ? `in ${diffH}h ${diffMin}m` : `in ${diffMin} min`;
+      document.getElementById('next-pill-text').textContent = `Next: ${label}`;
+    } catch (_) {}
+  }
+
+  function toggleEnabled() {
+    setToggleUI(!_enabled);
+    updatePreview();
+  }
+
+  async function save() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    // Warn if no email but don't block
+    if (_enabled && !_hasEmail) {
+      toast('⚠ No email on your account — reminders won\'t send until you add one in Settings.', true);
+      btn.disabled = false;
+      btn.textContent = 'Save Reminder';
+      return;
+    }
+
+    try {
+      const time = _enabled ? document.getElementById('reminder-time').value : null;
+      const tz   = document.getElementById('reminder-tz').value;
+
+      const res  = await fetch(`${API}/api/reminder`, {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify({ time, timezone: tz }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        toast(_enabled ? `✅ Reminder set for ${time}` : '🔕 Reminder disabled');
+      } else {
+        toast(json.message || 'Failed to save.', true);
+      }
+    } catch (err) {
+      toast('Network error.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Reminder';
+    }
+  }
+
+  async function init() {
+    try {
+      const res  = await fetch(`${API}/api/reminder`, { credentials: 'include' });
+      const json = await res.json();
+
+      if (!json.success) return;
+
+      _hasEmail = !!json.email;
+      if (!_hasEmail) {
+        document.getElementById('email-banner').style.display = 'block';
+      }
+
+      if (json.reminderTime) {
+        document.getElementById('reminder-time').value = json.reminderTime;
+        setToggleUI(true);
+      } else {
+        setToggleUI(false);
+      }
+
+      // Set timezone dropdown
+      if (json.reminderTimezone) {
+        document.getElementById('reminder-tz').value = json.reminderTimezone;
+      } else {
+        // Auto-detect
+        const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const sel = document.getElementById('reminder-tz');
+        if ([...sel.options].some(o => o.value === detected)) sel.value = detected;
+      }
+
+      updatePreview();
+    } catch (err) {
+      toast('Could not load settings.', true);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  return { toggleEnabled, save, updatePreview };
+})();
+</script>
+</body>
+</html>

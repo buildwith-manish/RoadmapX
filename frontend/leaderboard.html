@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <style>
+    /* ── DESIGN TOKENS (matches app theme) ── */
+    :root {
+      --bg0: #05050f;
+      --bg1: #08081a;
+      --bg2: #0c0c20;
+      --bg3: #101028;
+      --bg4: #141432;
+      --bg5: #1a1a40;
+
+      --c1: #00e5c8;
+      --c2: #7c3aed;
+      --c3: #f43f5e;
+      --c4: #f59e0b;
+      --c5: #10b981;
+      --c6: #3b82f6;
+
+      --gold:   #ffd700;
+      --silver: #c0c8d8;
+      --bronze: #cd7f32;
+
+      --t1: #f0f0ff;
+      --t2: #8080a8;
+      --t3: #404060;
+
+      --border-subtle:  rgba(255,255,255,0.05);
+      --border-default: rgba(255,255,255,0.08);
+      --border-accent:  rgba(0,229,200,0.25);
+
+      --r8: 8px; --r10: 10px; --r12: 12px; --r16: 16px; --r20: 20px;
+      --font-ui: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Bebas Neue', sans-serif;
+      --ease: cubic-bezier(0.4,0,0.2,1);
+      --spring: cubic-bezier(0.34,1.56,0.64,1);
+      --dur: 0.22s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg0);
+      color: var(--t1);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      padding-bottom: 100px;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,229,200,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,200,0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      height: 56px;
+      background: rgba(5,5,15,0.94);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--c1), var(--c2), transparent);
+      opacity: 0.3;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border-default);
+      color: var(--t2); padding: 6px 12px;
+      border-radius: var(--r8);
+      font-family: var(--font-mono); font-size: 11px;
+      cursor: pointer; text-decoration: none;
+      transition: all var(--dur) var(--ease);
+    }
+    .back-btn:hover { border-color: var(--border-accent); color: var(--c1); background: rgba(0,229,200,0.06); }
+
+    .header-title {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+      color: var(--c4); letter-spacing: 1.5px;
+      display: flex; align-items: center; gap: 7px;
+    }
+
+    .last-updated {
+      font-family: var(--font-mono); font-size: 9px; color: var(--t3);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      position: relative; z-index: 1;
+      padding: 20px 16px;
+      max-width: 600px; margin: 0 auto;
+    }
+
+    /* ── HERO BANNER ── */
+    .hero {
+      background: linear-gradient(135deg, #0a0818 0%, #0c1020 50%, #080a1e 100%);
+      border: 1px solid var(--border-default);
+      border-radius: var(--r20);
+      padding: 28px 20px 22px;
+      margin-bottom: 20px;
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.4s var(--ease) both;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -80px; right: -60px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: -60px; left: -20px;
+      width: 200px; height: 160px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono); font-size: 9px; color: var(--c4);
+      letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; opacity: 0.8;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 52px; line-height: 1;
+      color: var(--t1); letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .hero-title span { color: var(--c4); }
+
+    .hero-sub {
+      font-family: var(--font-mono); font-size: 11px; color: var(--t2);
+      letter-spacing: 0.5px; margin-bottom: 20px;
+    }
+
+    .hero-stats-row {
+      display: flex; gap: 12px;
+    }
+    .hero-stat {
+      flex: 1; text-align: center;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r10); padding: 12px 6px;
+    }
+    .hero-stat-val {
+      font-family: var(--font-mono); font-size: 20px; font-weight: 700;
+      color: var(--c4); line-height: 1;
+    }
+    .hero-stat-label {
+      font-size: 9px; color: var(--t3); margin-top: 4px;
+      letter-spacing: 1px; text-transform: uppercase; font-family: var(--font-mono);
+    }
+
+    /* ── MY RANK CARD ── */
+    .my-rank-card {
+      background: linear-gradient(135deg, rgba(0,229,200,0.05), rgba(124,58,237,0.05));
+      border: 1px solid rgba(0,229,200,0.2);
+      border-radius: var(--r16); padding: 16px 18px;
+      margin-bottom: 20px;
+      display: none; /* shown after auth */
+      animation: fadeUp 0.45s var(--ease) both;
+      position: relative; overflow: hidden;
+    }
+    .my-rank-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--c1), var(--c2), transparent);
+    }
+    .my-rank-card.visible { display: block; }
+
+    .my-rank-label {
+      font-family: var(--font-mono); font-size: 9px; color: var(--c1);
+      letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; opacity: 0.8;
+    }
+
+    .my-rank-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .my-rank-item { text-align: center; }
+    .my-rank-val {
+      font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+      color: var(--c1); line-height: 1;
+    }
+    .my-rank-val.amber { color: var(--c4); }
+    .my-rank-val.green { color: var(--c5); }
+    .my-rank-val.purple { color: var(--c2); }
+    .my-rank-cat {
+      font-size: 9px; color: var(--t3); margin-top: 4px;
+      letter-spacing: 1px; text-transform: uppercase; font-family: var(--font-mono);
+    }
+
+    /* ── CATEGORY TABS ── */
+    .tabs {
+      display: flex; gap: 6px;
+      background: var(--bg2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r12); padding: 5px;
+      margin-bottom: 16px;
+      animation: fadeUp 0.5s var(--ease) both;
+    }
+    .tab-btn {
+      flex: 1; padding: 8px 4px;
+      border-radius: var(--r8); border: 1px solid transparent;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--t3); cursor: pointer;
+      transition: all var(--dur) var(--ease);
+      background: transparent;
+    }
+    .tab-btn:hover { color: var(--t2); background: rgba(255,255,255,0.03); }
+    .tab-btn.active {
+      background: rgba(245,158,11,0.1);
+      border-color: rgba(245,158,11,0.3);
+      color: var(--c4);
+    }
+    .tab-btn[data-cat="streak"].active   { background: rgba(244,63,94,0.1); border-color: rgba(244,63,94,0.3); color: var(--c3); }
+    .tab-btn[data-cat="pomodoro"].active { background: rgba(0,229,200,0.1); border-color: rgba(0,229,200,0.3); color: var(--c1); }
+    .tab-btn[data-cat="progress"].active { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--c5); }
+    .tab-btn[data-cat="allround"].active { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: var(--c4); }
+
+    /* ── TOP 3 PODIUM ── */
+    .podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 8px; margin-bottom: 20px;
+      animation: fadeUp 0.55s var(--ease) both;
+    }
+
+    .podium-item {
+      flex: 1; max-width: 160px;
+      display: flex; flex-direction: column; align-items: center;
+      position: relative;
+    }
+
+    .podium-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+      border: 2px solid transparent;
+      margin-bottom: 8px; position: relative;
+      transition: transform 0.3s var(--spring);
+    }
+    .podium-item:hover .podium-avatar { transform: scale(1.08) translateY(-2px); }
+
+    .podium-item.rank-1 .podium-avatar {
+      width: 64px; height: 64px; font-size: 22px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,215,0,0.18), rgba(255,165,0,0.06));
+      border-color: rgba(255,215,0,0.5);
+      box-shadow: 0 0 20px rgba(255,215,0,0.2), 0 0 40px rgba(255,215,0,0.08);
+    }
+    .podium-item.rank-2 .podium-avatar {
+      background: radial-gradient(circle at 30% 30%, rgba(192,200,216,0.15), rgba(150,160,180,0.05));
+      border-color: rgba(192,200,216,0.4);
+      box-shadow: 0 0 14px rgba(192,200,216,0.15);
+    }
+    .podium-item.rank-3 .podium-avatar {
+      background: radial-gradient(circle at 30% 30%, rgba(205,127,50,0.15), rgba(180,100,30,0.05));
+      border-color: rgba(205,127,50,0.4);
+      box-shadow: 0 0 14px rgba(205,127,50,0.12);
+    }
+
+    .podium-crown {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 16px; line-height: 1;
+      animation: crownFloat 3s ease-in-out infinite;
+    }
+    @keyframes crownFloat {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50%      { transform: translateX(-50%) translateY(-3px); }
+    }
+
+    .podium-username {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      color: var(--t1); text-align: center;
+      max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin-bottom: 2px;
+    }
+    .podium-item.rank-1 .podium-username { font-size: 12px; color: var(--gold); }
+    .podium-item.rank-2 .podium-username { color: var(--silver); }
+    .podium-item.rank-3 .podium-username { color: var(--bronze); }
+
+    .podium-score {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .podium-item.rank-1 .podium-score { font-size: 15px; color: var(--gold); }
+    .podium-item.rank-2 .podium-score { color: var(--silver); }
+    .podium-item.rank-3 .podium-score { color: var(--bronze); }
+
+    .podium-score-label {
+      font-size: 9px; color: var(--t3); font-family: var(--font-mono);
+      letter-spacing: 0.5px;
+    }
+
+    .podium-base {
+      width: 100%; border-radius: var(--r8) var(--r8) 0 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 20px;
+      letter-spacing: 1px;
+    }
+    .podium-item.rank-1 .podium-base {
+      height: 56px;
+      background: linear-gradient(180deg, rgba(255,215,0,0.15), rgba(255,215,0,0.06));
+      border: 1px solid rgba(255,215,0,0.25); border-bottom: none;
+      color: var(--gold);
+    }
+    .podium-item.rank-2 .podium-base {
+      height: 40px;
+      background: linear-gradient(180deg, rgba(192,200,216,0.1), rgba(192,200,216,0.04));
+      border: 1px solid rgba(192,200,216,0.2); border-bottom: none;
+      color: var(--silver);
+    }
+    .podium-item.rank-3 .podium-base {
+      height: 28px;
+      background: linear-gradient(180deg, rgba(205,127,50,0.1), rgba(205,127,50,0.04));
+      border: 1px solid rgba(205,127,50,0.2); border-bottom: none;
+      color: var(--bronze);
+    }
+
+    /* ── LEADERBOARD LIST ── */
+    .lb-list {
+      background: var(--bg2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r16);
+      overflow: hidden;
+      animation: fadeUp 0.6s var(--ease) both;
+    }
+
+    .lb-list-header {
+      display: grid;
+      grid-template-columns: 44px 1fr 80px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.02);
+    }
+    .lb-col-label {
+      font-family: var(--font-mono); font-size: 9px; color: var(--t3);
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .lb-col-label.right { text-align: right; }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 80px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background var(--dur) var(--ease);
+      cursor: default; position: relative;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: rgba(255,255,255,0.02); }
+
+    /* Highlight current user */
+    .lb-row.is-me {
+      background: rgba(0,229,200,0.04);
+      border-left: 2px solid var(--c1);
+    }
+    .lb-row.is-me:hover { background: rgba(0,229,200,0.07); }
+
+    .lb-rank {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+      color: var(--t3); width: 44px;
+    }
+    .lb-rank.top1 { color: var(--gold); font-size: 14px; }
+    .lb-rank.top2 { color: var(--silver); }
+    .lb-rank.top3 { color: var(--bronze); }
+
+    .lb-user {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+
+    .lb-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      flex-shrink: 0;
+      background: var(--bg4); border: 1px solid var(--border-default);
+      color: var(--t2);
+      transition: transform 0.2s var(--spring);
+    }
+    .lb-row:hover .lb-avatar { transform: scale(1.05); }
+    .lb-row.is-me .lb-avatar {
+      background: rgba(0,229,200,0.1);
+      border-color: rgba(0,229,200,0.3);
+      color: var(--c1);
+    }
+
+    .lb-name-col { min-width: 0; }
+    .lb-username {
+      font-size: 13px; font-weight: 600; color: var(--t1);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .lb-row.is-me .lb-username { color: var(--c1); }
+
+    .lb-you-badge {
+      display: inline-block;
+      font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+      color: var(--c1); background: rgba(0,229,200,0.1);
+      border: 1px solid rgba(0,229,200,0.25);
+      padding: 1px 6px; border-radius: 999px;
+      margin-left: 6px; letter-spacing: 0.5px;
+      vertical-align: middle;
+    }
+
+    .lb-score-col { text-align: right; }
+    .lb-score {
+      font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+      color: var(--c4);
+      display: block; line-height: 1;
+    }
+    .lb-score.streak   { color: var(--c3); }
+    .lb-score.pomodoro { color: var(--c1); }
+    .lb-score.progress { color: var(--c5); }
+    .lb-score.allround { color: var(--c4); }
+
+    .lb-score-unit {
+      font-family: var(--font-mono); font-size: 9px; color: var(--t3);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── EMPTY / LOADING STATES ── */
+    .state-container {
+      padding: 48px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .state-icon { font-size: 32px; opacity: 0.4; }
+    .state-text {
+      font-family: var(--font-mono); font-size: 12px; color: var(--t3);
+      letter-spacing: 0.5px; text-align: center;
+    }
+
+    .dot-loader { display: inline-flex; gap: 4px; align-items: center; }
+    .dot-loader span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--c4); display: inline-block;
+      animation: dotPulse 1.2s infinite;
+    }
+    .dot-loader span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-loader span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotPulse {
+      0%,100% { opacity: 0.2; transform: scale(0.8); }
+      50%      { opacity: 1;   transform: scale(1); }
+    }
+
+    /* ── REFRESH BUTTON ── */
+    .refresh-row {
+      display: flex; justify-content: center; margin-top: 16px;
+    }
+    .refresh-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg3); border: 1px solid var(--border-default);
+      color: var(--t2); padding: 8px 16px; border-radius: var(--r8);
+      font-family: var(--font-mono); font-size: 11px; cursor: pointer;
+      transition: all var(--dur) var(--ease);
+    }
+    .refresh-btn:hover { border-color: var(--border-accent); color: var(--c1); background: rgba(0,229,200,0.06); }
+    .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .lb-row {
+      animation: fadeUp 0.3s var(--ease) both;
+    }
+
+    /* Stagger list rows */
+    .lb-row:nth-child(1)  { animation-delay: 0.02s; }
+    .lb-row:nth-child(2)  { animation-delay: 0.04s; }
+    .lb-row:nth-child(3)  { animation-delay: 0.06s; }
+    .lb-row:nth-child(4)  { animation-delay: 0.08s; }
+    .lb-row:nth-child(5)  { animation-delay: 0.10s; }
+    .lb-row:nth-child(6)  { animation-delay: 0.12s; }
+    .lb-row:nth-child(7)  { animation-delay: 0.14s; }
+    .lb-row:nth-child(8)  { animation-delay: 0.16s; }
+    .lb-row:nth-child(9)  { animation-delay: 0.18s; }
+    .lb-row:nth-child(10) { animation-delay: 0.20s; }
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <a href="index.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back
+    </a>
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      LEADERBOARD
+    </div>
+  </div>
+  <div class="last-updated" id="last-updated">—</div>
+</div>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">// global rankings</div>
+    <div class="hero-title">LEADER<span>BOARD</span></div>
+    <div class="hero-sub">// compete. grind. dominate.</div>
+    <div class="hero-stats-row">
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat-total-users">—</div>
+        <div class="hero-stat-label">Learners</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat-top-streak">—</div>
+        <div class="hero-stat-label">Top Streak</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat-top-pomo">—</div>
+        <div class="hero-stat-label">Most Pomos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY RANK (shown when logged in) -->
+  <div class="my-rank-card" id="my-rank-card">
+    <div class="my-rank-label">// your ranks</div>
+    <div class="my-rank-grid">
+      <div class="my-rank-item">
+        <div class="my-rank-val" id="my-rank-allround">—</div>
+        <div class="my-rank-cat">Overall</div>
+      </div>
+      <div class="my-rank-item">
+        <div class="my-rank-val amber" id="my-rank-streak">—</div>
+        <div class="my-rank-cat">Streak</div>
+      </div>
+      <div class="my-rank-item">
+        <div class="my-rank-val green" id="my-rank-progress">—</div>
+        <div class="my-rank-cat">Progress</div>
+      </div>
+      <div class="my-rank-item">
+        <div class="my-rank-val purple" id="my-rank-pomodoro">—</div>
+        <div class="my-rank-cat">Pomodoro</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY TABS -->
+  <div class="tabs">
+    <button class="tab-btn" data-cat="allround" onclick="LB.switchTab('allround')">All-Round</button>
+    <button class="tab-btn" data-cat="streak"   onclick="LB.switchTab('streak')">Streak</button>
+    <button class="tab-btn" data-cat="pomodoro" onclick="LB.switchTab('pomodoro')">Focus</button>
+    <button class="tab-btn" data-cat="progress" onclick="LB.switchTab('progress')">Progress</button>
+  </div>
+
+  <!-- PODIUM -->
+  <div class="podium" id="podium">
+    <div class="state-container">
+      <div class="dot-loader"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="lb-list" id="lb-list">
+    <div class="state-container">
+      <div class="dot-loader"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- REFRESH -->
+  <div class="refresh-row">
+    <button class="refresh-btn" id="refresh-btn" onclick="LB.refresh()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="auth_guard.js"></script>
+<script>
+const LB = (() => {
+  const API = window.RX_API;
+  let currentCat = 'allround';
+  let currentData = [];
+  let currentUsername = null;
+
+  // ── Category metadata ──────────────────────────────────
+  const CAT_META = {
+    allround: { label: 'pts',  unit: 'pts',   key: 'allround',  scoreClass: 'allround' },
+    streak:   { label: 'days', unit: 'days',  key: 'streak',    scoreClass: 'streak'   },
+    pomodoro: { label: 'pomo', unit: 'pomos', key: 'pomodoro',  scoreClass: 'pomodoro' },
+    progress: { label: 'done', unit: 'done',  key: 'progress',  scoreClass: 'progress' },
+  };
+
+  // ── Helpers ────────────────────────────────────────────
+  function initials(name) {
+    return name ? name.slice(0, 2).toUpperCase() : '??';
+  }
+
+  function avatarColor(name) {
+    const colors = [
+      'rgba(0,229,200,0.2)',    // cyan
+      'rgba(124,58,237,0.2)',   // purple
+      'rgba(244,63,94,0.2)',    // red
+      'rgba(245,158,11,0.2)',   // amber
+      'rgba(16,185,129,0.2)',   // green
+      'rgba(59,130,246,0.2)',   // blue
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  function rankClass(rank) {
+    if (rank === 1) return 'top1';
+    if (rank === 2) return 'top2';
+    if (rank === 3) return 'top3';
+    return '';
+  }
+
+  function rankEmoji(rank) {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return '#' + rank;
+  }
+
+  function formatScore(score, cat) {
+    if (cat === 'allround') return score.toLocaleString();
+    return score;
+  }
+
+  // ── Tab switching ──────────────────────────────────────
+  function switchTab(cat) {
+    currentCat = cat;
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    renderAll(currentData);
+    // Re-fetch fresh data for this category
+    fetchLeaderboard(cat);
+  }
+
+  // ── Render podium ──────────────────────────────────────
+  function renderPodium(data, cat) {
+    const podium = document.getElementById('podium');
+    const meta   = CAT_META[cat];
+    const top3   = data.slice(0, 3);
+
+    if (top3.length === 0) {
+      podium.innerHTML = `<div class="state-container"><div class="state-icon">🏆</div><div class="state-text">No data yet</div></div>`;
+      return;
+    }
+
+    // Reorder: 2nd, 1st, 3rd for visual podium
+    const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+    const rankOrder = [2, 1, 3];
+
+    const items = order.map((entry, i) => {
+      if (!entry) return '';
+      const rank       = rankOrder[i];
+      const score      = entry.scores[meta.key];
+      const isMe       = entry.username === currentUsername;
+      const crownHtml  = rank === 1 ? '<div class="podium-crown">👑</div>' : '';
+      const isMeStyle  = isMe ? 'outline: 2px solid var(--c1); outline-offset: 2px;' : '';
+
+      return `
+        <div class="podium-item rank-${rank}">
+          <div class="podium-avatar" style="background:${avatarColor(entry.username)};${isMeStyle}">
+            ${crownHtml}
+            ${initials(entry.username)}
+          </div>
+          <div class="podium-username" title="${entry.username}">${entry.username}${isMe ? ' ✦' : ''}</div>
+          <div class="podium-score">${formatScore(score, cat)}</div>
+          <div class="podium-score-label">${meta.unit}</div>
+          <div class="podium-base">${rankEmoji(rank)}</div>
+        </div>
+      `;
+    });
+
+    podium.innerHTML = items.join('');
+  }
+
+  // ── Render list (rank 4+) ──────────────────────────────
+  function renderList(data, cat) {
+    const list = document.getElementById('lb-list');
+    const meta = CAT_META[cat];
+    const rest = data.slice(3); // rows 4+
+
+    const headerHtml = `
+      <div class="lb-list-header">
+        <div class="lb-col-label">Rank</div>
+        <div class="lb-col-label">User</div>
+        <div class="lb-col-label right">Score</div>
+      </div>
+    `;
+
+    if (rest.length === 0) {
+      list.innerHTML = headerHtml + `<div class="state-container"><div class="state-icon">🎯</div><div class="state-text">Only ${data.length} learner${data.length !== 1 ? 's' : ''} so far</div></div>`;
+      return;
+    }
+
+    const rowsHtml = rest.map(entry => {
+      const score = entry.scores[meta.key];
+      const isMe  = entry.username === currentUsername;
+
+      return `
+        <div class="lb-row ${isMe ? 'is-me' : ''}">
+          <div class="lb-rank ${rankClass(entry.rank)}">${rankEmoji(entry.rank)}</div>
+          <div class="lb-user">
+            <div class="lb-avatar" style="background:${avatarColor(entry.username)}">${initials(entry.username)}</div>
+            <div class="lb-name-col">
+              <div class="lb-username">
+                ${entry.username}
+                ${isMe ? '<span class="lb-you-badge">YOU</span>' : ''}
+              </div>
+            </div>
+          </div>
+          <div class="lb-score-col">
+            <span class="lb-score ${meta.scoreClass}">${formatScore(score, cat)}</span>
+            <span class="lb-score-unit">${meta.unit}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    list.innerHTML = headerHtml + rowsHtml;
+  }
+
+  // ── Render all ─────────────────────────────────────────
+  function renderAll(data) {
+    renderPodium(data, currentCat);
+    renderList(data, currentCat);
+  }
+
+  // ── Update hero stats ──────────────────────────────────
+  function updateHeroStats(data) {
+    const el = (id) => document.getElementById(id);
+    el('stat-total-users').textContent = data.length;
+
+    const topStreak = data.reduce((max, e) => Math.max(max, e.scores.streak), 0);
+    el('stat-top-streak').textContent = topStreak + 'd';
+
+    const topPomo = data.reduce((max, e) => Math.max(max, e.scores.pomodoro), 0);
+    el('stat-top-pomo').textContent = topPomo;
+  }
+
+  // ── Update last refreshed ──────────────────────────────
+  function updateLastUpdated() {
+    const now = new Date();
+    const t   = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const el  = document.getElementById('last-updated');
+    if (el) el.textContent = 'Updated ' + t;
+  }
+
+  // ── Fetch leaderboard data ─────────────────────────────
+  async function fetchLeaderboard(cat) {
+    try {
+      const res = await fetch(`${API}/api/leaderboard?category=${cat}&limit=50`, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+
+      currentData = json.data || [];
+      renderAll(currentData);
+      updateHeroStats(currentData);
+      updateLastUpdated();
+    } catch (err) {
+      console.error('Leaderboard fetch error:', err);
+      document.getElementById('podium').innerHTML = `
+        <div class="state-container">
+          <div class="state-icon">⚠️</div>
+          <div class="state-text">Could not load leaderboard.<br>Server may be waking up — try refreshing.</div>
+        </div>`;
+      document.getElementById('lb-list').innerHTML = '';
+    }
+  }
+
+  // ── Fetch my rank ──────────────────────────────────────
+  async function fetchMyRank() {
+    try {
+      const res = await fetch(`${API}/api/leaderboard/me`, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) return; // not logged in — silently skip
+      const json = await res.json();
+      if (!json.success) return;
+
+      const { username, ranks, scores, totalUsers } = json.data;
+      currentUsername = username;
+
+      const fmt = (n) => n ? '#' + n : '—';
+      document.getElementById('my-rank-allround').textContent  = fmt(ranks.allround);
+      document.getElementById('my-rank-streak').textContent    = fmt(ranks.streak);
+      document.getElementById('my-rank-progress').textContent  = fmt(ranks.progress);
+      document.getElementById('my-rank-pomodoro').textContent  = fmt(ranks.pomodoro);
+
+      document.getElementById('my-rank-card').classList.add('visible');
+
+      // Re-render list to highlight "you"
+      renderAll(currentData);
+    } catch (_) {
+      // Not logged in — no rank card shown
+    }
+  }
+
+  // ── Public: refresh ────────────────────────────────────
+  function refresh() {
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+
+    // Clear current display
+    document.getElementById('podium').innerHTML = `<div class="state-container"><div class="dot-loader"><span></span><span></span><span></span></div></div>`;
+    document.getElementById('lb-list').innerHTML = `<div class="state-container"><div class="dot-loader"><span></span><span></span><span></span></div></div>`;
+
+    Promise.all([fetchLeaderboard(currentCat), fetchMyRank()])
+      .finally(() => {
+        btn.classList.remove('spinning');
+      });
+  }
+
+  // ── Public: switchTab ──────────────────────────────────
+  // (already defined above)
+
+  // ── Init ───────────────────────────────────────────────
+  function init() {
+    // Set default active tab
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === currentCat);
+    });
+
+    // Load data
+    fetchLeaderboard(currentCat);
+    fetchMyRank();
+  }
+
+  // Wait for DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  return { switchTab, refresh };
+})();
+</script>
+</body>
+</html>

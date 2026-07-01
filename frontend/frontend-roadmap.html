@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+<title>Frontend Visual Roadmap</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg0:#05050f;--bg1:#0a0a18;--bg2:#0c0c1a;--bg3:#12122a;
+    --t1:#f0f0ff;--t2:#8080a8;
+    --c1:#f59e0b;--c2:#3b82f6;--c3:#a855f7;--c4:#f97316;--c5:#8080a8;
+    --mono:'Courier New',monospace;
+  }
+  html,body{height:100%;background:var(--bg0);color:var(--t1);font-family:system-ui,sans-serif;overflow:hidden;}
+
+  /* ── Layout ── */
+  #app{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+
+  /* ── Header ── */
+  #hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:var(--bg2);
+    border-bottom:2px solid transparent;
+    border-image:linear-gradient(90deg,transparent,#6366f1,transparent) 1;
+    flex-shrink:0;position:sticky;top:0;z-index:50;
+  }
+  #hdr-back{
+    display:flex;align-items:center;gap:5px;
+    background:none;border:none;color:var(--t2);
+    font-size:13px;cursor:pointer;padding:4px 8px;
+    border-radius:6px;font-family:var(--mono);
+  }
+  #hdr-back:hover{background:rgba(99,102,241,.1);color:var(--t1);}
+  #hdr-title{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--c1);}
+  #hdr-pill{
+    background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);
+    border-radius:999px;color:#a5b4fc;font-family:var(--mono);
+    font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap;
+  }
+
+  /* ── Legend ── */
+  #legend{
+    display:flex;align-items:center;gap:8px 12px;padding:8px 14px;
+    background:var(--bg1);border-bottom:1px solid rgba(99,102,241,.1);
+    overflow-x:auto;scrollbar-width:none;flex-shrink:0;flex-wrap:wrap;
+  }
+  #legend::-webkit-scrollbar{display:none;}
+  .leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2);white-space:nowrap;font-family:var(--mono);}
+  .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .leg-dot.green{background:#10b981;}
+  .leg-dot.blue{background:#3b82f6;}
+  .leg-dot.purple{background:#a855f7;}
+  .leg-dot.orange{background:#f97316;}
+  .leg-dot.dashed{border:1.5px dashed #8080a8;background:transparent;}
+
+  /* ── Hint bar ── */
+  #hint{
+    text-align:center;padding:6px;font-size:10px;color:var(--t2);
+    font-family:var(--mono);background:rgba(99,102,241,.04);
+    border-bottom:1px solid rgba(99,102,241,.08);flex-shrink:0;letter-spacing:.5px;
+  }
+
+  /* ── Graph scroll area ── */
+  #graph{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:12px 12px 80px;-webkit-overflow-scrolling:touch;
+    position:relative;
+  }
+
+  /* ── SVG overlay ── */
+  .svg-layer{position:absolute;top:0;left:0;pointer-events:none;z-index:1;overflow:visible;}
+
+  /* ── Section label ── */
+  .sec-label{
+    display:flex;align-items:center;gap:8px;margin:20px 0 10px;
+    position:relative;z-index:2;
+  }
+  .sec-num{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--c1);letter-spacing:1px;}
+  .sec-title{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t2);letter-spacing:1.2px;}
+  .sec-line{flex:1;height:1px;background:rgba(99,102,241,.15);}
+  .sec-prog{font-family:var(--mono);font-size:9px;color:rgba(99,102,241,.6);}
+
+  /* ── Section block ── */
+  .sec-block{display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;}
+  .trunk-row{display:flex;justify-content:center;width:100%;}
+  .connector-wrap{display:flex;justify-content:center;width:100%;}
+  .v-line{width:2px;background:rgba(99,102,241,.15);}
+
+  /* ── Trunk node ── */
+  .trunk{
+    position:relative;border-radius:10px;cursor:pointer;
+    padding:10px 18px 12px;text-align:center;
+    min-width:160px;max-width:260px;width:auto;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:transform .12s,box-shadow .15s;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  .trunk:active{transform:scale(.97);}
+  .trunk-label{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.3px;line-height:1.3;}
+  .trunk-time{font-family:var(--mono);font-size:9px;color:rgba(99,102,241,.55);margin-top:1px;}
+  .exp-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;}
+  .expand-dot{
+    width:24px;height:24px;border-radius:50%;
+    background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .25s,background .15s;
+    font-size:12px;color:var(--c1);line-height:1;
+  }
+  .expand-dot.open{transform:rotate(180deg);background:rgba(245,158,11,.22);}
+
+  /* ── Children grid ── */
+  .children-wrap{
+    display:none;
+    flex-direction:row;gap:10px;width:100%;
+    margin-top:10px;justify-content:center;
+    position:relative;z-index:2;
+    box-sizing:border-box;
+    opacity:0;transform:translateY(-8px);
+    transition:opacity .22s ease,transform .22s ease;
+  }
+  .children-wrap.open{
+    opacity:1;transform:translateY(0);
+  }
+  .child-col{display:flex;flex-direction:column;gap:8px;flex:1;max-width:calc(50% - 5px);}
+  .child-col.left{align-items:flex-end;}
+  .child-col.right{align-items:flex-start;}
+
+  /* ── Child node ── */
+  .child{
+    position:relative;border-radius:8px;cursor:pointer;
+    padding:7px 12px;min-width:100px;max-width:160px;
+    width:100%;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:transform .12s,box-shadow .15s;
+    -webkit-tap-highlight-color:transparent;user-select:none;
+  }
+  .child:active{transform:scale(.96);}
+  .child-label{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--t1);line-height:1.3;letter-spacing:.2px;}
+
+  /* ── Congrats node ── */
+  .node-congrats{
+    background:linear-gradient(135deg,#051a10,#0f0520)!important;
+    border:2px solid #10b981!important;
+    box-shadow:0 0 20px rgba(16,185,129,.2),0 0 40px rgba(99,102,241,.1)!important;
+    padding:14px 24px 16px!important;
+  }
+  .node-congrats .trunk-label{
+    background:linear-gradient(90deg,#10b981,#6366f1);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;font-size:15px!important;
+  }
+
+  /* ── Status badge ── */
+  .node-status-badge{position:absolute;top:4px;right:4px;z-index:3;pointer-events:none;}
+  .done-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;
+    background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.5);
+    border-radius:50%;color:#6ee7b7;font-size:9px;font-weight:800;
+    font-family:var(--mono);
+  }
+  .skip-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;
+    background:rgba(128,128,168,.12);border:1px solid rgba(128,128,168,.3);
+    border-radius:50%;color:#8080a8;font-size:9px;
+  }
+  .progress-ring{
+    display:inline-block;width:14px;height:14px;
+    border:2px solid rgba(99,102,241,.2);border-top-color:#6366f1;
+    border-radius:50%;animation:spin 1.2s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ── Node states ── */
+  .node.node-done{border-color:rgba(16,185,129,.6)!important;background:rgba(16,185,129,.05)!important;}
+  .node.node-progress{box-shadow:0 0 0 2px rgba(99,102,241,.3),0 0 12px rgba(99,102,241,.15)!important;}
+  .node.node-skip{opacity:.45;filter:saturate(.3);}
+
+  /* ── Bottom progress bar ── */
+  #prog-bar-wrap{height:3px;background:rgba(99,102,241,.1);flex-shrink:0;}
+  #prog-bar-fill{height:100%;background:linear-gradient(90deg,#6366f1,#10b981);width:0%;transition:width .4s ease;}
+
+  /* ── Overlay + Sheet ── */
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  #overlay.show{opacity:1;pointer-events:all;}
+  #sheet{
+    position:fixed;bottom:0;left:0;right:0;z-index:210;
+    background:var(--bg2);border-top:1px solid rgba(99,102,241,.25);
+    border-radius:16px 16px 0 0;max-height:85vh;
+    overflow-y:auto;transform:translateY(100%);
+    transition:transform .3s cubic-bezier(.32,.72,0,1);
+    padding-bottom:env(safe-area-inset-bottom,12px);
+  }
+  #sheet.open{transform:translateY(0);}
+  #sheet::-webkit-scrollbar{width:3px;}
+  #sheet::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+
+  .sheet-handle{width:36px;height:4px;background:rgba(99,102,241,.3);border-radius:2px;margin:10px auto 0;}
+  .sheet-top{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px 0;gap:12px;}
+  .sheet-meta{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .sheet-close{
+    background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;
+  }
+  .sheet-close:hover{color:var(--t1);}
+  .diff-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;}
+  .diff-badge.beginner{background:rgba(16,185,129,.15);color:#6ee7b7;}
+  .diff-badge.intermediate{background:rgba(59,130,246,.15);color:#93c5fd;}
+  .diff-badge.advanced{background:rgba(168,85,247,.15);color:#d8b4fe;}
+  .diff-badge.optional{background:rgba(128,128,168,.15);color:#8080a8;}
+  .sheet-title{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--t1);margin-top:4px;line-height:1.2;}
+  .sheet-time-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
+    border-radius:20px;padding:3px 10px;margin-top:4px;
+    font-family:var(--mono);font-size:10px;color:#a5b4fc;
+  }
+  .sheet-body{padding:14px 16px 8px;}
+  .sec-lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--c1);margin:14px 0 6px;text-transform:uppercase;}
+  .sheet-why{font-size:13px;color:#8080a8;line-height:1.65;}
+  .sheet-learn{list-style:none;display:flex;flex-direction:column;gap:5px;}
+  .sheet-learn li{font-size:12px;color:#c8c8e8;padding:5px 0 5px 12px;border-left:2px solid rgba(99,102,241,.3);line-height:1.5;}
+  .sheet-prereq{font-size:12px;color:#8080a8;line-height:1.5;}
+  .practice-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .link-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:6px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.3);
+    background:rgba(99,102,241,.08);color:#a5b4fc;
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    cursor:pointer;transition:background .15s;
+  }
+  .link-btn:hover{background:rgba(99,102,241,.18);color:var(--t1);}
+  .link-btn.lc{border-color:rgba(255,161,22,.3);background:rgba(255,161,22,.07);color:#fbbf24;}
+  .link-btn.cf{border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07);color:#93c5fd;}
+  .link-btn.yt{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#fca5a5;}
+  .link-btn.docs{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.07);color:#6ee7b7;}
+  .status-row{display:flex;gap:8px;margin-top:16px;padding-bottom:10px;}
+  .st-btn{
+    flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(99,102,241,.2);
+    background:rgba(99,102,241,.06);color:var(--t2);
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    cursor:pointer;text-align:center;transition:all .15s;
+  }
+  .st-btn:hover{border-color:rgba(99,102,241,.4);color:var(--t1);}
+  .st-btn.active-done{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);color:#6ee7b7;}
+  .st-btn.active-progress{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.5);color:#a5b4fc;}
+  .st-btn.active-skip{background:rgba(128,128,168,.12);border-color:rgba(128,128,168,.4);color:#8080a8;}
+
+  /* ── Toast ── */
+  #toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:rgba(20,20,40,.95);border:1px solid rgba(99,102,241,.3);
+    border-radius:8px;padding:8px 16px;
+    font-family:var(--mono);font-size:12px;color:#a5b4fc;
+    z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <button id="hdr-back" onclick="window.history.length>1?history.back():window.location.href='index.html'">← Back</button>
+    <div id="hdr-title">FRONTEND ROADMAP</div>
+    <div id="hdr-pill">0 / 0 done</div>
+  </div>
+  <div id="legend">
+    <div class="leg-item"><div class="leg-dot green"></div>Foundation</div>
+    <div class="leg-item"><div class="leg-dot blue"></div>Core Skills</div>
+    <div class="leg-item"><div class="leg-dot purple"></div>Frameworks &amp; Tools</div>
+    <div class="leg-item"><div class="leg-dot orange"></div>Advanced / Pro</div>
+    <div class="leg-item"><div class="leg-dot dashed"></div>Optional</div>
+  </div>
+  <div id="hint">TAP main node → expand sub-topics &nbsp;|&nbsp; HOLD main node → view details &nbsp;|&nbsp; TAP sub-node → view details</div>
+  <div id="prog-bar-wrap"><div id="prog-bar-fill"></div></div>
+  <div id="graph"></div>
+</div>
+
+<div id="overlay"></div>
+
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top">
+    <div class="sheet-meta">
+      <div class="diff-badge" id="s-diff"></div>
+      <div class="sheet-title" id="s-title"></div>
+      <div class="sheet-time-badge">⏱ <span id="s-time">—</span></div>
+    </div>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sec-lbl">Why This Matters</div>
+    <div class="sheet-why" id="s-why"></div>
+    <div class="sec-lbl">What You'll Learn</div>
+    <ul class="sheet-learn" id="s-learn"></ul>
+    <div class="sec-lbl">Prerequisites</div>
+    <div class="sheet-prereq" id="s-prereq"></div>
+    <div class="sec-lbl">Practice Problems</div>
+    <div class="practice-row">
+      <button class="link-btn lc" id="s-lc" id="s-lc">🔗 Project</button>
+      <button class="link-btn cf" id="s-cf">📦 MDN / Docs</button>
+    </div>
+    <div class="sec-lbl">Resources</div>
+    <div class="practice-row">
+      <button class="link-btn yt" id="s-yt">▶ YouTube</button>
+      <button class="link-btn docs" id="s-doc">📄 Docs</button>
+    </div>
+    <div class="sec-lbl">Mark Status</div>
+    <div class="status-row">
+      <button class="st-btn" id="sb-done"     onclick="setStatus('done')">✓ Done</button>
+      <button class="st-btn" id="sb-progress" onclick="setStatus('progress')">⚡ In Progress</button>
+      <button class="st-btn" id="sb-skip"     onclick="setStatus('skip')">→ Skip</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function() {
+'use strict';
+
+const LS_KEY = 'frontend_visual_progress';
+let progress  = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+let expanded  = {};
+let activeNode = null;
+const saveProgress = () => localStorage.setItem(LS_KEY, JSON.stringify(progress));
+
+const NODES = [
+
+  // §1 INTERNET & HOW THE WEB WORKS
+  { id:'how-web-works', label:'How the Web Works', section:1, sectionTitle:'Internet & How the Web Works', isMain:true, parent:null, border:'green', difficulty:'BEGINNER', time:'1–2 weeks', whyMatters:'Every frontend developer sends code across a network to be rendered in a browser. Without understanding HTTP, DNS, and the request-response cycle, you cannot debug network errors, optimise load times, or secure your applications. This knowledge is the invisible foundation that makes all other frontend skills meaningful.', learn:['How browsers parse a URL and initiate a TCP connection to a server','The request-response cycle: what happens between typing a URL and seeing a page','Stateless HTTP: why cookies, sessions, and tokens exist to simulate state','HTTP/1.1 vs HTTP/2 vs HTTP/3 and their performance implications','What CDNs are and why they dramatically reduce latency for global users','The role of web servers (Nginx, Apache) versus application servers','How the browser constructs the DOM, CSSOM, and Render Tree from HTML and CSS'], prerequisites:'None — this is the very first stop', youtubeQuery:'how the internet works for beginners web development', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/How_does_the_Internet_work' },
+  { id:'how-browsers-work', label:'How Browsers Work', section:1, sectionTitle:'Internet & How the Web Works', isMain:false, parent:'how-web-works', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'The browser is your runtime environment. Knowing how it parses HTML, builds the DOM, applies CSS, runs JavaScript, and paints pixels helps you write faster, more correct code. Layout thrashing, reflow, and repaint bugs are impossible to fix without this mental model.', learn:['Browser main components: UI, rendering engine, JS engine, networking, storage','Critical Rendering Path: Parse HTML → Build DOM → Parse CSS → Build CSSOM → Render Tree → Layout → Paint','What causes reflow (layout) vs repaint and how to avoid them in JavaScript','JavaScript\'s single-threaded event loop and the call stack','The difference between synchronous and asynchronous execution in browsers','Browser storage types: cookies, sessionStorage, localStorage, IndexedDB','DevTools usage: Network tab, Performance profiler, Elements inspector'], prerequisites:'How the Web Works', youtubeQuery:'how browsers work rendering engine DOM CSSOM explained', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/Performance/How_browsers_work' },
+  { id:'http-https', label:'HTTP & HTTPS', section:1, sectionTitle:'Internet & How the Web Works', isMain:false, parent:'how-web-works', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'HTTP is the protocol your JavaScript uses for every API call. Understanding status codes, headers, methods, and caching directives is essential for debugging fetch errors, implementing auth flows, and building performant apps. HTTPS is non-negotiable for any production site handling user data.', learn:['HTTP methods: GET, POST, PUT, PATCH, DELETE and their semantic meanings','Status codes: 2xx success, 3xx redirect, 4xx client error, 5xx server error','Request and response headers: Content-Type, Authorization, Cache-Control, CORS','How TLS/SSL works and why HTTPS prevents man-in-the-middle attacks','HTTP caching: ETag, Last-Modified, Cache-Control directives','Cookies: Set-Cookie header, SameSite, HttpOnly, Secure flags','REST principles and how they map to HTTP methods and status codes'], prerequisites:'How the Web Works', youtubeQuery:'HTTP HTTPS explained status codes headers web development', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/HTTP' },
+  { id:'dns-domains', label:'DNS & Domain Names', section:1, sectionTitle:'Internet & How the Web Works', isMain:false, parent:'how-web-works', border:'blue', difficulty:'BEGINNER', time:'2 days', whyMatters:'When you deploy a frontend application, you configure DNS records to make your domain point to your host. Misunderstanding DNS causes deployment failures, broken custom domains, and security vulnerabilities like subdomain takeover.', learn:['How DNS resolves a domain name to an IP address through recursive resolution','DNS record types: A, AAAA, CNAME, MX, TXT and their use cases','TTL (Time To Live) and why DNS changes take time to propagate','Configuring a custom domain on Vercel, Netlify, or GitHub Pages','Subdomains and wildcard DNS records','DNS-based load balancing and failover strategies','Common DNS attacks: DNS spoofing, cache poisoning, and DNSSEC mitigation'], prerequisites:'HTTP & HTTPS', youtubeQuery:'DNS explained domain names how DNS works web', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_domain_name' },
+  { id:'hosting-deployment', label:'Hosting & Deployment', section:1, sectionTitle:'Internet & How the Web Works', isMain:false, parent:'how-web-works', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'A frontend app that lives only on your laptop helps nobody. Learning to deploy your code to the public internet — and understanding the difference between static hosting, CDN delivery, and server-side rendering hosts — is a core professional skill every frontend developer needs from day one.', learn:['Static hosting: uploading HTML/CSS/JS files to Netlify, Vercel, or GitHub Pages','Continuous deployment: connecting a Git repo so every push auto-deploys','Environment variables and why API keys must never be in frontend source code','Build output: what npm run build produces and how to serve it','Preview deployments and branch-based deploy previews for pull requests','Custom domains and HTTPS certificate auto-provisioning via Let\'s Encrypt','The difference between a static site, SPA, SSR app, and which host fits each'], prerequisites:'DNS & Domain Names', youtubeQuery:'deploy frontend website Vercel Netlify GitHub Pages tutorial', docsUrl:'https://docs.netlify.com/get-started/' },
+
+  // §2 HTML FUNDAMENTALS
+  { id:'html', label:'HTML', section:2, sectionTitle:'HTML Fundamentals', isMain:true, parent:null, border:'green', difficulty:'BEGINNER', time:'2–3 weeks', whyMatters:'HTML is the skeleton of every web page. It defines structure, meaning, and accessibility. Modern hiring managers look at HTML quality — improper semantic structure, missing ARIA roles, and broken form validation are instant red flags. Solid HTML is the required foundation for all CSS and JavaScript work.', learn:['Document structure: doctype, html, head, meta, body and what each does','Block vs inline elements and how they affect layout flow','The full set of semantic elements: article, section, nav, main, aside, header, footer','Inline elements: strong, em, span, a, img, button and their correct usage','HTML entities, character encoding, and the charset meta tag','Void elements vs container elements and self-closing tag rules','The id, class, and data-* attributes and when to use each'], prerequisites:'How the Web Works', youtubeQuery:'HTML full course beginners tutorial 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/HTML' },
+  { id:'semantic-html', label:'Semantic HTML', section:2, sectionTitle:'HTML Fundamentals', isMain:false, parent:'html', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'Semantic HTML communicates meaning to browsers, search engines, and assistive technologies. Using div for everything hurts SEO rankings, breaks screen readers, and makes code unmaintainable. Semantic elements are free accessibility improvements.', learn:['Landmark elements: main, nav, aside, header, footer and how screen readers use them','Content sectioning: article vs section vs div — semantic differences','Heading hierarchy: h1–h6 must form a logical outline, not be used for font size','Figure and figcaption for images with captions','Time element with datetime attribute for machine-readable dates','Address element for contact information blocks','Using details and summary for native disclosure/accordion without JavaScript'], prerequisites:'HTML Basics', youtubeQuery:'semantic HTML5 elements tutorial accessibility SEO', docsUrl:'https://developer.mozilla.org/en-US/docs/Glossary/Semantics' },
+  { id:'forms-validation', label:'Forms & Validation', section:2, sectionTitle:'HTML Fundamentals', isMain:false, parent:'html', border:'blue', difficulty:'BEGINNER', time:'4 days', whyMatters:'Forms are the primary way users give data to your app. Broken forms lose customers and revenue. HTML5 native validation catches errors before they hit your server, and properly labelled form controls are essential for keyboard and screen reader users.', learn:['All input types: text, email, password, number, date, file, checkbox, radio, range','The label element associated with its control via for/id or wrapping','Native HTML5 validation: required, minlength, maxlength, pattern, min, max','The novalidate attribute and when to use custom validation instead','fieldset and legend for grouping related controls with accessible labels','The select, option, optgroup, datalist, and textarea elements','Form submission: action, method, enctype for multipart/form-data file uploads'], prerequisites:'Semantic HTML', youtubeQuery:'HTML forms validation tutorial input types complete guide', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Forms' },
+  { id:'accessibility', label:'Accessibility (a11y)', section:2, sectionTitle:'HTML Fundamentals', isMain:false, parent:'html', border:'purple', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Web accessibility is a legal requirement in many countries (ADA, WCAG). Beyond compliance, accessible websites serve 1 billion people with disabilities and dramatically improve UX for everyone through better keyboard support, contrast, and structure.', learn:['WCAG 2.1 four principles: Perceivable, Operable, Understandable, Robust (POUR)','ARIA roles, states, and properties: aria-label, aria-describedby, aria-live','The accessibility tree: how browsers expose semantic info to assistive technologies','Keyboard navigation: focus management, tabindex, focus trapping in modals','Color contrast ratios: 4.5:1 for normal text, 3:1 for large text (WCAG AA)','Testing with screen readers: NVDA, VoiceOver, TalkBack','axe DevTools and Lighthouse for automated accessibility audits'], prerequisites:'Semantic HTML, Forms & Validation', youtubeQuery:'web accessibility a11y WCAG ARIA complete tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Accessibility' },
+  { id:'seo-basics', label:'SEO Basics', section:2, sectionTitle:'HTML Fundamentals', isMain:false, parent:'html', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'SEO determines whether your website is found on Google. Frontend developers are responsible for the technical SEO layer: proper meta tags, structured data, canonical URLs, and fast Core Web Vitals. A technically broken page will never rank, regardless of content quality.', learn:['Meta tags: title, description, og:title, og:image for social sharing cards','Canonical URLs: preventing duplicate content with the rel="canonical" link tag','Structured data with JSON-LD for articles, products, FAQs for rich results','The robots meta tag and robots.txt file for controlling crawler access','Sitemap.xml: how to generate and submit it to Google Search Console','Core Web Vitals: LCP, INP, and CLS and how they affect ranking','SPA SEO challenges and when SSR or static generation is needed'], prerequisites:'Semantic HTML', youtubeQuery:'technical SEO for developers meta tags structured data tutorial', docsUrl:'https://developers.google.com/search/docs/fundamentals/seo-starter-guide' },
+  { id:'html5-apis', label:'HTML5 APIs', section:2, sectionTitle:'HTML Fundamentals', isMain:false, parent:'html', border:'purple', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'HTML5 shipped dozens of browser APIs that replace Flash and native apps. Canvas API for data visualisation, Geolocation for location features, and Drag and Drop for interactive UIs — these capabilities define modern web experiences.', learn:['Canvas API: drawing 2D graphics, animating with requestAnimationFrame','Web Storage: localStorage vs sessionStorage — scope, size limits, and security','Geolocation API: getCurrentPosition, watchPosition, and privacy considerations','History API: pushState and replaceState for SPA client-side routing','Drag and Drop API: draggable, dragover, drop events for interactive UIs','Intersection Observer API: detecting when elements enter the viewport for lazy loading','ResizeObserver and MutationObserver for watching DOM changes efficiently'], prerequisites:'JavaScript Fundamentals', youtubeQuery:'HTML5 APIs Canvas Geolocation Web Storage tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API' },
+
+  // §3 CSS FUNDAMENTALS
+  { id:'css', label:'CSS', section:3, sectionTitle:'CSS Fundamentals', isMain:true, parent:null, border:'green', difficulty:'BEGINNER', time:'3–4 weeks', whyMatters:'CSS is how you turn HTML structure into beautiful, responsive interfaces. Poor CSS skills produce brittle layouts that break on different screen sizes, slow paint performance that frustrates users, and unmaintainable stylesheets. Employers test CSS deeply — many senior roles require live coding CSS challenges.', learn:['Selectors: element, class, id, attribute, pseudo-class (:hover, :nth-child), pseudo-element (::before)','Specificity and cascade: how the browser resolves conflicting styles','The box model: content, padding, border, margin and box-sizing: border-box','Positioning: static, relative, absolute, fixed, sticky and their stacking contexts','Display values: block, inline, inline-block, flex, grid, none','CSS inheritance and which properties inherit by default','Color values: hex, rgb, hsl, oklch and when transparency matters'], prerequisites:'HTML Fundamentals', youtubeQuery:'CSS full course tutorial beginners 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/CSS' },
+  { id:'box-model-layouts', label:'Box Model & Layouts', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'The box model is the engine behind every layout in CSS. Misunderstanding it — especially the difference between content-box and border-box sizing — causes off-by-pixel bugs that waste hours of debugging. Every layout technique builds on this foundation.', learn:['Content, padding, border, margin: what each layer contributes to element dimensions','box-sizing: content-box (default) vs border-box and why border-box is universally preferred','Margin collapse: when vertical margins merge and the rules governing it','overflow: visible, hidden, scroll, auto and clipping contexts','The containing block and how absolute positioning is relative to it','z-index and stacking contexts: when z-index has no effect and why','min-width, max-width, min-height, max-height for responsive containment'], prerequisites:'CSS Basics', youtubeQuery:'CSS box model border-box margin padding layout explained', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/The_box_model' },
+  { id:'flexbox', label:'Flexbox', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'blue', difficulty:'BEGINNER', time:'4 days', whyMatters:'Flexbox solves one-dimensional layout problems that were previously only possible with hacks. Navigation bars, card rows, vertically centred content, and equal-height columns are trivial with Flexbox. It is the most commonly used layout technique in production frontends today.', learn:['Flex container vs flex item: display:flex on parent, flex properties on children','Main axis vs cross axis and how flex-direction changes their orientation','justify-content: distributing items along the main axis','align-items and align-self: aligning items along the cross axis','flex-wrap: creating multi-line flex containers with gap','flex-grow, flex-shrink, flex-basis: the flex shorthand and how items scale','order property for visual reordering without changing DOM order'], prerequisites:'Box Model & Layouts', youtubeQuery:'CSS Flexbox tutorial complete guide 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Flexbox' },
+  { id:'css-grid', label:'CSS Grid', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'blue', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'CSS Grid is the most powerful two-dimensional layout system ever added to CSS. Complex page layouts, dashboards, and magazine-style designs are now pure CSS. Grid and Flexbox are complementary — knowing both makes you a layout expert.', learn:['Defining a grid: grid-template-columns, grid-template-rows with fixed, fr, and auto units','Placing items: grid-column and grid-row with span keyword','Named grid areas with grid-template-areas for readable layout code','The repeat() function, minmax(), and the auto-fill vs auto-fit difference','gap for spacing between tracks','Implicit grid: grid-auto-rows and grid-auto-flow for unexpected items','Subgrid: aligning nested grids to their parent\'s grid lines (CSS Grid Level 2)'], prerequisites:'Flexbox', youtubeQuery:'CSS Grid complete tutorial 2024 layout', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Grids' },
+  { id:'responsive-design', label:'Responsive Design', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'blue', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'Over 60% of web traffic is mobile. A site that looks great on desktop but breaks on phones loses the majority of its users. Responsive design with media queries, fluid typography, and mobile-first methodology is an absolute non-negotiable frontend skill.', learn:['Mobile-first methodology: start with smallest screen, use min-width media queries to scale up','Breakpoints: common values (480, 768, 1024, 1280px) and how to choose custom ones','Fluid layouts with percentage widths and CSS calc() for mixed units','Responsive images: srcset and sizes attributes for serving correct image sizes','Viewport units: vw, vh, vmin, vmax, and the newer svh/dvh for mobile browsers','clamp() for fluid typography: clamp(1rem, 2.5vw, 2rem) scales smoothly','Container queries: the next generation of responsive components with @container'], prerequisites:'CSS Grid, Flexbox', youtubeQuery:'responsive design CSS media queries mobile first tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design' },
+  { id:'css-variables', label:'CSS Variables', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'blue', difficulty:'INTERMEDIATE', time:'2 days', whyMatters:'CSS Custom Properties are how you build maintainable design systems and dark mode support without JavaScript. Changing one variable updates every element that references it. They are scope-aware, cascade through the DOM, and can be manipulated by JavaScript at runtime.', learn:['Declaring custom properties: --color-primary: #3b82f6 on :root or any element','Using variables: color: var(--color-primary, fallback-value)','Variable scoping: overriding variables on child elements for component theming','Dark mode with CSS variables: @media (prefers-color-scheme: dark)','Updating CSS variables from JavaScript: el.style.setProperty()','CSS variables vs Sass variables: cascade and runtime vs compile-time','Building a design token system with CSS variables for a UI component library'], prerequisites:'CSS Fundamentals', youtubeQuery:'CSS custom properties variables tutorial dark mode design tokens', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties' },
+  { id:'css-animations', label:'Animations & Transitions', section:3, sectionTitle:'CSS Fundamentals', isMain:false, parent:'css', border:'purple', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'Animations communicate state changes, guide user attention, and make interfaces feel polished. CSS transitions and animations are GPU-accelerated when using transform and opacity — they do not trigger reflow, making them far more performant than animating width or height.', learn:['CSS transitions: transition property, duration, timing-function, delay shorthand','Easing functions: ease, ease-in, ease-out, ease-in-out, cubic-bezier()','CSS @keyframes animations: from/to and percentage keyframes','Animation properties: name, duration, iteration-count, direction, fill-mode','Performant animation: use transform and opacity only — avoid layout-triggering properties','prefers-reduced-motion: @media query to disable animations for accessibility','The Web Animations API (WAAPI) for JavaScript-controlled CSS animations'], prerequisites:'CSS Fundamentals', youtubeQuery:'CSS animations transitions keyframes tutorial complete guide', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/CSS/animation' },
+
+  // §4 JAVASCRIPT FUNDAMENTALS
+  { id:'javascript', label:'JavaScript', section:4, sectionTitle:'JavaScript Fundamentals', isMain:true, parent:null, border:'green', difficulty:'BEGINNER', time:'4–6 weeks', whyMatters:'JavaScript is the only programming language that runs natively in every browser. It is the engine of interactivity, dynamic content, and client-side logic. Mastering the fundamentals deeply — closures, prototypes, the event loop — separates junior developers who copy-paste from senior developers who architect systems.', learn:['Variables: var (function-scoped), let (block-scoped), const (immutable binding)','Data types: string, number, boolean, null, undefined, symbol, bigint, object','Functions: declarations, expressions, arrow functions, and their this binding differences','Scope chain, closures, and the IIFE pattern for encapsulation','Prototype chain and how JavaScript\'s object inheritance works','Destructuring: const { a, b } = obj; const [x, y] = arr; with defaults and aliases','Spread and rest operators: copying arrays/objects and collecting function arguments'], prerequisites:'HTML & CSS Fundamentals', youtubeQuery:'JavaScript full course beginners 2024 tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/JavaScript' },
+  { id:'dom-manipulation', label:'DOM Manipulation', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'blue', difficulty:'BEGINNER', time:'1 week', whyMatters:'The DOM is the JavaScript interface to your HTML. Understanding how to query, modify, create, and delete elements — and how event delegation works — is essential before using any framework. React, Vue, and Angular all abstract the DOM, but debugging their output requires knowing what the DOM actually is.', learn:['Querying the DOM: getElementById, querySelector, querySelectorAll','Traversing: parentElement, children, nextElementSibling, closest()','Modifying elements: textContent, innerHTML, classList.add/remove/toggle, setAttribute','Creating and inserting nodes: createElement, appendChild, insertAdjacentHTML, replaceWith','Event listeners: addEventListener, removeEventListener, preventDefault, stopPropagation','Event delegation: attaching one listener to a parent to handle all children','DOMContentLoaded vs load events and why the difference matters for script placement'], prerequisites:'JavaScript Basics', youtubeQuery:'JavaScript DOM manipulation tutorial beginner to advanced', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model' },
+  { id:'es6-features', label:'ES6+ Features', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'blue', difficulty:'BEGINNER', time:'1 week', whyMatters:'Modern JavaScript (ES2015+) is dramatically more expressive and readable than ES5. Every production codebase and every framework uses arrow functions, destructuring, template literals, and optional chaining. Not knowing ES6+ syntax makes you unable to read or write modern JavaScript code.', learn:['Arrow functions: () => {} syntax, implicit return, and lexical this binding','Template literals: `Hello ${name}` and tagged template literals','Destructuring assignment for objects and arrays with defaults and renaming','Spread (...) and rest (...) operators in function calls and object/array literals','Optional chaining ?. and nullish coalescing ?? for safe property access','Classes: constructor, methods, static, extends, super for OOP in JavaScript','Symbols, WeakMap, WeakSet, Proxy, and Reflect for advanced metaprogramming'], prerequisites:'JavaScript Basics', youtubeQuery:'ES6 modern JavaScript features tutorial arrow functions destructuring', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide' },
+  { id:'async-js', label:'Async JavaScript', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'purple', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Almost every real frontend app communicates with servers — all asynchronous operations. Understanding the event loop prevents you from writing code that blocks the UI. Async/await is the modern syntax every professional developer must know fluently.', learn:['The event loop: call stack, Web APIs, callback queue, and microtask queue','Callbacks: the original async pattern and why nested callbacks create "callback hell"','Promises: new Promise(), .then(), .catch(), .finally() chaining','Promise combinators: Promise.all, Promise.allSettled, Promise.race, Promise.any','async/await: syntactic sugar over promises for sequential-looking async code','Error handling in async code: try/catch with await vs .catch() on promises','The difference between microtasks (promises) and macrotasks (setTimeout) in execution order'], prerequisites:'ES6+ Features', youtubeQuery:'JavaScript async await promises event loop explained tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous' },
+  { id:'fetch-ajax', label:'Fetch API & AJAX', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'blue', difficulty:'BEGINNER', time:'4 days', whyMatters:'Virtually every web application fetches data from an API. The Fetch API is the standard way to make HTTP requests from JavaScript. Understanding how to send requests, handle responses, manage errors, and deal with CORS errors is a daily task for frontend developers.', learn:['fetch() basics: GET requests, reading the Response object, response.json(), response.text()','POST requests with fetch: setting method, headers Content-Type, and JSON.stringify body','Error handling: fetch only rejects on network failure, not 4xx/5xx — check response.ok','CORS: why browser blocks cross-origin requests and how the server must allow them','Cancelling fetch requests with AbortController and AbortSignal','Axios as a fetch alternative: interceptors, automatic JSON parsing, better error handling','Request and Response streaming for handling large payloads efficiently'], prerequisites:'Async JS', youtubeQuery:'JavaScript Fetch API AJAX tutorial REST API complete guide', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API' },
+  { id:'error-handling', label:'Error Handling & Debugging', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'blue', difficulty:'INTERMEDIATE', time:'3 days', whyMatters:'Professional JavaScript code anticipates failure and handles it gracefully. Unhandled errors in React components unmount the entire tree. Knowing how to catch, log, and report errors — and how to use DevTools debugger effectively — is what separates professional from amateur code.', learn:['try/catch/finally: when to use each block and what happens during unwinding','Custom error classes: class NetworkError extends Error for typed error handling','window.onerror and window.onunhandledrejection for global error catching','Error boundaries in React: componentDidCatch and the ErrorBoundary pattern','Chrome DevTools debugger: breakpoints, conditional breakpoints, watch expressions','console methods: log, warn, error, table, group, time — used correctly','Source maps: how to debug minified production code by mapping back to source'], prerequisites:'Async JS', youtubeQuery:'JavaScript error handling debugging DevTools tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling' },
+  { id:'js-modules', label:'Modules (import/export)', section:4, sectionTitle:'JavaScript Fundamentals', isMain:false, parent:'javascript', border:'blue', difficulty:'INTERMEDIATE', time:'3 days', whyMatters:'JavaScript modules are how you split a large codebase into maintainable, reusable files. Every React component, utility function, and API service lives in a module. Understanding named vs default exports, tree shaking, and CommonJS vs ES modules prevents hours of bundler confusion.', learn:['ES module syntax: export, export default, import, import * as, import()','Named vs default exports: when to use each and why mixing can cause confusion','Dynamic import(): code splitting and lazy loading components on demand','CommonJS (require/module.exports) vs ES Modules: the historical split in Node.js','Module resolution: how bundlers find files from bare imports like \'react\'','Tree shaking: how bundlers eliminate dead code from imported but unused exports','The import.meta object: accessing module URL and environment variables in ES modules'], prerequisites:'ES6+ Features', youtubeQuery:'JavaScript modules import export tutorial ES modules explained', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules' },
+
+  // §5 VERSION CONTROL & TOOLING
+  { id:'version-control', label:'Version Control & Tooling', section:5, sectionTitle:'Version Control & Tooling', isMain:true, parent:null, border:'blue', difficulty:'BEGINNER', time:'2–3 weeks', whyMatters:'Version control with Git is the single most universal skill in software development — used by 100% of professional teams. Without it, you cannot collaborate, review code, roll back mistakes, or work on features in parallel. Paired with npm and bundlers, these skills transform your code into a professional-grade project.', learn:['Git fundamentals: init, add, commit, log, diff — tracking changes to files','Branching and merging: creating feature branches, merging, and resolving conflicts','Remote repositories: git remote, push, pull, fetch, and clone','GitHub workflow: forking, pull requests, code review, and merge strategies','npm basics: package.json, npm install, npm run scripts, node_modules','Bundlers: what Vite and Webpack do — transforming, bundling, and code splitting','Linters and formatters: ESLint for code quality, Prettier for consistent formatting'], prerequisites:'JavaScript Fundamentals', youtubeQuery:'Git GitHub tutorial complete beginner 2024', docsUrl:'https://git-scm.com/doc' },
+  { id:'git-github', label:'Git & GitHub', section:5, sectionTitle:'Version Control & Tooling', isMain:false, parent:'version-control', border:'blue', difficulty:'BEGINNER', time:'1 week', whyMatters:'Git is how all professional code is managed. GitHub is where all professional code lives. Employers look at your GitHub profile. Pull requests are how all code is reviewed and merged in teams. Not knowing Git is a career-stopper for a frontend developer.', learn:['Core Git commands: init, add, commit, status, log, diff, checkout, reset, stash','Branching: git branch, checkout -b, merge, rebase — and when to use each','Merge conflicts: reading conflict markers, using a merge tool, resolving manually','git rebase vs git merge: linear history vs preserving branch topology','GitHub-specific: forks, pull requests, issues, GitHub Actions, branch protection rules','git bisect for finding exactly which commit introduced a bug','Conventional commits: feat:, fix:, docs:, chore: — standardised commit messages'], prerequisites:'Basic terminal/command line skills', youtubeQuery:'Git and GitHub tutorial for beginners complete 2024', docsUrl:'https://docs.github.com/en/get-started' },
+  { id:'npm-packages', label:'npm & Package Managers', section:5, sectionTitle:'Version Control & Tooling', isMain:false, parent:'version-control', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'npm is how you install and manage the thousands of open-source libraries that power modern frontend development. Understanding package.json scripts, semantic versioning, and the difference between dependencies and devDependencies prevents common pitfalls like shipping dev tools in production.', learn:['package.json: name, version, scripts, dependencies, devDependencies fields','npm install, npm install --save-dev, npm ci, npm update, npm audit','Semantic versioning: major.minor.patch and the ^ tilde ~ range operators','package-lock.json: why it exists and why you must commit it to Git','npx for running package binaries without global install','Yarn and pnpm as npm alternatives: workspaces, stricter dependency resolution','npm scripts: chaining commands with && and npm-run-all for parallel tasks'], prerequisites:'Git & GitHub', youtubeQuery:'npm tutorial package.json package manager beginner', docsUrl:'https://docs.npmjs.com/' },
+  { id:'bundlers', label:'Webpack / Vite', section:5, sectionTitle:'Version Control & Tooling', isMain:false, parent:'version-control', border:'purple', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'Bundlers transform your source code — JSX, TypeScript, ES modules, SCSS — into optimised JavaScript and CSS that browsers can run. Understanding what your bundler does demystifies build errors, optimises bundle size, and lets you configure code splitting for faster load times.', learn:['What bundlers do: dependency graph resolution, transformation, tree shaking, code splitting','Vite: blazing fast dev server using native ES modules, production build with Rollup','Webpack: entry, output, loaders, plugins, and webpack.config.js','HMR (Hot Module Replacement): updating modules in the browser without full reload','Code splitting: dynamic import() and route-based splitting for faster initial load','Bundle analysis: webpack-bundle-analyzer or rollup-plugin-visualizer to find bloat','Environment variables in bundlers: .env files, import.meta.env (Vite), process.env (Webpack)'], prerequisites:'npm & Package Managers', youtubeQuery:'Vite tutorial bundler webpack for beginners 2024', docsUrl:'https://vitejs.dev/guide/' },
+  { id:'linting-formatting', label:'Linting & Formatting', section:5, sectionTitle:'Version Control & Tooling', isMain:false, parent:'version-control', border:'blue', difficulty:'BEGINNER', time:'2 days', whyMatters:'Linting and formatting are non-negotiable in professional teams. ESLint catches bugs before they reach users. Prettier ends all debates about code style. Husky runs them automatically on every commit. These tools save thousands of hours of code review time.', learn:['ESLint: installing, creating .eslintrc.js, using extends (eslint:recommended, airbnb)','Writing custom ESLint rules and understanding rule severity: off, warn, error','Prettier: formatting on save in VS Code, .prettierrc configuration options','ESLint vs Prettier: they solve different problems — use both with eslint-config-prettier','Husky pre-commit hooks: running lint-staged to lint only changed files before commits','EditorConfig (.editorconfig): consistent indentation across editors for all team members','Oxlint and Biome as fast Rust-based alternatives to ESLint and Prettier'], prerequisites:'npm & Package Managers', youtubeQuery:'ESLint Prettier setup tutorial VS Code 2024', docsUrl:'https://eslint.org/docs/latest/use/getting-started' },
+  { id:'devtools', label:'Browser DevTools', section:5, sectionTitle:'Version Control & Tooling', isMain:false, parent:'version-control', border:'blue', difficulty:'BEGINNER', time:'3 days', whyMatters:'Browser DevTools is your primary debugging environment. Inspecting network requests, profiling JavaScript performance, debugging CSS layout, and testing storage — all without leaving the browser. Power users spend as much time in DevTools as in their code editor.', learn:['Elements panel: inspecting and live-editing the DOM and CSS in real time','Console panel: running JavaScript snippets, reading logs, and the $0 shortcut','Network panel: inspecting requests, timing waterfalls, throttling connection speed','Sources panel: setting breakpoints, stepping through code, watching variables','Performance panel: recording and analysing CPU flame charts and layout events','Application panel: inspecting cookies, localStorage, sessionStorage, service workers','Lighthouse: running automated audits for performance, accessibility, SEO, and PWA'], prerequisites:'JavaScript Basics', youtubeQuery:'Chrome DevTools tutorial complete guide for beginners', docsUrl:'https://developer.chrome.com/docs/devtools/' },
+
+  // §6 CSS FRAMEWORKS & PREPROCESSORS
+  { id:'css-frameworks', label:'CSS Frameworks', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:true, parent:null, border:'blue', difficulty:'INTERMEDIATE', time:'2–3 weeks', whyMatters:'CSS frameworks and preprocessors dramatically accelerate UI development. Tailwind CSS has become the dominant approach in 2024, used by most new React and Next.js projects. Sass unlocks variables and mixins. Knowing these tools is expected for any mid-level frontend role.', learn:['Utility-first CSS: applying design directly in HTML with atomic classes','Component abstraction: extracting repeated utility class patterns into reusable components','Preprocessors: how Sass/SCSS extends CSS with variables, nesting, and mixins','CSS-in-JS: colocating styles with components in React with styled-components','Design system integration: using component libraries (MUI, shadcn/ui) vs raw CSS','PurgeCSS / Tailwind JIT: removing unused styles for minimal production bundles','Choosing the right approach: utility-first vs CSS modules vs CSS-in-JS for your project'], prerequisites:'CSS Fundamentals, JavaScript Fundamentals', youtubeQuery:'CSS frameworks Tailwind CSS Bootstrap tutorial 2024', docsUrl:'https://tailwindcss.com/docs/installation' },
+  { id:'tailwind', label:'Tailwind CSS', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:false, parent:'css-frameworks', border:'blue', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Tailwind CSS is the most adopted CSS framework in 2024, used by Vercel, GitHub, and thousands of startups. Its utility-first approach eliminates CSS file bloat, enforces design system constraints, and makes responsive design trivially easy with intuitive prefix syntax like sm:flex lg:grid.', learn:['Installation and configuration: tailwind.config.js, content paths, theme extension','Core concepts: utility classes map directly to single CSS properties','Responsive prefixes: sm: md: lg: xl: 2xl: for mobile-first responsive design','State variants: hover: focus: active: disabled: for interactive states','Dark mode: dark: prefix with class or media strategy','Customising the theme: extending colors, spacing, fonts in tailwind.config.js','shadcn/ui and other component libraries built on Tailwind CSS'], prerequisites:'CSS Fundamentals', youtubeQuery:'Tailwind CSS full course tutorial 2024 beginner to advanced', docsUrl:'https://tailwindcss.com/docs' },
+  { id:'bootstrap', label:'Bootstrap', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:false, parent:'css-frameworks', border:'blue', difficulty:'BEGINNER', time:'4 days', whyMatters:'Bootstrap remains the most widely used CSS framework in legacy codebases and enterprise applications. Millions of websites use it. Understanding its grid system, component API, and JavaScript plugins prepares you to work on existing Bootstrap projects and migrate them to modern approaches.', learn:['Bootstrap grid system: container, row, col-* and the 12-column layout','Responsive breakpoints: xs, sm, md, lg, xl, xxl and col-md-6 syntax','Bootstrap utility classes: d-, p-, m-, text-, bg- and their responsive variants','Bootstrap components: Navbar, Modal, Card, Alert, Toast, Dropdown usage','Bootstrap JavaScript plugins: data attributes vs JavaScript API','Customising Bootstrap via Sass variables before compile','Bootstrap 5 vs Bootstrap 4: no jQuery dependency, updated utilities, RTL support'], prerequisites:'CSS Fundamentals', youtubeQuery:'Bootstrap 5 tutorial complete beginner guide 2024', docsUrl:'https://getbootstrap.com/docs/' },
+  { id:'sass-scss', label:'Sass / SCSS', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:false, parent:'css-frameworks', border:'purple', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'Sass was the original solution to CSS\'s lack of variables, nesting, and functions. Many large codebases and component libraries use SCSS. Even with CSS Custom Properties available, Sass mixins and functions provide compile-time logic that runtime CSS cannot replicate.', learn:['SCSS syntax vs Sass (indented) syntax: why SCSS is universal','Variables: $primary-color: #3b82f6 and their scope rules','Nesting: writing parent-child selectors without repetition','@mixin and @include: reusable style blocks with optional parameters','@function: returning values from computed styles (e.g. rem() conversion function)','@extend and %placeholder selectors for sharing style rules','Sass partials: _variables.scss, @use, @forward for modular stylesheets'], prerequisites:'CSS Fundamentals', youtubeQuery:'Sass SCSS tutorial complete guide 2024 CSS preprocessor', docsUrl:'https://sass-lang.com/documentation/' },
+  { id:'css-in-js', label:'CSS-in-JS', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:false, parent:'css-frameworks', border:'purple', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'CSS-in-JS solves component scoping and dynamic styling in React applications. Styled-components and Emotion allow you to write real CSS inside JavaScript, with full access to component props for conditional styles. Understanding runtime vs zero-runtime trade-offs is important as the ecosystem evolves.', learn:['styled-components: tagged template literals for component-scoped CSS','Conditional styling with props: ${props => props.primary && "background: blue"}','Theme provider and the ThemeProvider pattern for design tokens','CSS Modules: file.module.css for locally scoped class names without a runtime','Emotion: a lightweight alternative with the css prop and global styles','Runtime vs zero-runtime CSS-in-JS: performance implications for SSR','Vanilla Extract: type-safe, zero-runtime CSS-in-TypeScript for modern projects'], prerequisites:'React.js, CSS Fundamentals', youtubeQuery:'styled-components CSS in JS tutorial React 2024', docsUrl:'https://styled-components.com/docs' },
+  { id:'postcss', label:'PostCSS', section:6, sectionTitle:'CSS Frameworks & Preprocessors', isMain:false, parent:'css-frameworks', border:'dashed', difficulty:'INTERMEDIATE', time:'2 days', whyMatters:'PostCSS runs under the hood of Tailwind CSS and many other tools. Understanding its plugin architecture explains how Autoprefixer adds vendor prefixes automatically, and how modern CSS syntax can be transpiled for older browsers — the CSS equivalent of Babel.', learn:['PostCSS as a CSS transformation tool: it parses CSS into an AST and transforms it','Autoprefixer: automatically adding -webkit-, -moz- prefixes based on browserslist config','postcss-preset-env: use future CSS syntax today, transpiled for current browsers','stylelint: CSS linting with PostCSS for catching errors and enforcing conventions','Browserslist: .browserslistrc configuring which browsers your CSS must support','Writing a simple PostCSS plugin: traversing the CSS AST and modifying declarations','How Vite and Webpack integrate PostCSS via postcss.config.js'], prerequisites:'CSS Fundamentals, npm & Package Managers', youtubeQuery:'PostCSS tutorial Autoprefixer browserslist explained', docsUrl:'https://postcss.org/docs/' },
+
+  // §7 JAVASCRIPT FRAMEWORKS
+  { id:'js-frameworks', label:'JS Frameworks', section:7, sectionTitle:'JavaScript Frameworks', isMain:true, parent:null, border:'purple', difficulty:'INTERMEDIATE', time:'8–12 weeks', whyMatters:'Modern frontend development is framework-driven. React alone powers over 40% of all websites using a JS framework. Employers expect proficiency in at least one major framework. The component model, reactive state, and virtual DOM introduced by these frameworks fundamentally changed how UIs are built.', learn:['Component-based architecture: breaking UIs into reusable, composable pieces','Declarative rendering: describing what the UI should look like, not how to change it','Virtual DOM: how React and Vue diff trees to batch and minimise real DOM updates','Reactivity systems: React\'s explicit useState hooks vs Vue\'s transparent Proxy-based system','One-way vs two-way data binding and the trade-offs of each approach','SSR vs CSR and when each rendering strategy is appropriate','The ecosystem: each framework has routing, state management, and meta-framework solutions'], prerequisites:'JavaScript Fundamentals, CSS Fundamentals', youtubeQuery:'React tutorial complete beginner 2024', docsUrl:'https://react.dev/' },
+  { id:'react', label:'React.js', section:7, sectionTitle:'JavaScript Frameworks', isMain:false, parent:'js-frameworks', border:'blue', difficulty:'INTERMEDIATE', time:'6–8 weeks', whyMatters:'React is the most in-demand frontend skill in the job market. Its component model, hooks API, and vast ecosystem (Next.js, React Native) make it the de facto standard for production web apps. Facebook, Instagram, Airbnb, Netflix — almost every major tech company uses React.', learn:['JSX: writing HTML-like syntax in JavaScript and how Babel transforms it','Functional components and the rules of hooks: only call at top level, only in React functions','useState for local state, useEffect for side effects and their cleanup functions','useContext for consuming React Context to avoid prop drilling','useRef for mutable values that don\'t trigger re-renders and for DOM element access','useMemo and useCallback for memoising expensive computations and stable references','React Router v6: createBrowserRouter, Route, Link, useNavigate, useParams, Outlet'], prerequisites:'JavaScript ES6+, Async JS', youtubeQuery:'React JS full course tutorial 2024 beginners hooks', docsUrl:'https://react.dev/learn' },
+  { id:'vuejs', label:'Vue.js', section:7, sectionTitle:'JavaScript Frameworks', isMain:false, parent:'js-frameworks', border:'blue', difficulty:'INTERMEDIATE', time:'4–6 weeks', whyMatters:'Vue.js is beloved for its gentle learning curve and excellent documentation. Vue 3\'s Composition API brings it close to React Hooks in power while remaining approachable for teams coming from traditional web development. It powers Laravel Forge, GitLab, and Alibaba.', learn:['Vue 3 Composition API: setup(), ref(), reactive(), computed(), watch()','Single File Components (SFCs): <template>, <script setup>, <style> in one .vue file','Template syntax: v-bind (:), v-on (@), v-model, v-if, v-show, v-for directives','Props and emits: defineProps, defineEmits for parent-child communication','Vue Router: createRouter, RouterView, RouterLink, route params and guards','Pinia for state management: defineStore, state, getters, actions','Nuxt 3: Vue\'s meta-framework for SSR, SSG, and file-based routing'], prerequisites:'JavaScript ES6+', youtubeQuery:'Vue 3 Composition API tutorial complete 2024', docsUrl:'https://vuejs.org/guide/introduction' },
+  { id:'angular', label:'Angular', section:7, sectionTitle:'JavaScript Frameworks', isMain:false, parent:'js-frameworks', border:'purple', difficulty:'ADVANCED', time:'6–8 weeks', whyMatters:'Angular is the framework of choice for large enterprise applications. It includes everything out of the box: routing, HTTP client, forms, and dependency injection. Enterprise companies — banks, insurance firms, large SaaS — use Angular for its strong TypeScript-first approach that scales to hundreds of developers.', learn:['Angular CLI: generating components, services, modules, and running tests','Components: @Component decorator, template syntax, input/output bindings','TypeScript-first: interfaces for data models, strict typing throughout','Dependency injection: services, providers, and the hierarchical injector','Angular Router: Routes array, RouterModule, routerLink, guards, and lazy loading','Angular Forms: template-driven vs reactive forms, FormBuilder, validators','RxJS Observables: pipe, map, switchMap, takeUntil — the foundation of Angular\'s async model'], prerequisites:'TypeScript, JavaScript ES6+', youtubeQuery:'Angular tutorial complete beginners 2024 TypeScript', docsUrl:'https://angular.dev/tutorials' },
+  { id:'nextjs', label:'Next.js', section:7, sectionTitle:'JavaScript Frameworks', isMain:false, parent:'js-frameworks', border:'purple', difficulty:'INTERMEDIATE', time:'4–6 weeks', whyMatters:'Next.js is the most popular React framework and the recommended way to build React apps per the official React documentation. Its App Router enables server components, streaming, and ISR. Used by TikTok, Twitch, and countless startups for production React applications.', learn:['App Router: folder-based routing with page.tsx, layout.tsx, loading.tsx, error.tsx','Server Components vs Client Components: the \'use client\' directive and mental model','Data fetching: async components, fetch with next.revalidate, generateStaticParams','API routes: route.ts files for backend-like handlers co-located with the frontend','Image optimisation: next/image for automatic WebP conversion and lazy loading','Metadata API: generateMetadata function for dynamic SEO meta tags','Deployment on Vercel: zero-config deployment, preview deployments, edge functions'], prerequisites:'React.js', youtubeQuery:'Next.js 14 tutorial complete beginners App Router 2024', docsUrl:'https://nextjs.org/docs' },
+  { id:'svelte', label:'Svelte', section:7, sectionTitle:'JavaScript Frameworks', isMain:false, parent:'js-frameworks', border:'dashed', difficulty:'INTERMEDIATE', time:'3–4 weeks', whyMatters:'Svelte compiles components to vanilla JavaScript at build time, eliminating the virtual DOM and runtime framework overhead. The result is smaller bundles and faster runtime performance. Svelte consistently ranks as the most loved framework in Stack Overflow surveys.', learn:['Svelte\'s compile-time approach: no virtual DOM, direct DOM updates in output','Reactive declarations: $: label for reactive statements that re-run on dependency change','Two-way binding: bind:value for form inputs, bind:this for DOM references','Svelte stores: writable(), readable(), derived() for cross-component state','Component lifecycle: onMount, onDestroy, beforeUpdate, afterUpdate','Transitions and animations: built-in fade, fly, slide directives','SvelteKit: file-based routing, load functions, form actions, and adapter-based deployment'], prerequisites:'JavaScript ES6+, CSS Fundamentals', youtubeQuery:'Svelte tutorial complete 2024 SvelteKit beginners', docsUrl:'https://svelte.dev/tutorial' },
+
+  // §8 STATE MANAGEMENT
+  { id:'state-management', label:'State Management', section:8, sectionTitle:'State Management', isMain:true, parent:null, border:'purple', difficulty:'INTERMEDIATE', time:'3–4 weeks', whyMatters:'As applications grow, managing state across many components becomes complex. Global state solutions — Redux, Zustand, Pinia — solve sharing and synchronising data across an app. Server state (React Query) solves the equally important problem of fetching, caching, and updating API data.', learn:['The state management problem: when local state and prop drilling are no longer sufficient','Unidirectional data flow: action → reducer → store → view is predictable and debuggable','Client state vs server state: component data vs fetched API data have different lifecycles','React Query / TanStack Query: stale-while-revalidate caching strategy','When NOT to use global state: colocate state as close to where it is used as possible','Zustand / Pinia minimal approach vs Redux full architecture for different project sizes','DevTools for state: Redux DevTools, Zustand devtools for time-travel debugging'], prerequisites:'React.js or Vue.js', youtubeQuery:'React state management Redux Zustand React Query tutorial 2024', docsUrl:'https://tanstack.com/query/latest' },
+  { id:'redux', label:'Redux / Redux Toolkit', section:8, sectionTitle:'State Management', isMain:false, parent:'state-management', border:'purple', difficulty:'INTERMEDIATE', time:'2 weeks', whyMatters:'Redux is the most widely known state management library used in countless large React applications. Redux Toolkit eliminated the boilerplate that made Redux painful. Understanding Redux patterns — actions, reducers, selectors — is foundational even if you use Zustand in new projects.', learn:['Redux core: store, actions (type + payload), reducers (pure functions), dispatch','Redux Toolkit: createSlice, createAsyncThunk, configureStore for minimal boilerplate','Immutability in reducers: RTK uses Immer so you can write "mutating" code safely','Selectors: createSelector with Reselect for memoised derived state','RTK Query: built-in data fetching and caching solution within Redux Toolkit','Middleware: redux-thunk (built-in with RTK) for async action creators','Redux DevTools: time-travel debugging, action replay, state snapshots'], prerequisites:'React.js', youtubeQuery:'Redux Toolkit tutorial React complete 2024', docsUrl:'https://redux-toolkit.js.org/' },
+  { id:'zustand', label:'Zustand', section:8, sectionTitle:'State Management', isMain:false, parent:'state-management', border:'blue', difficulty:'INTERMEDIATE', time:'3 days', whyMatters:'Zustand is the lightweight, hooks-based state manager that React developers reach for in 2024. Its minimal API eliminates Redux\'s boilerplate completely. Used by Cal.com, CodeSandbox, and many production applications.', learn:['create() store with state and actions in one object','Accessing store state with a selector hook: const count = useStore(s => s.count)','Updating state: actions defined in the store that call set()','Async actions: fetching data and calling set() on completion','Middleware: persist for localStorage persistence, devtools for Redux DevTools integration','Slices pattern: organising large stores with multiple feature slices','Zustand vs Context API: why Zustand avoids unnecessary re-renders'], prerequisites:'React.js', youtubeQuery:'Zustand tutorial React state management 2024', docsUrl:'https://docs.pmnd.rs/zustand/getting-started/introduction' },
+  { id:'react-query', label:'React Query / TanStack', section:8, sectionTitle:'State Management', isMain:false, parent:'state-management', border:'blue', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Server state has unique caching, refetching, and synchronisation requirements that Redux and Zustand were not designed for. TanStack Query handles this perfectly: automatic background refetching, cache invalidation, optimistic updates, and loading/error states with zero boilerplate.', learn:['useQuery hook: queryKey, queryFn, the query result object (data, isLoading, error)','Stale-while-revalidate: serving cached data while refetching in background','Query invalidation: queryClient.invalidateQueries after mutations','useMutation hook for POST/PUT/DELETE with onSuccess, onError callbacks','Optimistic updates: updating UI before server confirms for instant feedback','Infinite queries: useInfiniteQuery for pagination and infinite scroll','Query devtools: the floating panel that visualises cache state in development'], prerequisites:'React.js, Async JS', youtubeQuery:'TanStack Query React Query tutorial complete 2024', docsUrl:'https://tanstack.com/query/latest/docs/framework/react/overview' },
+  { id:'context-api', label:'Context API', section:8, sectionTitle:'State Management', isMain:false, parent:'state-management', border:'blue', difficulty:'BEGINNER', time:'2 days', whyMatters:'React\'s built-in Context API solves prop drilling for truly global state like theme, locale, and auth user. Understanding it is prerequisite knowledge before evaluating whether you need an external state manager. Every React library uses it internally.', learn:['createContext and the default value parameter','Context.Provider: wrapping the tree to make context available to all descendants','useContext hook: consuming context in any functional component','Context performance: every context consumer re-renders when context value changes','Splitting contexts: separate AuthContext, ThemeContext to limit re-render scope','Context + useReducer pattern: a lightweight Redux alternative for medium complexity','When to use Context vs Zustand vs Redux: scale and re-render sensitivity guide'], prerequisites:'React.js', youtubeQuery:'React Context API useContext tutorial 2024', docsUrl:'https://react.dev/reference/react/useContext' },
+
+  // §9 TESTING
+  { id:'testing', label:'Testing', section:9, sectionTitle:'Testing', isMain:true, parent:null, border:'purple', difficulty:'INTERMEDIATE', time:'3–4 weeks', whyMatters:'Untested frontend code is technical debt waiting to become a production bug. Senior frontend roles universally require testing skills. The testing trophy and the philosophy of testing behaviour over implementation are skills that separate quality engineers from developers who just ship and pray.', learn:['The testing trophy: unit tests, integration tests, and E2E tests — what each verifies','Test philosophy: test what the user sees and does, not implementation details','Jest and Vitest: the most common JavaScript test runners and assertion libraries','React Testing Library: querying by accessible name, not CSS selectors','Cypress and Playwright for E2E testing real browser interactions','Test coverage: measuring which lines are tested — and why 100% coverage is a trap','Mocking: jest.fn(), msw (Mock Service Worker) for intercepting API calls in tests'], prerequisites:'JavaScript Fundamentals, React.js', youtubeQuery:'JavaScript testing tutorial Jest Vitest React Testing Library 2024', docsUrl:'https://testing-library.com/docs/' },
+  { id:'unit-testing', label:'Unit Testing (Jest/Vitest)', section:9, sectionTitle:'Testing', isMain:false, parent:'testing', border:'blue', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Unit tests verify that individual functions and components work correctly in isolation. They run in milliseconds, give instant feedback, and catch regressions when you refactor. Every utility function, data transformation, and pure component is a candidate for a unit test.', learn:['Jest and Vitest configuration: jest.config.js / vitest.config.ts, jsdom test environment','describe, test/it, expect — the structure of every test','Matchers: toBe, toEqual, toBeTruthy, toContain, toThrow, toHaveBeenCalledWith','Mocking modules: jest.mock() to replace imports with fake implementations','Mocking timers: jest.useFakeTimers() for testing setTimeout and setInterval code','Setup and teardown: beforeAll, beforeEach, afterEach, afterAll','Snapshot testing: toMatchSnapshot for detecting unexpected output changes'], prerequisites:'JavaScript Fundamentals', youtubeQuery:'Jest Vitest unit testing tutorial JavaScript 2024', docsUrl:'https://vitest.dev/guide/' },
+  { id:'component-testing', label:'Component Testing (RTL)', section:9, sectionTitle:'Testing', isMain:false, parent:'testing', border:'purple', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'React Testing Library enforces the correct testing philosophy: test what users experience, not internal state or method calls. Its query model makes tests resilient to implementation changes and naturally documents your component\'s accessibility.', learn:['render() and the screen object: rendering components and querying the output','Query priority: getByRole > getByLabelText > getByText > getByTestId','User events: @testing-library/user-event for realistic keyboard and mouse interactions','Async queries: waitFor, findByRole for testing components that fetch data','Mocking API calls with Mock Service Worker (msw): intercept at the network level','Testing hooks in isolation with renderHook()','Accessibility-driven testing: if your test can\'t find it by role, users can\'t either'], prerequisites:'React.js, Unit Testing', youtubeQuery:'React Testing Library tutorial complete guide 2024', docsUrl:'https://testing-library.com/docs/react-testing-library/intro/' },
+  { id:'e2e-testing', label:'E2E Testing (Cypress)', section:9, sectionTitle:'Testing', isMain:false, parent:'testing', border:'orange', difficulty:'ADVANCED', time:'1 week', whyMatters:'End-to-end tests verify complete user journeys in a real browser: logging in, navigating, submitting forms, and verifying results. They are the highest confidence tests. Cypress is the developer-friendly E2E tool and Playwright is the cross-browser powerhouse — knowing one is expected for senior roles.', learn:['Cypress vs Playwright: architecture differences and when to use each','Writing Cypress tests: cy.visit, cy.get, cy.click, cy.type, cy.should','Playwright basics: page.goto, page.locator, page.click, expect assertions','Selectors: data-testid attributes for stable E2E selectors not tied to CSS','Fixtures and mocking: cy.intercept for stubbing API responses in Cypress','Parallelisation: running E2E tests in CI across multiple workers','Page Object Model pattern: encapsulating page selectors for maintainable E2E tests'], prerequisites:'Component Testing, Async JS', youtubeQuery:'Cypress tutorial E2E testing complete guide 2024', docsUrl:'https://docs.cypress.io/' },
+  { id:'tdd', label:'Test-Driven Dev (TDD)', section:9, sectionTitle:'Testing', isMain:false, parent:'testing', border:'dashed', difficulty:'ADVANCED', time:'1 week', whyMatters:'TDD is a development methodology where you write tests before writing code. Red → Green → Refactor. It forces you to design APIs from the consumer\'s perspective first. Developers who practise TDD write more modular, testable code because untestable code simply cannot be written this way.', learn:['The Red-Green-Refactor cycle: failing test → passing test → clean code','Outside-in TDD: starting from user-facing acceptance tests and working inward','Writing a failing test first: why it validates that the test actually tests something','Keeping tests small: one assertion per test, maximum one concept per test','Refactoring with confidence: the test suite as a safety net for structural changes','TDD for React components: writing RTL tests before implementing components','When TDD slows you down: prototyping, spike solutions, and deadline pressure trade-offs'], prerequisites:'Unit Testing, Component Testing', youtubeQuery:'test driven development TDD JavaScript tutorial Red Green Refactor', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing' },
+
+  // §10 PERFORMANCE OPTIMISATION
+  { id:'performance', label:'Performance', section:10, sectionTitle:'Performance Optimisation', isMain:true, parent:null, border:'orange', difficulty:'ADVANCED', time:'2–3 weeks', whyMatters:'Performance directly impacts revenue. Amazon found every 100ms of latency costs 1% in sales. Google uses Core Web Vitals as a ranking signal. A slow frontend is a failed frontend. Senior engineers must diagnose performance regressions and fix them with code splitting, lazy loading, and render optimisation.', learn:['Core Web Vitals: LCP (load), INP (interaction), CLS (stability) — the metrics Google measures','The RAIL model: Response, Animation, Idle, Load — thresholds for each category','Identifying bottlenecks: Lighthouse, PageSpeed Insights, Chrome Performance panel','Render performance: avoiding layout thrashing, using will-change, CSS containment','JavaScript performance: avoiding main thread blocking, using Web Workers for heavy compute','Network performance: HTTP/2 multiplexing, resource hints (preload, prefetch, preconnect)','Bundle performance: code splitting, tree shaking, and measuring with webpack-bundle-analyzer'], prerequisites:'JavaScript Frameworks, Tooling', youtubeQuery:'web performance optimisation Core Web Vitals tutorial 2024', docsUrl:'https://web.dev/performance/' },
+  { id:'core-web-vitals', label:'Core Web Vitals', section:10, sectionTitle:'Performance Optimisation', isMain:false, parent:'performance', border:'orange', difficulty:'ADVANCED', time:'4 days', whyMatters:'Core Web Vitals are Google\'s standardised performance metrics that directly affect search ranking. LCP, INP, and CLS are measured in real user sessions. Every production frontend should have all three in the "Good" range. Failing them loses both SEO ranking and user trust.', learn:['LCP (Largest Contentful Paint): measures load time of largest visible element, target < 2.5s','INP (Interaction to Next Paint): measures responsiveness to all interactions, target < 200ms','CLS (Cumulative Layout Shift): measures visual stability from layout shifts, target < 0.1','Measuring CWV: PageSpeed Insights for field data, Lighthouse for lab data','Improving LCP: preload the LCP image, optimise TTFB, use a CDN','Improving INP: break up long tasks with scheduler.yield(), use web workers','Improving CLS: always set width/height on images, avoid inserting DOM above content'], prerequisites:'Performance Basics', youtubeQuery:'Core Web Vitals explained LCP INP CLS tutorial 2024', docsUrl:'https://web.dev/articles/vitals' },
+  { id:'lazy-loading', label:'Lazy Loading & Code Splitting', section:10, sectionTitle:'Performance Optimisation', isMain:false, parent:'performance', border:'orange', difficulty:'INTERMEDIATE', time:'3 days', whyMatters:'Shipping a 500KB JavaScript bundle for a landing page is wasteful. Code splitting loads only the code needed for the current route. Lazy loading images and components reduces initial page load time. These are the biggest single performance wins for most SPAs.', learn:['Dynamic import(): import(\'./HeavyComponent\') returns a Promise for on-demand loading','React.lazy() and Suspense for lazy-loading React components with fallback UI','Route-based code splitting: splitting the bundle at every route boundary automatically','Lazy loading images: loading="lazy" attribute and IntersectionObserver polyfill','Prefetching: <link rel="prefetch"> and Next.js prefetch prop for predicting navigation','Component-level code splitting: only loading a modal/chart when first shown','Measuring impact: comparing before/after bundle sizes with source-map-explorer'], prerequisites:'JavaScript Modules, React.js', youtubeQuery:'React lazy loading code splitting tutorial dynamic import 2024', docsUrl:'https://react.dev/reference/react/lazy' },
+  { id:'image-optimisation', label:'Image Optimisation', section:10, sectionTitle:'Performance Optimisation', isMain:false, parent:'performance', border:'orange', difficulty:'INTERMEDIATE', time:'2 days', whyMatters:'Images are the largest assets on most web pages. Unoptimised images are the most common cause of slow LCP scores. Serving the right format (WebP, AVIF), size (responsive srcset), and compression level is automatic in Next.js but requires manual effort in other stacks.', learn:['Image formats: JPEG for photos, PNG for transparency, WebP for both (30% smaller), AVIF for best compression','Responsive images: srcset attribute with image descriptors, sizes attribute for layout hints','The <picture> element: art direction and format fallbacks in one element','lazy loading: loading="lazy" defers off-screen images until they approach the viewport','Next.js next/image: automatic format selection, responsive sizes, placeholder blur','Image CDNs: Cloudinary, Imgix — transforming images on the fly via URL parameters','CSS images: using image-set() for responsive background images; prefer SVG for icons'], prerequisites:'HTML Fundamentals, Performance Basics', youtubeQuery:'image optimisation web performance WebP srcset tutorial', docsUrl:'https://developer.mozilla.org/en-US/docs/Learn/Performance/Multimedia' },
+  { id:'web-workers', label:'Web Workers', section:10, sectionTitle:'Performance Optimisation', isMain:false, parent:'performance', border:'dashed', difficulty:'ADVANCED', time:'3 days', whyMatters:'JavaScript runs on a single thread. CPU-intensive operations — parsing large datasets, image processing, cryptography — block the main thread and freeze the UI. Web Workers run code in a separate thread, keeping the UI responsive while heavy computation happens in the background.', learn:['Creating a Web Worker: new Worker(\'worker.js\') and the message-passing architecture','postMessage and the onmessage event: serialising data between main and worker threads','What can and cannot be used in workers: no DOM access, but full JS and Fetch API available','Comlink: a library that makes Web Worker communication feel like async function calls','SharedArrayBuffer and Atomics for high-performance shared memory between threads','Service Workers vs Web Workers: completely different purposes (network vs compute)','Vite and Webpack worker support: importing workers as modules with ?worker suffix'], prerequisites:'JavaScript Async, Performance Basics', youtubeQuery:'Web Workers JavaScript tutorial multi-threading 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API' },
+
+  // §11 TYPESCRIPT
+  { id:'typescript', label:'TypeScript', section:11, sectionTitle:'TypeScript', isMain:true, parent:null, border:'purple', difficulty:'INTERMEDIATE', time:'3–4 weeks', whyMatters:'TypeScript is now the default for all serious frontend projects. It catches type errors at compile time that would only surface as runtime bugs in JavaScript. React, Angular, Vue 3, and virtually every major frontend library ships TypeScript types. Employers increasingly list TypeScript as a requirement, not a nice-to-have.', learn:['TypeScript fundamentals: primitive types, arrays, tuples, enums, any, unknown, never','Type annotations vs type inference: when to annotate and when to let TypeScript infer','Interfaces vs type aliases: the key differences and when to prefer each','Union types (A | B), intersection types (A & B), and discriminated unions','Generics: writing reusable typed functions and data structures','TypeScript compiler (tsc): tsconfig.json options — strict, target, lib, paths','TypeScript with React: typing props, state, events, refs, and context'], prerequisites:'JavaScript ES6+', youtubeQuery:'TypeScript tutorial complete beginner to advanced 2024', docsUrl:'https://www.typescriptlang.org/docs/' },
+  { id:'ts-basics', label:'TS Types & Interfaces', section:11, sectionTitle:'TypeScript', isMain:false, parent:'typescript', border:'blue', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'TypeScript\'s type system is opt-in and progressive. You can add it to an existing JavaScript project incrementally. Understanding type annotations, interfaces, and basic generics is enough to get immediate value — you don\'t need to master conditional types on day one.', learn:['Primitive types: string, number, boolean, null, undefined, symbol','Object types: inline { name: string; age: number } and reusable interface User {}','Array and tuple types: string[], [string, number] for fixed-length arrays','Union types: string | number and the need for type narrowing with typeof/instanceof','Type aliases with type keyword vs interfaces: extends vs intersection','Optional properties: name?: string and function parameters with default values','The readonly modifier for immutable properties and ReadonlyArray<T>'], prerequisites:'JavaScript ES6+', youtubeQuery:'TypeScript basics tutorial types interfaces beginners', docsUrl:'https://www.typescriptlang.org/docs/handbook/2/everyday-types.html' },
+  { id:'ts-generics', label:'Generics & Utility Types', section:11, sectionTitle:'TypeScript', isMain:false, parent:'typescript', border:'purple', difficulty:'ADVANCED', time:'1 week', whyMatters:'Generics make TypeScript\'s type system truly powerful. They allow you to write type-safe functions and data structures that work with any type. Utility types — Partial, Required, Pick, Omit, Record — are used constantly in React component prop definitions and API type manipulation.', learn:['Generic functions: function identity<T>(arg: T): T and constraining with extends','Generic interfaces and classes: interface Repository<T> { findById(id: string): T }','Built-in utility types: Partial<T>, Required<T>, Pick<T,K>, Omit<T,K>, Readonly<T>','Record<K,V> for typed dictionaries and ReturnType<F> for inferring function return types','Conditional types: T extends string ? \'string\' : \'other\' and the infer keyword','Mapped types: { [K in keyof T]: T[K] } for transforming all properties of a type','Template literal types: `${string}Id` for string pattern matching at the type level'], prerequisites:'TypeScript Basics', youtubeQuery:'TypeScript generics utility types Partial Pick Omit tutorial', docsUrl:'https://www.typescriptlang.org/docs/handbook/2/generics.html' },
+  { id:'ts-react', label:'TypeScript with React', section:11, sectionTitle:'TypeScript', isMain:false, parent:'typescript', border:'purple', difficulty:'INTERMEDIATE', time:'1 week', whyMatters:'Using TypeScript with React is the industry standard. Typed props prevent passing wrong data to components. Typed events give you autocomplete on event handlers. React + TypeScript is the most common job requirement for mid-level and senior roles.', learn:['Typing component props with interfaces: interface ButtonProps { label: string; onClick: () => void }','React.FC vs function component with typed props: pros and cons of each approach','Typing useState: const [count, setCount] = useState<number>(0)','Typing useRef: useRef<HTMLInputElement>(null) and the null initial value pattern','Typing event handlers: React.ChangeEvent<HTMLInputElement>, React.MouseEvent<HTMLButtonElement>','Typing useContext with generics: createContext<UserContextType | undefined>(undefined)','Generic components: function List<T extends { id: string }>({ items }: { items: T[] })'], prerequisites:'React.js, TypeScript Basics', youtubeQuery:'TypeScript React tutorial props events hooks typing 2024', docsUrl:'https://react.dev/learn/typescript' },
+  { id:'declaration-files', label:'Declaration Files (.d.ts)', section:11, sectionTitle:'TypeScript', isMain:false, parent:'typescript', border:'dashed', difficulty:'ADVANCED', time:'3 days', whyMatters:'Declaration files (.d.ts) describe the types of JavaScript libraries that weren\'t written in TypeScript. When a library doesn\'t have types, you either install @types/library or write your own .d.ts file. Understanding them helps debug "Cannot find module" errors and contribute to DefinitelyTyped.', learn:['What .d.ts files are: type-only files that describe the shape of a JavaScript module','@types packages: DefinitelyTyped community-maintained types for popular JS libraries','Writing a simple declaration file: declare module, declare function, declare class','Ambient declarations: declare const, declare namespace for globally available variables','Module augmentation: adding methods to existing library types with declare module','The lib option in tsconfig.json: including built-in TypeScript type definitions','Debugging "Could not find declaration file" errors: moduleResolution and paths config'], prerequisites:'TypeScript Basics', youtubeQuery:'TypeScript declaration files d.ts ambient modules tutorial', docsUrl:'https://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html' },
+
+  // §12 PROGRESSIVE WEB APPS & APIs
+  { id:'pwa', label:'PWA & Browser APIs', section:12, sectionTitle:'Progressive Web Apps & APIs', isMain:true, parent:null, border:'orange', difficulty:'ADVANCED', time:'2–3 weeks', whyMatters:'Progressive Web Apps bridge the gap between web and native apps. Service Workers enable offline functionality, background sync, and push notifications. WebSockets power real-time features like chat and live dashboards. These technologies enable web apps to compete directly with native iOS and Android applications.', learn:['PWA requirements: HTTPS, a Web App Manifest, and a registered Service Worker','Service Workers: the proxy between your web app and the network for offline and caching','Web App Manifest: enabling "Add to Home Screen" and standalone display mode','Caching strategies: Cache First, Network First, Stale-While-Revalidate with Workbox','Push notifications: the Push API and Notification API for re-engagement','WebSockets vs Server-Sent Events vs polling: choosing the right real-time strategy','IndexedDB: a full client-side database for storing large structured data offline'], prerequisites:'JavaScript Fundamentals, Async JS', youtubeQuery:'PWA Progressive Web App tutorial service worker 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps' },
+  { id:'service-workers', label:'Service Workers', section:12, sectionTitle:'Progressive Web Apps & APIs', isMain:false, parent:'pwa', border:'orange', difficulty:'ADVANCED', time:'4 days', whyMatters:'Service Workers are the backbone of PWAs. They intercept every network request your app makes, enabling offline support, background sync, and push notifications. Workbox abstracts the complexity, but understanding the lifecycle is essential to debug caching issues.', learn:['The service worker lifecycle: install, activate, fetch events','Registering a service worker: navigator.serviceWorker.register(\'sw.js\')','The Cache API: caches.open(), cache.put(), cache.match() for storing request/response pairs','Caching strategies: Cache First, Network First, Stale-While-Revalidate patterns','Background sync: queuing requests when offline and replaying when connection returns','Workbox: Google\'s service worker library for caching strategies with minimal code','Debugging service workers: Chrome DevTools Application panel'], prerequisites:'JavaScript Async, Fetch API', youtubeQuery:'Service Worker tutorial PWA caching offline first 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API' },
+  { id:'websockets', label:'WebSockets & Real-time', section:12, sectionTitle:'Progressive Web Apps & APIs', isMain:false, parent:'pwa', border:'orange', difficulty:'INTERMEDIATE', time:'4 days', whyMatters:'Real-time features — live chat, collaborative editing, live dashboards, multiplayer games — all require persistent connections. WebSockets provide full-duplex communication that HTTP request-response cannot. Socket.IO powers this category of modern apps.', learn:['WebSocket protocol: how it differs from HTTP, the upgrade handshake','Native WebSocket API: new WebSocket(url), .send(), .onmessage, .onclose','Socket.IO: automatic reconnection, rooms, namespaces, fallback to polling','Server-Sent Events (SSE): one-way streaming from server to client for simpler use cases','Long polling: the fallback strategy before WebSockets','Real-time patterns: presence (who is online), broadcast, pub/sub with channels','Scaling WebSockets: Redis adapter for Socket.IO when multiple server instances exist'], prerequisites:'Async JS, Fetch API', youtubeQuery:'WebSockets tutorial real-time JavaScript Socket.IO 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API' },
+  { id:'indexeddb', label:'IndexedDB & Storage', section:12, sectionTitle:'Progressive Web Apps & APIs', isMain:false, parent:'pwa', border:'dashed', difficulty:'ADVANCED', time:'3 days', whyMatters:'localStorage only stores strings and caps at 5MB. IndexedDB is a full client-side NoSQL database that stores structured data, supports indexing and transactions. PWAs that need offline data storage — like email clients or note-taking apps — use IndexedDB.', learn:['IndexedDB concepts: database, object stores, indexes, transactions, cursors','Opening a database: indexedDB.open(\'mydb\', 1) and the upgradeneeded migration event','CRUD operations: add, put, get, delete, and openCursor for iteration','Indexes: createIndex for efficient queries on non-key properties','Transactions: ensuring atomicity with IDBTransaction across multiple operations','Dexie.js: a promise-based wrapper around IndexedDB for cleaner code','Storage quotas: navigator.storage.estimate() and the StorageManager API'], prerequisites:'JavaScript Async', youtubeQuery:'IndexedDB tutorial offline storage PWA Dexie.js 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API' },
+
+  // §13 BUILD & DEVOPS FOR FRONTEND
+  { id:'frontend-devops', label:'Frontend DevOps', section:13, sectionTitle:'Build & DevOps for Frontend', isMain:true, parent:null, border:'orange', difficulty:'ADVANCED', time:'2–3 weeks', whyMatters:'Modern frontend development does not stop at writing code — it includes deploying that code reliably and repeatedly. CI/CD pipelines, Docker containers, and environment configuration are now part of the frontend engineer\'s scope. DevOps knowledge differentiates mid-level from senior frontend engineers.', learn:['CI/CD for frontend: automating build, test, and deploy on every pull request','GitHub Actions: workflow files, triggers on push/PR, running npm scripts in CI','Docker: containerising frontend apps for consistent environments across dev and prod','Environment variables: different configs for development, staging, and production','Monorepos: managing multiple packages in one repository with Turborepo or Nx','Feature flags: deploying code dark and enabling it for users without redeploying','Deployment strategies: rolling deploys, blue-green, canary releases for zero downtime'], prerequisites:'JavaScript Frameworks, Git & GitHub', youtubeQuery:'GitHub Actions CI CD frontend tutorial 2024', docsUrl:'https://docs.github.com/en/actions' },
+  { id:'cicd', label:'CI/CD (GitHub Actions)', section:13, sectionTitle:'Build & DevOps for Frontend', isMain:false, parent:'frontend-devops', border:'orange', difficulty:'ADVANCED', time:'1 week', whyMatters:'Manual deployments are error-prone and slow. CI/CD pipelines automatically run tests, linting, type checking, and deployment on every code push. GitHub Actions is the most accessible CI system — built into every GitHub repository and free for public repos.', learn:['GitHub Actions basics: .github/workflows/ci.yml file structure','Triggers: on: push, pull_request, schedule — when workflows run','Jobs and steps: sequential vs parallel jobs, using actions/checkout and actions/setup-node','Caching: actions/cache for node_modules to speed up workflow runs','Environment secrets: storing API keys and tokens securely in GitHub Settings','Deploy to Vercel/Netlify via CLI from within a GitHub Actions workflow','Reusable workflows: centralising common CI steps for teams with multiple repositories'], prerequisites:'Git & GitHub, npm & Package Managers', youtubeQuery:'GitHub Actions CI CD tutorial Node.js deploy 2024', docsUrl:'https://docs.github.com/en/actions/writing-workflows/quickstart' },
+  { id:'docker-frontend', label:'Docker for Frontend', section:13, sectionTitle:'Build & DevOps for Frontend', isMain:false, parent:'frontend-devops', border:'dashed', difficulty:'ADVANCED', time:'4 days', whyMatters:'Docker ensures that your frontend app builds and runs identically on every machine. The "it works on my machine" problem is solved by containerisation. Many companies deploy frontend apps inside Docker containers on Kubernetes or ECS, making this knowledge essential for senior roles.', learn:['Dockerfile basics: FROM, COPY, RUN, EXPOSE, CMD instructions','Multi-stage builds: build stage (node:20) → production stage (nginx:alpine) for tiny final images','Building and running: docker build -t myapp . and docker run -p 80:80 myapp','.dockerignore: excluding node_modules and .env from the Docker build context','Docker Compose: defining multi-container setups (frontend + API + database) in one file','Serving React/Next.js builds with Nginx inside Docker','Docker in CI: running docker build as a step in GitHub Actions to verify the image builds'], prerequisites:'npm & Package Managers, CI/CD', youtubeQuery:'Docker for frontend developers tutorial Nginx React 2024', docsUrl:'https://docs.docker.com/guides/nodejs/containerize/' },
+  { id:'monorepos', label:'Monorepos (Turborepo)', section:13, sectionTitle:'Build & DevOps for Frontend', isMain:false, parent:'frontend-devops', border:'dashed', difficulty:'ADVANCED', time:'3 days', whyMatters:'Large organisations manage dozens of frontend apps and shared component libraries in a single monorepo. Turborepo and Nx provide caching and parallel execution that make monorepo builds fast. Understanding this setup is essential for joining large frontend engineering organisations.', learn:['Monorepo vs polyrepo: trade-offs in code sharing, CI time, and developer experience','npm/yarn/pnpm workspaces: linking local packages within a monorepo','Turborepo: turbo.json pipeline definition, caching by content hash, remote caching','Nx: project graph, affected commands (run only what changed), generator plugins','Shared packages: creating a ui/ package used by multiple app/ packages','Consistent tooling: sharing ESLint, Prettier, and TypeScript configs across packages','CI optimisation with monorepos: only build and test affected packages on PR'], prerequisites:'npm & Package Managers, Git & GitHub', youtubeQuery:'Turborepo monorepo tutorial 2024 Next.js', docsUrl:'https://turbo.build/repo/docs' },
+
+  // §14 SECURITY FOR FRONTEND
+  { id:'frontend-security', label:'Frontend Security', section:14, sectionTitle:'Security for Frontend', isMain:true, parent:null, border:'orange', difficulty:'ADVANCED', time:'2 weeks', whyMatters:'Frontend security vulnerabilities directly expose users to data theft, account takeover, and financial loss. XSS is the most common web vulnerability and is entirely the frontend\'s responsibility. CORS misconfiguration, token storage mistakes, and CSRF vulnerabilities cause real breaches at real companies every day.', learn:['XSS (Cross-Site Scripting): injecting malicious scripts via user input — the #1 web vulnerability','CSRF (Cross-Site Request Forgery): tricking users into executing unintended requests','Content Security Policy: HTTP header restricting which scripts, styles, and origins execute','Secure token storage: never localStorage for auth tokens — httpOnly cookies are safer','HTTPS everywhere: mixed content errors, HSTS headers, and certificate pinning','CORS: understanding preflight requests and correctly configuring allowed origins','OWASP Top 10: the industry standard list of critical web application security risks'], prerequisites:'JavaScript Frameworks, HTTP & HTTPS', youtubeQuery:'frontend security XSS CSRF CORS CSP tutorial web security', docsUrl:'https://owasp.org/www-project-top-ten/' },
+  { id:'xss-csrf', label:'XSS & CSRF Prevention', section:14, sectionTitle:'Security for Frontend', isMain:false, parent:'frontend-security', border:'orange', difficulty:'ADVANCED', time:'3 days', whyMatters:'XSS allows attackers to steal cookies and auth tokens from every user of a compromised site. CSRF allows attackers to submit forms on behalf of logged-in users. Both have caused major breaches at companies like Twitter, PayPal, and eBay. Prevention is simple — if you know how.', learn:['Stored XSS vs Reflected XSS vs DOM-based XSS: how each is injected and executed','XSS prevention: always escape user input, use textContent not innerHTML, sanitise with DOMPurify','React\'s built-in XSS protection: JSX escapes output by default — and how dangerouslySetInnerHTML breaks it','CSRF attacks: how a form on evil.com can POST to your bank using the user\'s cookies','CSRF tokens: the synchroniser token pattern and the double-submit cookie pattern','SameSite cookie attribute: Strict, Lax, None — the browser-level CSRF defence','Subresource Integrity (SRI): verifying CDN scripts via the integrity attribute'], prerequisites:'HTTP & HTTPS, JavaScript Fundamentals', youtubeQuery:'XSS CSRF prevention tutorial web security explained', docsUrl:'https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html' },
+  { id:'csp-cors', label:'CSP & CORS', section:14, sectionTitle:'Security for Frontend', isMain:false, parent:'frontend-security', border:'orange', difficulty:'ADVANCED', time:'3 days', whyMatters:'Content Security Policy is the most powerful XSS mitigation tool available to frontend developers. CORS is one of the most misunderstood browser security features — developers turn it off to "fix" the error instead of understanding why it exists. Both directly affect how your app behaves in production.', learn:['CSP header syntax: Content-Security-Policy: default-src \'self\'; script-src \'nonce-abc\'','CSP directives: script-src, style-src, img-src, connect-src, frame-src','Nonce-based CSP vs hash-based CSP for inline scripts in Next.js and other SSR frameworks','CORS: the browser\'s same-origin policy and why cross-origin requests are blocked by default','Simple vs preflighted CORS requests: when the browser sends an OPTIONS preflight','CORS headers: Access-Control-Allow-Origin, Access-Control-Allow-Methods, credentials','CORS debugging: reading the blocked request in Chrome Network tab and fixing the server config'], prerequisites:'HTTP & HTTPS, XSS & CSRF', youtubeQuery:'CORS tutorial explained Content Security Policy CSP web security', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS' },
+  { id:'auth-frontend', label:'Auth (JWT & OAuth)', section:14, sectionTitle:'Security for Frontend', isMain:false, parent:'frontend-security', border:'orange', difficulty:'ADVANCED', time:'4 days', whyMatters:'Authentication is in every production app. Doing it incorrectly — storing JWTs in localStorage, trusting unverified tokens client-side — creates critical security vulnerabilities. Understanding the correct patterns protects your users and the company.', learn:['JWT structure: header.payload.signature — what each part contains and why you must verify signature server-side','Secure JWT storage: httpOnly cookies vs localStorage — why httpOnly wins for security','OAuth 2.0 flow: Authorization Code + PKCE for SPAs — the current recommended flow','OIDC (OpenID Connect): identity layer on top of OAuth, the id_token, and userinfo endpoint','Auth providers: Clerk, Auth0, Supabase Auth — when to use a service vs roll your own','Session-based auth vs token-based auth: trade-offs for different architectures','Refresh tokens: silently refreshing access tokens before expiry for seamless UX'], prerequisites:'HTTP & HTTPS, JavaScript Async', youtubeQuery:'JWT OAuth authentication tutorial frontend React 2024', docsUrl:'https://oauth.net/2/' },
+
+  // §15 ADVANCED CONCEPTS
+  { id:'advanced-frontend', label:'Advanced Concepts', section:15, sectionTitle:'Advanced Frontend Concepts', isMain:true, parent:null, border:'orange', difficulty:'ADVANCED', time:'4–6 weeks', whyMatters:'Senior frontend engineers are expected to understand architectural patterns that make large-scale applications maintainable, performant, and scalable. Web Components, rendering patterns, design patterns, and micro-frontends appear in staff-engineer interviews and architectural design discussions.', learn:['Rendering patterns: understanding CSR, SSR, SSG, ISR, and Partial Hydration trade-offs','Design patterns applied to frontend: Observer, Strategy, Factory, Command in JavaScript','Micro-frontends: independently deployable frontend modules for large organisations','Web Components: native browser components that work in any framework','WebAssembly: running near-native performance code in the browser from C++/Rust/Go','Islands architecture: Astro\'s approach to shipping zero JavaScript by default','Edge computing: running JavaScript at CDN PoPs for sub-millisecond global response times'], prerequisites:'JavaScript Frameworks, TypeScript, Performance', youtubeQuery:'advanced frontend architecture patterns SSR SSG micro frontends 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/Web_Components' },
+  { id:'web-components', label:'Web Components', section:15, sectionTitle:'Advanced Frontend Concepts', isMain:false, parent:'advanced-frontend', border:'purple', difficulty:'ADVANCED', time:'3 days', whyMatters:'Web Components are the browser\'s native component model — they work without any framework and can be used in React, Vue, Angular, or plain HTML. Companies like Salesforce and GitHub use Web Components for their design systems.', learn:['Custom Elements: class MyButton extends HTMLElement, customElements.define()','Shadow DOM: encapsulated DOM and CSS that doesn\'t affect the page','HTML Templates: the <template> element for inert, reusable DOM fragments','Lifecycle callbacks: connectedCallback, disconnectedCallback, attributeChangedCallback','Custom element attributes: observedAttributes static getter and attribute reflection','Lit library: Google\'s lightweight base class for Web Components with reactive properties','Web Components in frameworks: using custom elements inside React, Vue, and Angular'], prerequisites:'JavaScript DOM, CSS Fundamentals', youtubeQuery:'Web Components tutorial custom elements shadow DOM 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/Web/Web_Components' },
+  { id:'rendering-patterns', label:'Rendering Patterns', section:15, sectionTitle:'Advanced Frontend Concepts', isMain:false, parent:'advanced-frontend', border:'orange', difficulty:'ADVANCED', time:'4 days', whyMatters:'The choice between CSR, SSR, SSG, and ISR is one of the most architecturally consequential decisions in a frontend project. It affects SEO, TTFB, interactivity, and infrastructure cost. Senior engineers must articulate the trade-offs and choose the right pattern for each use case.', learn:['CSR (Client-Side Rendering): entire HTML built in browser — good for dashboards, bad for SEO','SSR (Server-Side Rendering): HTML built per request on server — best for dynamic SEO content','SSG (Static Site Generation): HTML built at build time — fastest possible delivery via CDN','ISR (Incremental Static Regeneration): SSG pages revalidated on a schedule — Next.js-specific','Partial Hydration: only hydrating interactive components, not the entire page — Astro\'s model','React Server Components: running React components on the server with zero client JS bundle','Streaming SSR: sending HTML in chunks as it\'s ready, enabling faster Time to First Byte'], prerequisites:'React.js, Next.js', youtubeQuery:'rendering patterns CSR SSR SSG ISR explained frontend 2024', docsUrl:'https://patterns.dev/' },
+  { id:'design-patterns-fe', label:'Design Patterns', section:15, sectionTitle:'Advanced Frontend Concepts', isMain:false, parent:'advanced-frontend', border:'purple', difficulty:'ADVANCED', time:'4 days', whyMatters:'Design patterns are reusable solutions to common architectural problems. The Observer pattern powers every event system and state manager. The Compound Component pattern enables flexible React APIs. Knowing these patterns helps you write maintainable code and communicate clearly with engineers.', learn:['Observer / Pub-Sub: event emitters, custom events, and how all state managers use this','Compound Components: <Select><Option>...</Option></Select> — flexible component composition APIs','Render Props and HOC patterns: legacy React patterns still found in existing codebases','Container / Presentational: separating logic from UI components','Provider pattern: React Context as a dependency injection system','Factory pattern: createComponent() functions for dynamic component generation','SOLID principles applied to React: SRP (one reason to change) and DIP (depend on abstractions)'], prerequisites:'React.js, JavaScript ES6+', youtubeQuery:'React design patterns compound components render props tutorial', docsUrl:'https://patterns.dev/react' },
+  { id:'wasm', label:'WebAssembly (WASM)', section:15, sectionTitle:'Advanced Frontend Concepts', isMain:false, parent:'advanced-frontend', border:'dashed', difficulty:'ADVANCED', time:'3 days', whyMatters:'WebAssembly runs C, C++, Rust, and Go code in the browser at near-native speed. It powers Figma\'s canvas engine, Google Earth on the web, and AutoCAD Online. For compute-intensive tasks — video editing, physics simulations, codecs — WASM is the only way to achieve native-like performance in a browser.', learn:['What WebAssembly is: a binary instruction format that runs in a sandboxed browser VM','Compiling Rust to WASM with wasm-pack and using it from JavaScript','The WASM JavaScript API: WebAssembly.instantiate(), Memory, Table objects','wasm-bindgen: type-safe Rust ↔ JavaScript bindings generation','Emscripten: compiling C/C++ to WASM — used by FFmpeg.wasm and SQLite WASM','WASM limitations: no direct DOM access, requires JS glue code for UI interaction','AssemblyScript: writing WASM using a TypeScript-like language'], prerequisites:'JavaScript Advanced, Performance', youtubeQuery:'WebAssembly WASM tutorial Rust JavaScript beginner 2024', docsUrl:'https://developer.mozilla.org/en-US/docs/WebAssembly' },
+
+  // §16 FRONTEND MASTER
+  { id:'fe-master', label:'🏆 Frontend Master', section:16, sectionTitle:'Frontend Master', isMain:true, parent:null, border:'green', special:true, difficulty:'ADVANCED', time:'You made it', whyMatters:'You have completed the entire Frontend Development roadmap — from how the internet works to WebAssembly, from HTML semantics to micro-frontends. You have the knowledge to build, optimise, secure, and deploy world-class web applications. This is where the journey from learner to practitioner is complete.', learn:['You can build any UI from scratch with HTML, CSS, and JavaScript','You can architect React/Next.js applications with proper state management and typing','You understand performance deeply: Core Web Vitals, code splitting, rendering patterns','You can secure applications against XSS, CSRF, and authentication vulnerabilities','You can set up CI/CD pipelines, Docker containers, and monorepo workflows','You can mentor junior developers and lead frontend architectural decisions','Next: contribute to open source, build a portfolio of deployed projects, apply for senior roles'], prerequisites:'All previous sections', youtubeQuery:'frontend developer portfolio projects 2024 advanced', docsUrl:'https://frontendmasters.com/' }
+
+];
+
+
+const BORDER_STYLES = {
+  green:  { border: '2px solid #10b981', bg: '#051a10', color: '#10b981' },
+  blue:   { border: '2px solid #3b82f6', bg: '#05101a', color: '#3b82f6' },
+  purple: { border: '2px solid #a855f7', bg: '#0f0520', color: '#a855f7' },
+  orange: { border: '2px solid #f97316', bg: '#1a0f05', color: '#f97316' },
+  dashed: { border: '2px dashed #8080a8', bg: '#0c0c20', color: '#8080a8' }
+};
+
+// ── Render ──────────────────────────────────────────────────────
+function render() {
+  const container = document.getElementById('graph');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const sections = {};
+  NODES.forEach(n => { if (!sections[n.section]) sections[n.section] = []; sections[n.section].push(n); });
+  const sNums = Object.keys(sections).map(Number).sort((a,b) => a-b);
+  sNums.forEach(s => { if (expanded[s] === undefined) expanded[s] = false; });
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('class', 'svg-layer'); svgEl.id = 'svg-layer';
+  container.appendChild(svgEl);
+
+  sNums.forEach((sNum, idx) => {
+    const sNodes = sections[sNum];
+    const main   = sNodes.find(n => n.isMain);
+    const kids   = sNodes.filter(n => !n.isMain);
+
+    if (sNum !== 14) {
+      const labelEl = document.createElement('div');
+      labelEl.className = 'sec-label';
+      const sDone = sNodes.filter(n => progress[n.id]?.status === 'done').length;
+      labelEl.innerHTML = `
+        <span class="sec-num">§${String(sNum).padStart(2,'0')}</span>
+        <span class="sec-title">${(main?.sectionTitle||'Section '+sNum).toUpperCase()}</span>
+        <span class="sec-line"></span>
+        <span class="sec-prog">${sDone}/${sNodes.length}</span>
+      `;
+      container.appendChild(labelEl);
+    }
+
+    const block = document.createElement('div');
+    block.className = 'sec-block';
+    block.dataset.section = sNum;
+
+    const trunkRow = document.createElement('div');
+    trunkRow.className = 'trunk-row';
+    if (main) trunkRow.appendChild(buildNode(main, true, kids.length > 0, sNum));
+    block.appendChild(trunkRow);
+
+    if (kids.length > 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'children-wrap'; wrap.id = `children-${sNum}`;
+      if (!expanded[sNum]) {
+        wrap.style.display = 'none';
+      } else {
+        wrap.style.display = 'flex';
+        wrap.classList.add('open');
+      }
+      const leftCol = document.createElement('div'); leftCol.className = 'child-col left';
+      const rightCol = document.createElement('div'); rightCol.className = 'child-col right';
+      kids.forEach((k, i) => {
+        const el = buildNode(k, false, false, sNum);
+        (i % 2 === 0 ? leftCol : rightCol).appendChild(el);
+      });
+      wrap.appendChild(leftCol); wrap.appendChild(rightCol);
+      block.appendChild(wrap);
+    }
+    container.appendChild(block);
+
+    if (idx < sNums.length - 1) {
+      const conn = document.createElement('div');
+      conn.className = 'connector-wrap';
+      const vl = document.createElement('div');
+      vl.className = 'v-line'; vl.style.height = '28px';
+      conn.appendChild(vl); container.appendChild(conn);
+    }
+  });
+
+  applyProgress();
+  requestAnimationFrame(drawLines);
+}
+
+function buildNode(node, isTrunk, hasKids, sNum) {
+  const style = BORDER_STYLES[node.border] || BORDER_STYLES.dashed;
+  const el = document.createElement('div');
+  el.className = `node ${isTrunk ? 'trunk' : 'child'}`; 
+  el.id = `node-${node.id}`;
+  if (node.special) el.classList.add('node-congrats');
+  el.style.cssText = `background:${style.bg};border:${style.border};`;
+  let inner = `<div class="node-status-badge" id="badge-${node.id}"></div>`;
+  inner += `<span class="${isTrunk ? 'trunk-label' : 'child-label'}" style="color:${isTrunk ? style.color : 'var(--t1)'}">${node.label}</span>`;
+  if (isTrunk && node.time && node.time !== 'You made it') inner += `<span class="trunk-time">${node.time}</span>`;
+  if (isTrunk && hasKids) inner += `<div class="exp-btn"><div class="expand-dot" id="exp-${sNum}">▾</div></div>`;
+  el.innerHTML = inner;
+
+  if (isTrunk && hasKids) {
+    let holdTimer = null;
+    let isHold = false;
+
+    el.addEventListener('touchstart', e => {
+      isHold = false;
+      holdTimer = setTimeout(() => {
+        isHold = true;
+        openSheet(node.id);
+      }, 500);
+    }, {passive: true});
+
+    el.addEventListener('touchend', e => {
+      clearTimeout(holdTimer);
+      if (!isHold) {
+        e.preventDefault();
+        toggleSection(sNum);
+      }
+    });
+
+    el.addEventListener('touchmove', () => {
+      clearTimeout(holdTimer);
+      isHold = false;
+    }, {passive: true});
+
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!('ontouchstart' in window)) toggleSection(sNum);
+    });
+  } else {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      openSheet(node.id);
+    });
+  }
+  return el;
+}
+
+// ── Toggle ───────────────────────────────────────────────────────
+function toggleSection(sNum) {
+  expanded[sNum] = !expanded[sNum];
+  const wrap = document.getElementById(`children-${sNum}`);
+  const dot  = document.getElementById(`exp-${sNum}`);
+  if (!wrap) return;
+  if (expanded[sNum]) {
+    wrap.style.display = 'flex';
+    requestAnimationFrame(() => wrap.classList.add('open'));
+    if (dot) dot.classList.add('open');
+  } else {
+    wrap.classList.remove('open');
+    if (dot) dot.classList.remove('open');
+    setTimeout(() => { if (!expanded[sNum]) wrap.style.display = 'none'; }, 220);
+  }
+  requestAnimationFrame(drawLines);
+}
+
+// ── SVG Lines ────────────────────────────────────────────────────
+function drawLines() {
+  const container = document.getElementById('graph');
+  const svgEl     = document.getElementById('svg-layer');
+  if (!svgEl || !container) return;
+  const gRect = container.getBoundingClientRect();
+  const totalH = container.scrollHeight;
+  svgEl.setAttribute('width', gRect.width);
+  svgEl.setAttribute('height', totalH);
+  svgEl.setAttribute('viewBox', `0 0 ${gRect.width} ${totalH}`);
+  svgEl.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#2a2a4a"/></marker>`;
+  svgEl.appendChild(defs);
+
+  const pts = el => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const st = container.scrollTop;
+    const t = r.top - gRect.top + st;
+    return { top:t, bottom:t+r.height, left:r.left-gRect.left, right:r.left-gRect.left+r.width,
+      centerX:r.left-gRect.left+r.width/2, centerY:t+r.height/2,
+      topC:{x:r.left-gRect.left+r.width/2,y:t},
+      botC:{x:r.left-gRect.left+r.width/2,y:t+r.height},
+      midL:{x:r.left-gRect.left,y:t+r.height/2},
+      midR:{x:r.left-gRect.left+r.width,y:t+r.height/2}
+    };
+  };
+
+  const mkPath = (d, col='#2a2a4a', dash='') => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d',d); p.setAttribute('stroke',col); p.setAttribute('stroke-width','1.5');
+    p.setAttribute('fill','none'); p.setAttribute('marker-end','url(#arr)');
+    if (dash) p.setAttribute('stroke-dasharray',dash);
+    return p;
+  };
+
+  const sections = {};
+  NODES.forEach(n => { if (!sections[n.section]) sections[n.section]=[]; sections[n.section].push(n); });
+  const sNums = Object.keys(sections).map(Number).sort((a,b)=>a-b);
+  const trunkEls = sNums.map(s => { const m = sections[s].find(n=>n.isMain); return m ? document.getElementById(`node-${m.id}`) : null; }).filter(Boolean);
+
+  for (let i=0; i<trunkEls.length-1; i++) {
+    const f = pts(trunkEls[i]), t2 = pts(trunkEls[i+1]);
+    if (!f||!t2||t2.top<=f.bottom) continue;
+    const ln = document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',f.botC.x); ln.setAttribute('y1',f.botC.y);
+    ln.setAttribute('x2',t2.topC.x); ln.setAttribute('y2',t2.topC.y);
+    ln.setAttribute('stroke','rgba(99,102,241,0.2)'); ln.setAttribute('stroke-width','2');
+    ln.setAttribute('stroke-dasharray','4 4'); svgEl.appendChild(ln);
+  }
+
+  sNums.forEach(sNum => {
+    if (!expanded[sNum]) return;
+    const sNodes = sections[sNum];
+    const main = sNodes.find(n=>n.isMain);
+    const kids = sNodes.filter(n=>!n.isMain);
+    if (!main||!kids.length) return;
+    const tp = pts(document.getElementById(`node-${main.id}`));
+    if (!tp) return;
+    kids.forEach((k,i) => {
+      const kp = pts(document.getElementById(`node-${k.id}`));
+      if (!kp) return;
+      const isLeft = (i%2===0);
+      const fx = isLeft ? tp.midL.x : tp.midR.x;
+      const tx = isLeft ? kp.midR.x : kp.midL.x;
+      const midX = (fx+tx)/2;
+      const dash = k.border==='dashed' ? '5 3' : '';
+      const d = Math.abs(tp.centerY-kp.centerY)>5
+        ? `M ${fx} ${tp.centerY} H ${midX} V ${kp.centerY} H ${tx}`
+        : `M ${fx} ${tp.centerY} H ${tx}`;
+      svgEl.appendChild(mkPath(d,'#2a2a4a',dash));
+    });
+  });
+}
+
+// ── Open Sheet ───────────────────────────────────────────────────
+function openSheet(nodeId) {
+  const node = NODES.find(n => n.id === nodeId);
+  if (!node) return;
+  activeNode = nodeId;
+
+  const DIFF_MAP = {
+    BEGINNER:     {cls:'beginner'},
+    INTERMEDIATE: {cls:'intermediate'},
+    ADVANCED:     {cls:'advanced'},
+    OPTIONAL:     {cls:'optional'}
+  };
+  const dc = DIFF_MAP[(node.difficulty||'BEGINNER').toUpperCase()] || DIFF_MAP.BEGINNER;
+
+  const diffEl = document.getElementById('s-diff');
+  diffEl.textContent = (node.difficulty||'BEGINNER').toUpperCase();
+  diffEl.className = `diff-badge ${dc.cls}`;
+
+  document.getElementById('s-title').textContent = node.special ? '🎉 DSA Master!' : node.label;
+  document.getElementById('s-time').textContent   = node.time || '—';
+  document.getElementById('s-why').textContent    = node.whyMatters || '';
+  document.getElementById('s-prereq').textContent = node.prerequisites || 'None';
+
+  const learnEl = document.getElementById('s-learn');
+  learnEl.innerHTML = (node.learn||[]).map(x=>`<li>${x}</li>`).join('');
+
+  const lcBtn = document.getElementById('s-lc');
+  lcBtn.onclick = () => node.leetcodeUrl && window.open(node.leetcodeUrl, '_blank', 'noopener');
+  lcBtn.style.display = node.leetcodeUrl ? '' : 'none';
+
+  const cfBtn = document.getElementById('s-cf');
+  cfBtn.style.display = node.codeforcesUrl ? '' : 'none';
+  if (node.codeforcesUrl) cfBtn.onclick = () => window.open(node.codeforcesUrl, '_blank', 'noopener');
+
+  document.getElementById('s-yt').onclick  = () => window.open(`https://youtube.com/results?search_query=${encodeURIComponent(node.youtubeQuery||node.label+' tutorial')}`,'_blank','noopener');
+  const docBtn = document.getElementById('s-doc');
+  docBtn.onclick = () => node.docsUrl && window.open(node.docsUrl, '_blank', 'noopener');
+  docBtn.style.opacity = node.docsUrl ? '1' : '0.4';
+
+  refreshStatusBtns(nodeId);
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheet').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  activeNode = null;
+}
+
+// ── Status ───────────────────────────────────────────────────────
+window.setStatus = function(status) {
+  if (!activeNode) return;
+  const cur = progress[activeNode]?.status;
+  if (cur === status) delete progress[activeNode];
+  else progress[activeNode] = { status, doneAt: new Date().toISOString() };
+  saveProgress(); applyProgress(); refreshStatusBtns(activeNode);
+  if (cur !== status) showToast(status==='done'?'✓ Marked complete!':status==='progress'?'⚡ In Progress':'→ Skipped');
+  else showToast('↩ Unmarked');
+};
+
+function refreshStatusBtns(nodeId) {
+  const s = progress[nodeId]?.status;
+  document.getElementById('sb-done').className     = 'st-btn'+(s==='done'?     ' active-done':'');
+  document.getElementById('sb-progress').className = 'st-btn'+(s==='progress'?' active-progress':'');
+  document.getElementById('sb-skip').className     = 'st-btn'+(s==='skip'?     ' active-skip':'');
+}
+
+// ── Apply Progress ───────────────────────────────────────────────
+function applyProgress() {
+  let done = 0;
+  NODES.forEach(node => {
+    const el  = document.getElementById(`node-${node.id}`);
+    const bdg = document.getElementById(`badge-${node.id}`);
+    if (!el) return;
+    el.classList.remove('node-done','node-progress','node-skip');
+    if (bdg) bdg.innerHTML = '';
+    const p = progress[node.id];
+    if (!p) return;
+    if (p.status === 'done') {
+      done++;
+      el.classList.add('node-done');
+      if (bdg) bdg.innerHTML = '<span class="done-badge">✓</span>';
+    } else if (p.status === 'progress') {
+      el.classList.add('node-progress');
+      if (bdg) bdg.innerHTML = '<span class="progress-ring"></span>';
+    } else if (p.status === 'skip') {
+      el.classList.add('node-skip');
+      if (bdg) bdg.innerHTML = '<span class="skip-badge">→</span>';
+    }
+  });
+  const pill = document.getElementById('hdr-pill');
+  if (pill) pill.textContent = `${done} / ${NODES.length} done`;
+  const bar = document.getElementById('prog-bar-fill');
+  if (bar) bar.style.width = `${NODES.length?(done/NODES.length*100):0}%`;
+  document.querySelectorAll('.sec-prog').forEach(el => {
+    const sNum = parseInt(el.closest('.sec-label')?.querySelector('.sec-num')?.textContent?.replace('§','').trim());
+    if (!sNum) return;
+    const secNodes = NODES.filter(n=>n.section===sNum);
+    const secDone  = secNodes.filter(n=>progress[n.id]?.status==='done').length;
+    el.textContent = `${secDone}/${secNodes.length}`;
+  });
+}
+
+// ── Toast ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ── Swipe to dismiss ─────────────────────────────────────────────
+(function() {
+  const sheet = document.getElementById('sheet');
+  let sy=0, cy=0, dragging=false, scrollTop=0;
+  sheet.addEventListener('touchstart', e=>{scrollTop=sheet.scrollTop;sy=cy=e.touches[0].clientY;dragging=true;},{passive:true});
+  sheet.addEventListener('touchmove', e=>{
+    if(!dragging)return; cy=e.touches[0].clientY;
+    const d=cy-sy;
+    if(d>0&&scrollTop<=0){sheet.style.transition='none';sheet.style.transform=`translateY(${Math.min(d*.6,200)}px)`;}
+  },{passive:true});
+  sheet.addEventListener('touchend', ()=>{
+    dragging=false; sheet.style.transition='';
+    if((cy-sy)>80&&scrollTop<=0){sheet.style.transform='';closeSheet();}
+    else sheet.style.transform='';
+  },{passive:true});
+  sheet.addEventListener('touchcancel',()=>{dragging=false;sheet.style.transform='';sheet.style.transition='';},{passive:true});
+})();
+
+// ── Wire overlay + escape ────────────────────────────────────────
+document.getElementById('overlay').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeSheet(); });
+
+// ── Resize / scroll redraw ───────────────────────────────────────
+window.addEventListener('resize', () => { clearTimeout(window._rst); window._rst = setTimeout(drawLines,150); });
+document.getElementById('graph').addEventListener('scroll', () => { clearTimeout(window._gst); window._gst = setTimeout(drawLines,80); }, {passive:true});
+
+// ── Boot ─────────────────────────────────────────────────────────
+render();
+
+})();
+</script>
+</body>
+</html>

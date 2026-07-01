@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Base config: no cleartext traffic allowed -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Backend API -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">roadmapx-backend-3qmc.onrender.com</domain>
+    </domain-config>
+
+    <!-- Frontend -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">roadmapx-frontend.pages.dev</domain>
+    </domain-config>
+
+    <!-- Google OAuth -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">accounts.google.com</domain>
+    </domain-config>
+</network-security-config>

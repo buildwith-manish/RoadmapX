@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <meta name="theme-color" content="#05050f" />
+  <title>Custom Roadmap — RoadmapX</title>
+  
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+
+<div id="crm-app">
+
+  <!-- ══════════════════════════════════════════
+       HEADER
+  ══════════════════════════════════════════ -->
+  <header id="crm-header">
+    <div class="crm-hdr-left">
+      <button class="crm-back-btn" id="crm-back-btn" onclick="CRM.goBack()" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="crm-hdr-info">
+        <div class="crm-hdr-title" id="crm-hdr-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          My Roadmaps
+        </div>
+        <div class="crm-hdr-sub" id="crm-hdr-sub">Your custom learning paths</div>
+      </div>
+    </div>
+    <div class="crm-hdr-right">
+      <button class="crm-hdr-btn" onclick="CRM.goToRoadmapList()" aria-label="All roadmaps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6"  x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════
+       SCREENS CONTAINER
+  ══════════════════════════════════════════ -->
+  <div id="crm-screens">
+
+    <!-- ────────────────────────────────────────
+         SCREEN: Roadmap List
+    ──────────────────────────────────────── -->
+    <div class="crm-screen active" id="crm-screen-list">
+
+      <!-- Hero -->
+      <div class="crm-list-hero">
+        <div class="crm-hero-orb crm-hero-orb-1"></div>
+        <div class="crm-hero-orb crm-hero-orb-2"></div>
+        <div class="crm-hero-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div class="crm-hero-title">My Roadmaps</div>
+        <div class="crm-hero-sub">Week cards · Days inside · Tap a day to study</div>
+        <button class="crm-create-roadmap-btn" onclick="CRM.openCreateRoadmap()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
+          </svg>
+          New Roadmap
+        </button>
+      </div>
+
+      <!-- Section label -->
+      <div class="crm-section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        YOUR ROADMAPS
+      </div>
+
+      <!-- Empty state (shown by JS when no roadmaps) -->
+      <div class="crm-empty-state" id="crm-list-empty" style="display:none">
+        <div class="crm-empty-ico crm-empty-ico-glow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
+        <div class="crm-empty-title">No roadmaps yet</div>
+        <div class="crm-empty-sub">Build your first custom learning path and start tracking your progress</div>
+        <button class="crm-empty-cta" onclick="CRM.openCreateRoadmap()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
+          </svg>
+          Create Roadmap
+        </button>
+      </div>
+
+      <!-- Roadmap cards — rendered by JS -->
+      <div id="crm-roadmaps-list"></div>
+
+    </div>
+    <!-- /crm-screen-list -->
+
+    <!-- ────────────────────────────────────────
+         SCREEN: Roadmap Detail (week cards)
+    ──────────────────────────────────────── -->
+    <div class="crm-screen" id="crm-screen-roadmap">
+      <div class="crm-screen-pad">
+
+        <!-- Overall progress banner -->
+        <div class="crm-progress-banner">
+          <div class="crm-prog-top">
+            <span class="crm-prog-label" id="crm-roadmap-prog-label">0 / 0 days done</span>
+            <span class="crm-prog-pct"   id="crm-roadmap-prog-pct">0%</span>
+          </div>
+          <div class="crm-prog-bar">
+            <div class="crm-prog-fill" id="crm-roadmap-prog-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Roadmap info strip -->
+        <div class="crm-roadmap-info-strip" id="crm-roadmap-info-strip"></div>
+
+        <!-- Section label -->
+        <div class="crm-section-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8"  y1="2" x2="8"  y2="6"/>
+            <line x1="3"  y1="10" x2="21" y2="10"/>
+          </svg>
+          WEEKS
+        </div>
+
+        <!-- Week cards — rendered by JS -->
+        <div id="crm-week-cards-list"></div>
+
+        <!-- Empty state (no weeks) -->
+        <div class="crm-empty-state" id="crm-roadmap-empty" style="display:none">
+          <div class="crm-empty-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8"  y1="2" x2="8"  y2="6"/>
+              <line x1="3"  y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="crm-empty-title">No weeks yet</div>
+          <div class="crm-empty-sub">Create a roadmap to generate week cards</div>
+        </div>
+
+      </div>
+    </div>
+    <!-- /crm-screen-roadmap -->
+
+    <!-- ────────────────────────────────────────
+         SCREEN: Day Detail
+    ──────────────────────────────────────── -->
+    <div class="crm-screen" id="crm-screen-day-detail">
+
+      <!-- Day hero -->
+      <div class="crm-day-hero">
+        <div class="crm-day-hero-orb"></div>
+        <div class="crm-day-num-badge"    id="crm-day-num-badge">DAY 1</div>
+        <div class="crm-day-detail-title" id="crm-day-detail-title">Day Title</div>
+        <div class="crm-day-detail-meta"  id="crm-day-detail-meta"></div>
+      </div>
+
+      <!-- ── SUBTAB BAR ── -->
+      <div class="crm-subtab-bar">
+        <button class="crm-subtab active" id="crm-subtab-roadmap" onclick="CRM.switchDaySub('roadmap',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Roadmap
+        </button>
+        <button class="crm-subtab" id="crm-subtab-revision" onclick="CRM.switchDaySub('revision',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+          Revision
+        </button>
+        <button class="crm-subtab" id="crm-subtab-pomo" onclick="CRM.switchDaySub('pomo',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Pomo
+        </button>
+        <button class="crm-subtab" id="crm-subtab-notes" onclick="CRM.switchDaySub('notes',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Notes
+        </button>
+        <button class="crm-subtab" id="crm-subtab-projects" onclick="CRM.switchDaySub('projects',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
+          Projects
+        </button>
+      </div>
+
+      <!-- ── SUB: ROADMAP (tasks + progress) ── -->
+      <div class="crm-day-sub active" id="crm-day-sub-roadmap">
+        <div class="crm-day-detail-pad">
+          <div class="crm-detail-blocks">
+
+            <!-- PROGRESS -->
+            <div class="crm-detail-block" id="crm-day-progress-block">
+              <div class="crm-detail-block-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                PROGRESS
+              </div>
+              <div class="crm-day-progress-inner">
+                <div class="crm-day-prog-row">
+                  <span class="crm-day-prog-label" id="crm-day-prog-label">0 / 0 tasks</span>
+                  <span class="crm-day-prog-pct"   id="crm-day-prog-pct">0%</span>
+                </div>
+                <div class="crm-day-prog-bar">
+                  <div class="crm-day-prog-fill" id="crm-day-prog-fill" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TASKS -->
+            <div class="crm-detail-block" id="crm-day-task-block">
+              <div class="crm-detail-block-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                TASKS
+              </div>
+              <div class="crm-task-list" id="crm-task-list-inner"></div>
+              <div class="crm-add-task-row">
+                <input class="crm-add-task-input" id="crm-add-task-input"
+                  placeholder="Add a task…" maxlength="120"
+                  onkeydown="if(event.key==='Enter')CRM.addTask()" />
+                <button class="crm-add-task-btn" onclick="CRM.addTask()" aria-label="Add task">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+          <!-- Complete / Edit bar -->
+          <div class="crm-complete-wrap">
+            <div class="crm-complete-status" id="crm-complete-status"></div>
+            <button class="crm-complete-btn" id="crm-complete-btn" onclick="CRM.toggleDayComplete()">
+              <span id="crm-complete-btn-label">Mark as Done</span>
+            </button>
+            <button class="crm-edit-day-btn" onclick="CRM.openEditDay()" aria-label="Edit day">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUB: REVISION ── -->
+      <div class="crm-day-sub" id="crm-day-sub-revision">
+        <div class="crm-day-detail-pad">
+          <div class="crm-detail-block">
+            <div class="crm-detail-block-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+              REVISION SCHEDULE
+            </div>
+            <div class="crm-revision-empty" id="crm-revision-empty">
+              <div class="crm-empty-ico" style="font-size:32px">🔁</div>
+              <div class="crm-empty-title">No revisions yet</div>
+              <div class="crm-empty-sub">Mark this day as done to auto-schedule spaced repetition revisions.</div>
+            </div>
+            <div id="crm-revision-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUB: POMODORO ── -->
+      <div class="crm-day-sub" id="crm-day-sub-pomo">
+        <div class="crm-day-detail-pad">
+          <div class="crm-detail-block" id="crm-day-pomo-block">
+            <div class="crm-detail-block-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              POMODORO TIMER
+            </div>
+            <div class="crm-pomo-inner">
+              <!-- Duration row -->
+              <div class="crm-pomo-dur-row">
+                <span class="crm-pomo-dur-label">Focus:</span>
+                <input class="crm-pomo-dur-input" id="crm-pomo-dur-input" type="number" value="25" min="1" max="180"
+                  oninput="CRM.pomodoro.syncSlider()"/>
+                <span class="crm-pomo-dur-label">min</span>
+                <button class="crm-pomo-dur-set-btn" onclick="CRM.pomodoro.setCustomDuration()">Set</button>
+                <button class="crm-pomo-alarm-stop-btn" id="crm-pomo-alarm-stop" onclick="CRM.pomodoro.stopAlarm()" style="display:none">Stop</button>
+              </div>
+              <!-- Slider -->
+              <div class="crm-pomo-slider-row">
+                <input class="crm-pomo-slider" id="crm-pomo-slider" type="range" min="1" max="180" value="25"
+                  oninput="CRM.pomodoro.syncFromSlider()"/>
+                <div class="crm-pomo-slider-labels">
+                  <span>1m</span><span>30m</span><span>60m</span><span>90m</span><span>120m</span><span>180m</span>
+                </div>
+              </div>
+              <!-- Quick preset chips -->
+              <div class="crm-pomo-presets">
+                <button class="crm-pomo-preset active" data-dur="25" onclick="CRM.pomodoro.setPreset(this)">25m</button>
+                <button class="crm-pomo-preset" data-dur="45" onclick="CRM.pomodoro.setPreset(this)">45m</button>
+                <button class="crm-pomo-preset" data-dur="60" onclick="CRM.pomodoro.setPreset(this)">60m</button>
+                <button class="crm-pomo-preset" data-dur="90" onclick="CRM.pomodoro.setPreset(this)">90m</button>
+                <button class="crm-pomo-preset" data-dur="120" onclick="CRM.pomodoro.setPreset(this)">120m</button>
+              </div>
+              <div class="crm-pomo-display">
+                <div class="crm-pomo-ring">
+                  <svg viewBox="0 0 100 100" class="crm-pomo-svg">
+                    <circle class="crm-pomo-track"    cx="50" cy="50" r="42"/>
+                    <circle class="crm-pomo-progress" id="crm-pomo-progress"
+                      cx="50" cy="50" r="42"
+                      stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+                  </svg>
+                  <div class="crm-pomo-center">
+                    <div class="crm-pomo-time" id="crm-pomo-time">25:00</div>
+                    <div class="crm-pomo-mode" id="crm-pomo-mode">FOCUS</div>
+                  </div>
+                </div>
+                <div class="crm-pomo-count-row">
+                  <span class="crm-pomo-count-label">Sessions today</span>
+                  <span class="crm-pomo-count-val" id="crm-pomo-count">0</span>
+                </div>
+              </div>
+              <div class="crm-pomo-controls">
+                <button class="crm-pomo-btn crm-pomo-btn-secondary" onclick="CRM.pomodoro.reset()" aria-label="Reset">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg>
+                </button>
+                <button class="crm-pomo-btn crm-pomo-btn-primary" id="crm-pomo-play" onclick="CRM.pomodoro.toggle()" aria-label="Start/Pause">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="crm-pomo-btn crm-pomo-btn-secondary" onclick="CRM.pomodoro.skip()" aria-label="Skip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                </button>
+              </div>
+              <!-- Focus hours card -->
+              <div class="crm-focus-hours-card">
+                <div class="crm-focus-hours-val" id="crm-pomo-focus-hours">0.0</div>
+                <div class="crm-focus-hours-lbl">Focus Hours (This Day)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUB: NOTES ── -->
+      <div class="crm-day-sub" id="crm-day-sub-notes">
+        <div class="crm-day-detail-pad">
+          <div class="crm-detail-block" id="crm-day-goal-block">
+            <div class="crm-detail-block-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              STUDY NOTES
+              <button class="crm-block-edit-btn" id="crm-notes-edit-btn" onclick="CRM.toggleNotesEdit()" aria-label="Edit notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+            </div>
+            <div class="crm-detail-block-text" id="crm-day-goal-text"></div>
+            <textarea class="crm-inline-notes" id="crm-day-notes-inline"
+              placeholder="Write study notes, key concepts, explanations…"
+              style="display:none" oninput="CRM.autoSaveNotes()"></textarea>
+            <div class="crm-notes-save-row" id="crm-notes-save-row" style="display:none">
+              <button class="crm-inline-save-btn" onclick="CRM.saveNotesInline()">Save Notes</button>
+            </div>
+          </div>
+          <!-- Saved notes entries -->
+          <div class="crm-detail-block" style="margin-top:12px">
+            <div class="crm-detail-block-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/></svg>
+              SAVED ENTRIES
+            </div>
+            <div id="crm-notes-entries-list">
+              <div class="crm-empty-inline">No saved entries yet — write notes and save them above.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUB: PROJECTS ── -->
+      <div class="crm-day-sub" id="crm-day-sub-projects">
+        <div class="crm-day-detail-pad">
+          <div class="crm-detail-block">
+            <div class="crm-detail-block-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
+              DAY PROJECTS
+            </div>
+            <button class="crm-add-project-btn" onclick="CRM.openAddProject()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Project
+            </button>
+            <div id="crm-projects-list">
+              <div class="crm-empty-inline">No projects yet — add one to track your builds.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- /crm-screen-day-detail -->
+
+  </div>
+  <!-- /crm-screens -->
+
+</div>
+<!-- /crm-app -->
+
+<!-- ══════════════════════════════════════════
+     MODAL: Create Roadmap Wizard
+══════════════════════════════════════════ -->
+<div class="crm-modal-overlay" id="crm-modal-create-roadmap" onclick="CRM.closeCreateRoadmap()">
+  <div class="crm-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Create roadmap">
+
+    <!-- Header: close + step dots + counter -->
+    <div class="crm-wizard-header">
+      <button class="crm-wizard-close-btn" onclick="CRM.closeCreateRoadmap()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6"  x2="6"  y2="18"/>
+          <line x1="6"  y1="6"  x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div class="crm-wizard-progress-bar">
+        <div class="crm-dot active" data-step="1"></div>
+        <div class="crm-dot"        data-step="2"></div>
+        <div class="crm-dot"        data-step="3"></div>
+        <div class="crm-dot"        data-step="4"></div>
+      </div>
+      <div class="crm-wizard-step-label" id="crm-wizard-step-label">Step 1 of 4</div>
+    </div>
+
+    <!-- Steps body -->
+    <div class="crm-wizard-steps">
+
+      <!-- Step 1: Title -->
+      <div class="crm-wizard-step active" id="crm-wiz-step-1">
+        <div class="crm-wiz-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
+        <div class="crm-wiz-title">Name your roadmap</div>
+        <div class="crm-wiz-sub">Give it a clear, memorable title.</div>
+        <div class="crm-wiz-title-group">
+          <input class="crm-wiz-inp-title" id="crm-wiz-inp-title"
+            placeholder="e.g. Web Dev 90 Days" maxlength="80"
+            oninput="CRM.wizUpdateNext()" />
+          <span class="crm-wiz-title-count" id="crm-wiz-title-count">0 / 80</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Level -->
+      <div class="crm-wizard-step" id="crm-wiz-step-2">
+        <div class="crm-wiz-icon crm-wiz-icon-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="crm-wiz-title">Choose your level</div>
+        <div class="crm-wiz-sub">Sets the tone. You can skip this.</div>
+        <div class="crm-wiz-option-grid">
+          <button class="crm-wiz-option-card" data-value="Beginner"     onclick="CRM.wizSelectLevel(this)">
+            <div class="crm-wiz-opt-emoji">🟢</div>
+            <div class="crm-wiz-opt-label">Beginner</div>
+            <div class="crm-wiz-opt-desc">Start fresh</div>
+          </button>
+          <button class="crm-wiz-option-card" data-value="Intermediate" onclick="CRM.wizSelectLevel(this)">
+            <div class="crm-wiz-opt-emoji">🟡</div>
+            <div class="crm-wiz-opt-label">Intermediate</div>
+            <div class="crm-wiz-opt-desc">Some experience</div>
+          </button>
+          <button class="crm-wiz-option-card" data-value="Advanced"     onclick="CRM.wizSelectLevel(this)">
+            <div class="crm-wiz-opt-emoji">🔴</div>
+            <div class="crm-wiz-opt-label">Advanced</div>
+            <div class="crm-wiz-opt-desc">Deep dive</div>
+          </button>
+          <button class="crm-wiz-option-card crm-wiz-opt-skip" data-value="" onclick="CRM.wizSelectLevel(this)">
+            <div class="crm-wiz-opt-emoji">⚡</div>
+            <div class="crm-wiz-opt-label">Skip</div>
+            <div class="crm-wiz-opt-desc">No label</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Weeks -->
+      <div class="crm-wizard-step" id="crm-wiz-step-3">
+        <div class="crm-wiz-icon crm-wiz-icon-amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8"  y1="2" x2="8"  y2="6"/>
+            <line x1="3"  y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="crm-wiz-title">How many weeks?</div>
+        <div class="crm-wiz-sub">Each week has 7 days, auto-generated.</div>
+        <div class="crm-wiz-week-grid">
+          <button class="crm-wiz-week-btn" data-value="2"  onclick="CRM.wizSelectWeeks(this)">2</button>
+          <button class="crm-wiz-week-btn" data-value="4"  onclick="CRM.wizSelectWeeks(this)">4</button>
+          <button class="crm-wiz-week-btn" data-value="6"  onclick="CRM.wizSelectWeeks(this)">6</button>
+          <button class="crm-wiz-week-btn" data-value="8"  onclick="CRM.wizSelectWeeks(this)">8</button>
+          <button class="crm-wiz-week-btn" data-value="10" onclick="CRM.wizSelectWeeks(this)">10</button>
+          <button class="crm-wiz-week-btn" data-value="12" onclick="CRM.wizSelectWeeks(this)">12</button>
+          <button class="crm-wiz-week-btn crm-wiz-week-btn-custom" data-value="custom" onclick="CRM.wizSelectWeeksCustom(this)">✏️ Custom</button>
+        </div>
+        <div class="crm-wiz-custom-week-row" id="crm-wiz-custom-week-row" style="display:none">
+          <input class="crm-input crm-wiz-custom-week-input" id="crm-wiz-custom-week-inp"
+            type="number" min="1" max="520" placeholder="Enter weeks (e.g. 20)"
+            oninput="CRM.wizCustomWeekInput()" />
+        </div>
+        <div class="crm-wiz-weeks-preview" id="crm-wiz-weeks-preview" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span id="crm-wiz-weeks-preview-text"></span>
+        </div>
+      </div>
+
+      <!-- Step 4: Summary -->
+      <div class="crm-wizard-step" id="crm-wiz-step-4">
+        <div class="crm-wiz-icon crm-wiz-icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="crm-wiz-title">All set! 🎉</div>
+        <div class="crm-wiz-sub">Review your roadmap before we build it.</div>
+        <div class="crm-wiz-summary">
+          <div class="crm-wiz-summary-row">
+            <span class="crm-wiz-sum-label">ROADMAP</span>
+            <span class="crm-wiz-sum-val" id="crm-sum-title">—</span>
+          </div>
+          <div class="crm-wiz-summary-row">
+            <span class="crm-wiz-sum-label">LEVEL</span>
+            <span class="crm-wiz-sum-val" id="crm-sum-level">—</span>
+          </div>
+          <div class="crm-wiz-summary-row">
+            <span class="crm-wiz-sum-label">WEEKS</span>
+            <span class="crm-wiz-sum-val" id="crm-sum-weeks">—</span>
+          </div>
+          <div class="crm-wiz-summary-row">
+            <span class="crm-wiz-sum-label">DAYS</span>
+            <span class="crm-wiz-sum-val crm-sum-days-val" id="crm-sum-days">7 × weeks</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- /crm-wizard-steps -->
+
+    <!-- Footer: back + next/create -->
+    <div class="crm-wizard-footer">
+      <button class="crm-wiz-back-btn" id="crm-wiz-back-btn" onclick="CRM.wizBack()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Back
+      </button>
+      <button class="crm-wiz-next-btn" id="crm-wiz-next-btn" onclick="CRM.wizNext()" disabled>
+        Continue
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+<!-- /crm-modal-create-roadmap -->
+
+<!-- ══════════════════════════════════════════
+     MODAL: Edit Day
+══════════════════════════════════════════ -->
+<div class="crm-modal-overlay" id="crm-modal-day" onclick="CRM.closeAddDay()">
+  <div class="crm-modal crm-modal-tall" onclick="event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="crm-modal-header">
+      <div class="crm-modal-title" id="crm-modal-day-title">Edit Day</div>
+      <button class="crm-modal-close" onclick="CRM.closeAddDay()" aria-label="Close">✕</button>
+    </div>
+    <div class="crm-modal-body crm-modal-body-scroll">
+      <div class="crm-field">
+        <label class="crm-field-label" for="crm-inp-day-goal">Notes</label>
+        <textarea class="crm-textarea" id="crm-inp-day-goal"
+          placeholder="Study notes, explanations, key concepts…" rows="4"></textarea>
+      </div>
+      <div class="crm-field">
+        <label class="crm-field-label" for="crm-inp-day-notes">Tasks (one per line)</label>
+        <textarea class="crm-textarea" id="crm-inp-day-notes"
+          placeholder="Watch video&#10;Solve 3 problems&#10;Read chapter 4" rows="3"></textarea>
+      </div>
+      <div class="crm-field">
+        <label class="crm-field-label" for="crm-inp-day-task">Pomodoro Count</label>
+        <input class="crm-input" id="crm-inp-day-task"
+          type="number" min="0" max="20" placeholder="0" />
+      </div>
+      <div class="crm-field">
+        <label class="crm-field-label" for="crm-inp-day-resources">Revision Dates (comma-separated)</label>
+        <input class="crm-input" id="crm-inp-day-resources"
+          placeholder="2024-01-15, 2024-01-22" />
+      </div>
+      <!-- Hidden — kept for JS save compatibility -->
+      <input type="hidden" id="crm-inp-day-title" />
+      <input type="hidden" id="crm-inp-day-time" />
+    </div>
+    <div class="crm-modal-footer">
+      <button class="crm-btn-ghost"    onclick="CRM.closeAddDay()">Cancel</button>
+      <button class="crm-btn-primary"  id="crm-btn-save-day" onclick="CRM.saveDay()">Save Day</button>
+    </div>
+  </div>
+</div>
+<!-- /crm-modal-day -->
+
+<!-- Stub modals — JS calls closeAddLevel() / closeAddWeek() -->
+<div class="crm-modal-overlay" id="crm-modal-level" onclick="CRM.closeAddLevel()">
+  <div class="crm-modal" onclick="event.stopPropagation()">
+    <div class="crm-modal-header">
+      <div class="crm-modal-title">Level</div>
+      <button class="crm-modal-close" onclick="CRM.closeAddLevel()">✕</button>
+    </div>
+    <div class="crm-modal-footer">
+      <button class="crm-btn-ghost" onclick="CRM.closeAddLevel()">Close</button>
+    </div>
+  </div>
+</div>
+<div class="crm-modal-overlay" id="crm-modal-week" onclick="CRM.closeAddWeek()">
+  <div class="crm-modal" onclick="event.stopPropagation()">
+    <div class="crm-modal-header">
+      <div class="crm-modal-title">Week</div>
+      <button class="crm-modal-close" onclick="CRM.closeAddWeek()">✕</button>
+    </div>
+    <div class="crm-modal-footer">
+      <button class="crm-btn-ghost" onclick="CRM.closeAddWeek()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════ -->
+<div class="crm-toast" id="crm-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script src="custom-roadmap.js"></script>
+</body>
+</html>

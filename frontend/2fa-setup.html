@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05050f">
+<!-- PWA / Mobile Meta -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RoadmapX">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Offline Detection -->
+<script src="/offline.js" defer></script>
+
+  <title>RoadmapX — Two-Factor Authentication</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#070711;--surface:rgba(10,10,26,.88);--border:rgba(123,47,255,.25);
+      --cyan:#00f5d4;--purple:#7b2fff;--text:#c9d1e0;--text-dim:#5a6480;--danger:#ff6b8a;
+    }
+    body{
+      min-height:100vh;background-color:var(--bg);
+      background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(123,47,255,.18),transparent 70%);
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--text);padding:40px 20px;
+    }
+    .wrap{max-width:560px;margin:0 auto}
+    .top{margin-bottom:24px}
+    .top a{color:var(--cyan);text-decoration:none;font-size:.85rem;font-family:'Courier New',monospace}
+    h1{
+      font-size:1.6rem;font-weight:700;margin-bottom:8px;
+      background:linear-gradient(90deg,var(--cyan),#a78bfa,var(--purple));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .sub{color:var(--text-dim);font-size:.88rem;line-height:1.55;margin-bottom:24px}
+    .card{
+      background:var(--surface);border:1px solid var(--border);border-radius:14px;
+      padding:28px;backdrop-filter:blur(16px);margin-bottom:18px;
+    }
+    .step-title{font-size:1rem;font-weight:600;margin-bottom:12px;color:var(--cyan);font-family:'Courier New',monospace;letter-spacing:.05em}
+    .qr{display:flex;justify-content:center;margin:18px 0}
+    .qr img{width:200px;height:200px;border-radius:10px;background:#fff;padding:8px}
+    .secret{
+      font-family:'Courier New',monospace;background:rgba(0,0,0,.35);
+      border:1px dashed var(--border);border-radius:8px;padding:10px;
+      text-align:center;letter-spacing:.18em;font-size:.95rem;word-break:break-all;
+    }
+    .field{margin-top:14px}
+    label{display:block;font-size:.78rem;color:var(--text-dim);margin-bottom:6px;font-family:'Courier New',monospace;letter-spacing:.05em}
+    input{
+      width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);
+      color:var(--text);border-radius:8px;padding:11px 14px;font-size:1.1rem;
+      letter-spacing:.4em;text-align:center;font-family:'Courier New',monospace;
+    }
+    input:focus{outline:none;border-color:var(--cyan)}
+    .btn{
+      display:inline-block;padding:11px 22px;border:none;border-radius:9px;
+      color:#fff;font-weight:600;cursor:pointer;text-decoration:none;font-size:.9rem;
+      background:linear-gradient(90deg,var(--cyan),var(--purple));margin-top:14px;
+    }
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:500}
+    .btn.danger{background:transparent;border:1px solid rgba(255,107,138,.4);color:var(--danger);font-weight:500}
+    .msg{margin-top:10px;font-size:.85rem;min-height:1.2em}
+    .msg.error{color:var(--danger)}
+    .msg.success{color:var(--cyan)}
+    .codes{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px;
+    }
+    .codes div{
+      font-family:'Courier New',monospace;background:rgba(0,0,0,.35);
+      border:1px solid var(--border);padding:10px;border-radius:6px;text-align:center;
+      letter-spacing:.15em;font-size:.95rem;
+    }
+    .hide{display:none}
+    .status{
+      display:inline-block;font-size:.7rem;padding:3px 10px;border-radius:99px;
+      letter-spacing:.12em;font-family:'Courier New',monospace;margin-left:10px;
+    }
+    .status.on{background:rgba(0,245,212,.15);color:var(--cyan)}
+    .status.off{background:rgba(255,107,138,.12);color:var(--danger)}
+  </style>
+<style>
+  button, a, [onclick] { touch-action: manipulation; }
+  [style*="overflow"], .scroll-container, #content { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top"><a href="index.html">&larr; Back to app</a></div>
+
+    <h1>Two-Factor Authentication
+      <span id="status-badge" class="status off">CHECKING…</span>
+    </h1>
+    <p class="sub">
+      Add an extra layer of security. After your password, you'll enter a 6-digit
+      code from an app like Google Authenticator, Authy, or 1Password.
+    </p>
+
+    <!-- ENABLED STATE -->
+    <div id="enabled-card" class="card hide">
+      <div class="step-title">2FA is active</div>
+      <p class="sub" style="margin-bottom:0">
+        Your account is protected. To turn 2FA off, enter a current code below.
+      </p>
+      <div class="field">
+        <label for="disable-code">Current 6-digit code</label>
+        <input type="text" id="disable-code" inputmode="numeric" maxlength="6" />
+      </div>
+      <button class="btn danger" id="disable-btn">Disable 2FA</button>
+      <div class="msg" id="disable-msg"></div>
+    </div>
+
+    <!-- SETUP STATE -->
+    <div id="setup-card" class="card hide">
+      <div class="step-title">Step 1 — Scan the QR code</div>
+      <p class="sub">Open your authenticator app and scan this code:</p>
+      <div class="qr" id="qr"></div>
+      <p class="sub">Or enter this key manually:</p>
+      <div class="secret" id="secret">—</div>
+    </div>
+
+    <div id="verify-card" class="card hide">
+      <div class="step-title">Step 2 — Confirm with a code</div>
+      <p class="sub">Enter the 6-digit code your app shows now.</p>
+      <div class="field">
+        <label for="enable-code">Verification code</label>
+        <input type="text" id="enable-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+      </div>
+      <button class="btn" id="enable-btn">Enable 2FA</button>
+      <div class="msg" id="enable-msg"></div>
+    </div>
+
+    <!-- BACKUP CODES -->
+    <div id="backup-card" class="card hide">
+      <div class="step-title">Save your backup codes</div>
+      <p class="sub">
+        Each code works <strong>once</strong>. Store them somewhere safe — they let
+        you in if you lose your phone. They won't be shown again.
+      </p>
+      <div class="codes" id="backup-codes"></div>
+      <button class="btn ghost" id="copy-btn">Copy all</button>
+      <a href="index.html" class="btn">Done</a>
+    </div>
+
+    <div id="start-card" class="card hide">
+      <div class="step-title">Get started</div>
+      <p class="sub">2FA is currently off. Click below to set it up.</p>
+      <button class="btn" id="start-btn">Set up 2FA</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="auth_guard.js" defer></script>
+  <script src="2fa_setup_script.js" defer></script>
+</body>
+</html>
