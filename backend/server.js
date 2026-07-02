@@ -75,23 +75,43 @@ app.set("trust proxy", 1);
 const IS_PROD = process.env.RENDER === "true" || process.env.NODE_ENV === "production";
 
 // FIX 3: CORS with function-based origin for better cross-origin cookie support.
+//
+// Origins are loaded from TWO sources, merged at startup:
+//   1. A hardcoded safe baseline (localhost dev + known prod URLs)
+//   2. process.env.CORS_ORIGINS — comma-separated list of additional origins.
+//      Set this on Render to your Vercel URL, e.g.:
+//        CORS_ORIGINS=https://roadmap-x.vercel.app,https://roadmapx-custom.vercel.app
+//      This way you can add new frontend hosts (Vercel preview URLs, custom
+//      domains, etc.) WITHOUT changing code.
+const _BASELINE_ORIGINS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "http://localhost:5000",
+  "https://roadmapx.onrender.com",
+  "https://roadmapx.pages.dev",
+  "https://roadmapx-frontend.pages.dev",
+  "capacitor://localhost",
+  "http://localhost",
+  "https://localhost",
+];
+const _EXTRA_ORIGINS = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+const ALLOWED_ORIGINS = new Set([..._BASELINE_ORIGINS, ..._EXTRA_ORIGINS]);
+if (_EXTRA_ORIGINS.length) {
+  console.log(`[CORS] Extra origins loaded from env: ${_EXTRA_ORIGINS.join(", ")}`);
+}
+
 app.use(cors({
   origin: function (origin, callback) {
-    const allowed = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://localhost:5500",
-      "http://127.0.0.1:5500",
-      "https://roadmapx.onrender.com",
-      "https://roadmapx.pages.dev",
-      "https://roadmapx-frontend.pages.dev",
-      "capacitor://localhost",
-      "http://localhost",
-      "https://localhost",
-    ];
-    if (!origin || allowed.includes(origin)) {
+    // No Origin header = same-origin request or non-browser client → allow.
+    if (!origin || ALLOWED_ORIGINS.has(origin)) {
       callback(null, true);
     } else {
+      console.warn(`[CORS] Rejected origin: ${origin}`);
       callback(new Error("CORS: origin not allowed: " + origin));
     }
   },
